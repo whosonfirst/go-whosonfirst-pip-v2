@@ -24,10 +24,10 @@ func main() {
 	var host = flag.String("host", "localhost", "The hostname to listen for requests on")
 	var port = flag.Int("port", 8080, "The port number to listen for requests on")
 
-	var cache = flag.String("cache", "lru", "...")
+	var cache = flag.String("cache", "gocache", "...")
 	var cache_all = flag.Bool("cache-all", false, "")
 
-	var failover_cache = flag.String("failover-cache", "lru", "...")
+	var failover_cache = flag.String("failover-cache", "gocache", "...")
 
 	var lru_cache_size = flag.Int("lru-cache-size", 1024, "...")
 	var lru_cache_trigger = flag.Int("lru-cache-trigger", 2000, "")

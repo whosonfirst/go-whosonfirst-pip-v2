@@ -1,70 +1,5 @@
 package main
 
-/*
-
-00:47:14.786746 [wof-pip-server][STATUS] listening on localhost:8080
-00:47:56.446116 [wof-pip-server][index][STATUS] SEARCH [-73.51, -73.51]x[45.56, 45.56] 166.853µs
-00:47:56.456283 [wof-pip-server][failover][STATUS] GET 1108963037
-00:47:56.456394 [wof-pip-server][lru][STATUS] GET 1108963037 9.266µs
-00:47:56.468770 [wof-pip-server][failover][STATUS] PRIMARY HIT 1108963037
-00:47:56.492490 [wof-pip-server][failover][STATUS] GET 1108963037 12.434419ms
-00:47:56.494290 [wof-pip-server][failover][STATUS] GET 1108963041
-00:47:56.494369 [wof-pip-server][lru][STATUS] GET 1108963041 7.497µs
-00:47:56.494892 [wof-pip-server][failover][STATUS] PRIMARY HIT 1108963041
-00:47:56.494941 [wof-pip-server][failover][STATUS] GET 1108963041 602.407µs
-00:47:56.495801 [wof-pip-server][failover][STATUS] GET 85875721
-00:47:56.495852 [wof-pip-server][lru][STATUS] GET 85875721 4.058µs
-00:47:56.496284 [wof-pip-server][failover][STATUS] PRIMARY MISS 85875721
-00:47:56.498285 [wof-pip-server][source][STATUS] GET 85875721 1.932644ms
-00:47:56.544526 [wof-pip-server][failover][STATUS] SECONDARY HIT 85875721
-00:47:56.552458 [wof-pip-server][failover][STATUS] GET 85875721 48.787771ms
-00:47:56.564666 [wof-pip-server][index][STATUS] INFLATE {45.557093 -73.513641} 108.347259ms
-00:47:56.565009 [wof-pip-server][index][STATUS] INTERSECT {45.557093 -73.513641} 119.109189ms
-
-curl -s 'localhost:8080?latitude=45.557093&longitude=-73.513641' | python -mjson.tool
-{
-    "places": [
-        {
-            "mz:is_ceased": 0,
-            "mz:is_current": -1,
-            "mz:is_deprecated": 0,
-            "mz:is_superseded": 0,
-            "mz:is_superseding": 0,
-            "mz:uri": "https://whosonfirst.mapzen.com/data/110/896/303/7/1108963037.geojson",
-            "wof:country": "CA",
-            "wof:id": 1108963037,
-            "wof:name": "Saint Lawrence River",
-            "wof:parent_id": -3,
-            "wof:path": "110/896/303/7/1108963037.geojson",
-            "wof:placetype": "neighbourhood",
-            "wof:repo": "whosonfirst-data",
-            "wof:superseded_by": [],
-            "wof:supersedes": []
-        },
-        {
-            "mz:is_ceased": 0,
-            "mz:is_current": 0,
-            "mz:is_deprecated": 1,
-            "mz:is_superseded": 1,
-            "mz:is_superseding": 0,
-            "mz:uri": "https://whosonfirst.mapzen.com/data/858/757/21/85875721.geojson",
-            "wof:country": "CA",
-            "wof:id": 85875721,
-            "wof:name": "Vieux Longueuil",
-            "wof:parent_id": 101738793,
-            "wof:path": "858/757/21/85875721.geojson",
-            "wof:placetype": "neighbourhood",
-            "wof:repo": "whosonfirst-data",
-            "wof:superseded_by": [
-                1108961051
-            ],
-            "wof:supersedes": []
-        }
-    ]
-}
-
-*/
-
 import (
 	"flag"
 	"fmt"
@@ -78,6 +13,7 @@ import (
 	"os"
 	"runtime"
 	godebug "runtime/debug"
+	"strings"
 	// "sync"
 	// "syscall"
 	"time"
@@ -89,21 +25,25 @@ func main() {
 	var port = flag.Int("port", 8080, "The port number to listen for requests on")
 
 	var cache = flag.String("cache", "lru", "...")
+	var cache_all = flag.Bool("cache-all", false, "")
 
 	var failover_cache = flag.String("failover-cache", "lru", "...")
 
 	var lru_cache_size = flag.Int("lru-cache-size", 1024, "")
-	var lru_cache_trigger = flag.Int("lru-cache-trigger", 0, "")
+	var lru_cache_trigger = flag.Int("lru-cache-trigger", 2000, "")
 
 	var mode = flag.String("mode", "files", "")
 	var procs = flag.Int("processes", runtime.NumCPU()*2, "")
 
 	var not_wof = flag.Bool("not-wof", false, "")
 
-	var debug = flag.Bool("debug", false, "")
-	var as_geojson = flag.Bool("debug-as-geojson", false, "")
+	var www = flag.Bool("www", false, "")
+	var www_path = flag.String("www-path", "/debug/", "")
+	var www_geojson = flag.Bool("www-as-geojson", false, "")
+	var www_local = flag.Bool("www-local", false, "")
+	var www_root = flag.String("www-root", "", "")
 
-	var api_key = flag.String("api-key", "mapzen-xxxxxxx", "")
+	var api_key = flag.String("mapzen-api-key", "mapzen-xxxxxxx", "")
 
 	flag.Parse()
 
@@ -136,6 +76,11 @@ func main() {
 	appcache_opts.LRUCacheTriggerSize = *lru_cache_trigger
 	appcache_opts.SourceCacheRoot = "/usr/local/data"
 
+	if *cache_all {
+		appcache_opts.LRUCacheSize = 0
+		appcache_opts.LRUCacheTriggerSize = 0		
+	}
+	
 	appcache, err := app.ApplicationCache(appcache_opts)
 
 	if err != nil {
@@ -180,7 +125,7 @@ func main() {
 	}()
 
 	intersects_opts := http.NewDefaultIntersectsHandlerOptions()
-	intersects_opts.AsGeoJSON = *as_geojson
+	intersects_opts.AsGeoJSON = *www_geojson
 
 	intersects_handler, err := http.IntersectsHandler(appindex, indexer, intersects_opts)
 
@@ -199,7 +144,7 @@ func main() {
 
 	mux := gohttp.NewServeMux()
 
-	if *debug {
+	if *www {
 
 		mapzenjs_handler, err := mapzenjs.MapzenJSHandler()
 
@@ -207,23 +152,59 @@ func main() {
 			logger.Fatal("failed to create mapzen.js handler because %s", err)
 		}
 
-		www_handler, err := http.WWWHandler()
+		var www_handler gohttp.Handler
+		var www_fs gohttp.FileSystem
 
-		if err != nil {
-			logger.Fatal("failed to create www handler because %s", err)
+		if *www_local {
+
+			local_fs, err := http.LocalWWWFileSystem(*www_root)
+
+			if err != nil {
+				logger.Fatal("failed to create (local) file system because %s", err)
+			}
+
+			local_handler, err := http.LocalWWWHandler(local_fs)
+
+			if err != nil {
+				logger.Fatal("failed to create (local) www handler because %s", err)
+			}
+
+			www_handler = local_handler
+			www_fs = local_fs
+
+		} else {
+
+			bundled_handler, err := http.BundledWWWHandler()
+
+			if err != nil {
+				logger.Fatal("failed to create (bundled) www handler because %s", err)
+			}
+
+			bundled_fs, err := http.BundledWWWFileSystem()
+
+			if err != nil {
+				logger.Fatal("failed to create (bundled) file system because %s", err)
+			}
+
+			www_handler = bundled_handler
+			www_fs = bundled_fs
 		}
 
-		fs := http.WWWFileSystem()
-
-		apikey_handler, err := mapzenjs.MapzenAPIKeyHandler(www_handler, fs, *api_key)
+		apikey_handler, err := mapzenjs.MapzenAPIKeyHandler(www_handler, www_fs, *api_key)
 
 		if err != nil {
-			logger.Fatal("failed to create query handler because %s", err)
+			logger.Fatal("failed to create API key handler because %s", err)
 		}
 
 		opts := rewrite.DefaultRewriteRuleOptions()
 
-		rule := rewrite.RemovePrefixRewriteRule("/debug", opts)
+		rewrite_path := *www_path
+
+		if strings.HasSuffix(rewrite_path, "/"){
+			rewrite_path = strings.TrimRight(rewrite_path, "/")
+		}
+		
+		rule := rewrite.RemovePrefixRewriteRule(rewrite_path, opts)
 		rules := []rewrite.RewriteRule{rule}
 
 		debug_handler, err := rewrite.RewriteHandler(rules, apikey_handler)
@@ -242,13 +223,14 @@ func main() {
 
 		mux.Handle("/javascript/mapzen.min.js", mapzenjs_handler)
 		mux.Handle("/javascript/tangram.min.js", mapzenjs_handler)
+		mux.Handle("/javascript/tangram.js", mapzenjs_handler)		
 		mux.Handle("/css/mapzen.js.css", mapzenjs_handler)
 		mux.Handle("/tangram/refill-style.zip", mapzenjs_handler)
 
 		mux.Handle("/javascript/mapzen.whosonfirst.pip.js", www_handler)
 		mux.Handle("/css/mapzen.whosonfirst.pip.css", www_handler)
 
-		mux.Handle("/debug/", debug_handler)
+		mux.Handle(*www_path, debug_handler)
 	}
 
 	mux.Handle("/ping", ping_handler)

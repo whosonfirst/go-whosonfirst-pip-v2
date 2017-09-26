@@ -199,8 +199,15 @@ window.addEventListener("load", function load(event){
 	};
 	
 	L.Mapzen.apiKey = document.body.getAttribute("data-mapzen-api-key");
+
+	var map_opts = {
+		tangramOptions: {
+                        scene: "/tangram/refill-style.zip",
+			tangramURL: "/javascript/tangram.js",
+                }
+	};
 	
-	map = L.Mapzen.map('map');
+	map = L.Mapzen.map('map', map_opts);
 	map.setView([37.7749, -122.4194], 12);
 	
         var layers = [

@@ -6,7 +6,7 @@ import (
 
 func BundledWWWFileSystem() (gohttp.FileSystem, error) {
 	fs := assetFS()
-	return fs, nil	   
+	return fs, nil
 }
 
 func BundledWWWHandler() (gohttp.Handler, error) {

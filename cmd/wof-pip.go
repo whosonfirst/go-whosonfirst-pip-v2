@@ -1,37 +1,5 @@
 package main
 
-/*
-
-// montreal and montreal
-./bin/wof-pip -mode files -latitude 45.593352 -longitude -73.513992 /usr/local/data/whosonfirst-data/data/101/736/545/101736545.geojson
-2017/08/04 11:20:24 1
-
-// montreal and the river
-./bin/wof-pip -mode files -latitude 45.557093 -longitude -73.513641 /usr/local/data/whosonfirst-data/data/101/736/545/101736545.geojson
-2017/08/04 11:20:34 0
-
-// montreal and the westmount
-./bin/wof-pip -mode files -latitude 45.486373  -longitude -73.598442 /usr/local/data/whosonfirst-data/data/101/736/545/101736545.geojson
-2017/08/04 11:36:43 0
-
-// all the admin data and montreal
-./bin/wof-pip -mode repo -cache lru -cache-size 0 -latitude 45.593352 -longitude -73.513992 /usr/local/data/whosonfirst-data/
-2017/08/09 16:19:42 time to count 492135 records: 38.539210688s
-2017/08/09 16:29:48 time to index records 10m5.612997633s
-2017/08/09 16:29:48 time to count 13 records: 20.800389ms
-
-./bin/wof-pip -mode repo -source-cache -latitude 45.593352 -longitude -73.513992 /usr/local/data/whosonfirst-data/
-2017/08/09 17:34:40 time to index records 16m9.86740636s
-2017/08/09 17:34:44 time to count 13 records: 3.978013837s
-
-./bin/wof-pip -mode repo -failover-cache -lru-cache-size 1024 -lru-cache-trigger 2000 -interactive /usr/local/data/whosonfirst-data/
-13:09:03.877576 [wof-pip][STATUS] time to index records 12m29.559567659s
-13:09:03.877598 [wof-pip][STATUS] cache size: 1024 evictions: 12202
-45.557093,-73.513641
-13:19:43.652334 [wof-pip][STATUS] time to count 6 records: 2.642539604s
-
-*/
-
 import (
 	"bufio"
 	"encoding/json"

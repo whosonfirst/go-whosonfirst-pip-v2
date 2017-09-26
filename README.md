@@ -22,6 +22,24 @@ _Please write me._
 
 _Please write me._
 
+### wof-pip-server
+
+```
+../go-whosonfirst-api/bin/wof-api -param api_key=mapzen-xxxxxx -param method=whosonfirst.places.getDescendants -param id=85688637 -param placetype=county -geojson-ls | ./bin/wof-pip-server -mode geojson-ls -www -mapzen-api-key mapzen-xxxxxx -cache gocache -port 8081 STDIN
+11:18:19.537724 [wof-pip-server] STATUS listening on localhost:8081
+11:18:20.538209 [wof-pip-server] STATUS indexing 0 records indexed
+11:18:21.538002 [wof-pip-server] STATUS indexing 2 records indexed
+11:18:22.538104 [wof-pip-server] STATUS indexing 4 records indexed
+...
+11:18:45.537952 [wof-pip-server] STATUS indexing 51 records indexed
+11:18:46.538419 [wof-pip-server] STATUS indexing 54 records indexed
+11:18:47.539162 [wof-pip-server] STATUS indexing 57 records indexed
+11:18:47.736253 [wof-pip-server][index] STATUS time to index geojson-ls 'STDIN' 28.198454417s
+11:18:47.736274 [wof-pip-server][index] STATUS time to index path 'STDIN' 28.198542171s
+11:18:47.736282 [wof-pip-server][index] STATUS time to index paths (1) 28.198563784s
+11:18:47.736288 [wof-pip-server] STATUS finished indexing
+```
+
 ## See also
 
 * https://github.com/whosonfirst/go-whosonfirst-pip

@@ -7,6 +7,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-pip/cache"
 	"github.com/whosonfirst/go-whosonfirst-pip/utils"
 	"io"
+	_ "log"
 	"os"
 	"sync/atomic"
 )
@@ -22,6 +23,7 @@ type ApplicationCacheOptions struct {
 	LRUCacheTriggerSize int
 	SourceCache         bool
 	SourceCacheRoot     string
+	IsWOF               bool
 }
 
 func DefaultApplicationCacheOptions() (ApplicationCacheOptions, error) {
@@ -31,6 +33,7 @@ func DefaultApplicationCacheOptions() (ApplicationCacheOptions, error) {
 		FailoverCacheEngine: "",
 		IndexMode:           "",
 		IndexPaths:          make([]string, 0),
+		IsWOF:               true,
 		GoCache:             false,
 		LRUCache:            false,
 		LRUCacheSize:        0,
@@ -109,14 +112,16 @@ func ApplicationCache(opts ApplicationCacheOptions) (cache.Cache, error) {
 
 			cb := func(fh io.Reader, ctx context.Context, args ...interface{}) error {
 
-				ok, err := utils.IsValidRecord(fh, ctx)
+				if opts.IsWOF {
+					ok, err := utils.IsValidRecord(fh, ctx)
 
-				if err != nil {
-					return err
-				}
+					if err != nil {
+						return err
+					}
 
-				if !ok {
-					return nil
+					if !ok {
+						return nil
+					}
 				}
 
 				atomic.AddInt32(&sz, 1)

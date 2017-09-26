@@ -29,19 +29,21 @@ func main() {
 
 	var failover_cache = flag.String("failover-cache", "lru", "...")
 
-	var lru_cache_size = flag.Int("lru-cache-size", 1024, "")
+	var lru_cache_size = flag.Int("lru-cache-size", 1024, "...")
 	var lru_cache_trigger = flag.Int("lru-cache-trigger", 2000, "")
 
-	var mode = flag.String("mode", "files", "")
-	var procs = flag.Int("processes", runtime.NumCPU()*2, "")
+	var source_cache_root = flag.String("source-cache-root", "/usr/local/data", "...")
 
-	var not_wof = flag.Bool("not-wof", false, "")
+	var mode = flag.String("mode", "files", "...")
+	var procs = flag.Int("processes", runtime.NumCPU()*2, "...")
+
+	var plain_old_geojson = flag.Bool("plain-old-geojson", false, "...")
 
 	var www = flag.Bool("www", false, "")
 	var www_path = flag.String("www-path", "/debug/", "")
 	var www_geojson = flag.Bool("www-as-geojson", false, "")
 	var www_local = flag.Bool("www-local", false, "")
-	var www_root = flag.String("www-root", "", "")
+	var www_local_root = flag.String("www-local-root", "", "")
 
 	var api_key = flag.String("mapzen-api-key", "mapzen-xxxxxxx", "")
 
@@ -50,6 +52,8 @@ func main() {
 	runtime.GOMAXPROCS(*procs)
 
 	logger := log.SimpleWOFLogger()
+
+	// set up the caching layer for the point-in-poly index
 
 	appcache_opts, err := app.DefaultApplicationCacheOptions()
 
@@ -68,26 +72,32 @@ func main() {
 		appcache_opts.FailoverCacheEngine = *failover_cache
 	case "gocache":
 		appcache_opts.GoCache = true
+	case "source":
+		appcache_opts.SourceCache = true
 	default:
 		logger.Fatal("Invalid cache layer %s", *cache)
 	}
 
 	appcache_opts.LRUCacheSize = *lru_cache_size
 	appcache_opts.LRUCacheTriggerSize = *lru_cache_trigger
-	appcache_opts.SourceCacheRoot = "/usr/local/data"
+	appcache_opts.SourceCacheRoot = *source_cache_root
 
 	if *cache_all {
 		appcache_opts.LRUCacheSize = 0
-		appcache_opts.LRUCacheTriggerSize = 0		
+		appcache_opts.LRUCacheTriggerSize = 0
 	}
-	
+
+	if *plain_old_geojson {
+		appcache_opts.IsWOF = false
+	}
+
 	appcache, err := app.ApplicationCache(appcache_opts)
 
 	if err != nil {
 		logger.Fatal("Failed to creation application cache, because %s", err)
 	}
 
-	logger.Status("Use %s cache layer w/ cache size %d", *cache, appcache.Size())
+	// set up the actual point-in-poly index
 
 	appindex, err := app.ApplicationIndex(appcache)
 
@@ -95,24 +105,26 @@ func main() {
 		logger.Fatal("failed to create index because %s", err)
 	}
 
+	// set up the index (all these records) thingy
+
 	indexer_opts, err := app.DefaultApplicationIndexerOptions()
 
 	if err != nil {
 		logger.Fatal("failed to create indexer options because %s", err)
 	}
 
-	// TO DO: put this somewhere so that it can be triggered by signal(s)
-	// to reindex everything in bulk or incrementally
-
 	indexer_opts.IndexMode = *mode
 
-	if *not_wof {
-		indexer_opts.IsWOF = false
+	if *plain_old_geojson {
+		indexer_opts.IsWOF = false // if true we skip the WOF specific "is valid record" checks
 	}
 
 	indexer, err := app.NewApplicationIndexer(appindex, indexer_opts)
 
 	go func() {
+
+		// TO DO: put this somewhere so that it can be triggered by signal(s)
+		// to reindex everything in bulk or incrementally
 
 		err = indexer.IndexPaths(flag.Args())
 
@@ -123,6 +135,35 @@ func main() {
 		logger.Status("finished indexing")
 		godebug.FreeOSMemory()
 	}()
+
+	// set up some basic monitoring and feedback stuff
+
+	go func() {
+
+		c := time.Tick(1 * time.Second)
+
+		for _ = range c {
+
+			if !indexer.IsIndexing() {
+				continue
+			}
+
+			logger.Status("indexing %d records indexed", indexer.Indexed)
+		}
+	}()
+
+	go func() {
+
+		tick := time.Tick(1 * time.Minute)
+
+		for _ = range tick {
+			var ms runtime.MemStats
+			runtime.ReadMemStats(&ms)
+			logger.Status("memstats system: %8d inuse: %8d released: %8d objects: %6d", ms.HeapSys, ms.HeapInuse, ms.HeapReleased, ms.HeapObjects)
+		}
+	}()
+
+	// set up the HTTP endpoint
 
 	intersects_opts := http.NewDefaultIntersectsHandlerOptions()
 	intersects_opts.AsGeoJSON = *www_geojson
@@ -144,6 +185,9 @@ func main() {
 
 	mux := gohttp.NewServeMux()
 
+	mux.Handle("/ping", ping_handler)
+	mux.Handle("/", intersects_handler)
+
 	if *www {
 
 		mapzenjs_handler, err := mapzenjs.MapzenJSHandler()
@@ -157,7 +201,7 @@ func main() {
 
 		if *www_local {
 
-			local_fs, err := http.LocalWWWFileSystem(*www_root)
+			local_fs, err := http.LocalWWWFileSystem(*www_local_root)
 
 			if err != nil {
 				logger.Fatal("failed to create (local) file system because %s", err)
@@ -200,10 +244,10 @@ func main() {
 
 		rewrite_path := *www_path
 
-		if strings.HasSuffix(rewrite_path, "/"){
+		if strings.HasSuffix(rewrite_path, "/") {
 			rewrite_path = strings.TrimRight(rewrite_path, "/")
 		}
-		
+
 		rule := rewrite.RemovePrefixRewriteRule(rewrite_path, opts)
 		rules := []rewrite.RewriteRule{rule}
 
@@ -223,7 +267,8 @@ func main() {
 
 		mux.Handle("/javascript/mapzen.min.js", mapzenjs_handler)
 		mux.Handle("/javascript/tangram.min.js", mapzenjs_handler)
-		mux.Handle("/javascript/tangram.js", mapzenjs_handler)		
+		mux.Handle("/javascript/mapzen.js", mapzenjs_handler)
+		mux.Handle("/javascript/tangram.js", mapzenjs_handler)
 		mux.Handle("/css/mapzen.js.css", mapzenjs_handler)
 		mux.Handle("/tangram/refill-style.zip", mapzenjs_handler)
 
@@ -233,44 +278,7 @@ func main() {
 		mux.Handle(*www_path, debug_handler)
 	}
 
-	mux.Handle("/ping", ping_handler)
-	mux.Handle("/", intersects_handler)
-
-	go func() {
-
-		c := time.Tick(1 * time.Second)
-
-		for _ = range c {
-
-			if !indexer.IsIndexing() {
-				continue
-			}
-
-			logger.Status("indexing %d records indexed", indexer.Indexed)
-		}
-	}()
-
-	go func() {
-
-		tick := time.Tick(1 * time.Minute)
-
-		for _ = range tick {
-			var ms runtime.MemStats
-			runtime.ReadMemStats(&ms)
-			logger.Status("memstats system: %8d inuse: %8d released: %8d objects: %6d", ms.HeapSys, ms.HeapInuse, ms.HeapReleased, ms.HeapObjects)
-		}
-	}()
-
-	go func() {
-		tick := time.Tick(1 * time.Minute)
-
-		for _ = range tick {
-
-			var ms runtime.MemStats
-			runtime.ReadMemStats(&ms)
-			logger.Status("System: %8d Inuse: %8d Released: %8d Objects: %6d\n", ms.HeapSys, ms.HeapInuse, ms.HeapReleased, ms.HeapObjects)
-		}
-	}()
+	// make it go
 
 	err = gracehttp.Serve(&gohttp.Server{Addr: endpoint, Handler: mux})
 

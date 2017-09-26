@@ -1,0 +1,107 @@
+#!/bin/sh -e
+
+### BEGIN INIT INFO
+# Provides:          wof-pip-proxy-start.sh
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start daemon at boot time
+# Description:       Enable service provided by daemon.
+### END INIT INFO
+
+# Stuff you will need to edit
+
+WOF_DATA=YOUR_WOF_DATA
+
+# these are part of https://github.com/whosonfirst/go-whosonfirst-pip
+
+PIP_DAEMON=/path/to/wof-pip-server
+PROXY_DAEMON=/path/to/wof-pip-proxy
+
+# this can be generated with https://github.com/whosonfirst/go-whosonfirst-pip/blob/master/utils/mk-wof-config.py
+
+PROXY_CONFIG=YOUR_PROXY_CONFIG
+
+# this is part of https://github.com/whosonfirst/py-mapzen-whosonfirst-pip-server  
+
+START_DAEMON=/path/to/wof-pip-start-proxy
+START_USER=YOUR_PROXY_SERVER_USER
+
+
+START_ARGS=""
+
+# Okay - you shouldn't need to edit anything after this
+
+START_ARGS="--data ${WOF_DATA} --pip-server ${PIP_DAEMON} --proxy-server ${PROXY_DAEMON} --proxy-config ${PROXY_CONFIG} ${START_ARGS}"
+
+PID_PATH=/var/run/
+PID_NAME='wof-pip-proxy-start'
+PID_FILE=${PID_PATH}${PID_NAME}.pid
+
+if [ "$(id -u)" != "0" ]; then
+    echo "This script must be run as root" 1>&2
+    exit 1
+fi
+
+case $1 in
+    debug)
+
+        echo "Starting ${PID_NAME} in debug mode w/ options: ${START_ARGS}"
+        exec sudo -u $START_USER $START_DAEMON $START_ARGS
+        ;;
+    start)
+
+    if [ -e "${PID_FILE}" ]
+    then
+
+	PID=`cat ${PID_FILE}`
+
+	PID_COUNT=`ps -p ${PID} | grep ${PID} | wc -l`
+
+	if [ ${PID_COUNT}==0 ]
+	then
+	    rm ${PID_FILE}
+	else   
+            echo "Error! ${PID_NAME} is currently running!" 1>&2
+            exit 1
+	fi
+
+    fi
+
+    echo "Starting ${PID_NAME} w/ options: ${START_ARGS}"
+    PID=`exec sudo -u $START_USER $START_DAEMON $START_ARGS  > /dev/null 2>&1 & echo $!`
+    
+    if [ -z $PID ]; then
+        printf "%s\n" "Fail"
+    else
+        echo $PID > $PID_FILE
+        printf "%s\n" "Ok"
+	echo $PID
+    fi
+    
+    ;;
+    stop)
+
+    printf "%-50s" "Stopping $PID_NAME"
+        PID=`cat $PID_FILE`
+
+        if [ -f $PID_FILE ]; then
+            kill -HUP $PID
+            printf "%s\n" "Ok"
+            rm -f $PID_FILE
+        else
+            printf "%s\n" "pidfile not found"
+        fi
+
+        ;;
+    restart)
+        $0 stop
+        sleep 1
+        $0 start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|debug}" >&2
+        exit 1
+        ;;
+esac

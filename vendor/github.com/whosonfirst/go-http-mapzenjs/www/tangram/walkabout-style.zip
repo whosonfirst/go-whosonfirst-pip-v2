@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html class='no-js' lang=''>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv='x-ua-compatible' content='ie=edge'>
+    <link rel='shortcut icon' href='https://mapzen.com/common/styleguide/images/favicon.ico'>
+    <title>Page not found · Mapzen</title>
+    <meta name='description' content=''>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel="stylesheet" href="https://mapzen.com/common/styleguide/styles/styleguide.css">
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="col-xs-0 col-sm-2"></div>
+        <div class="col-xs-12 col-sm-8 text-center">
+          <div class='text-center'>
+            <a href='/'><img class='error-page-logo' alt='Mapzen Logo' src='https://mapzen.com/common/styleguide/images/logos/mapzen-logo-dark.png'></a>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-xs-0 col-sm-0"></div>
+        <div class="col-xs-12 col-sm-12">
+          <div id='physics-wrapper'>
+            <canvas id='viewport'>404 page Error</canvas>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-xs-0 col-sm-2"></div>
+        <div class="col-xs-12 col-sm-8 text-center">
+          <h1>Page not found</h1>
+          <p>The page you were looking for appears to have been moved, deleted or does not exist.</p>
+          <p><a href='/'>Go back to the homepage</a></p>
+        </div>
+      </div>
+    </div>
+    <script src='https://cdn.rawgit.com/wellcaffeinated/PhysicsJS/0.7.0/dist/physicsjs-full.min.js'></script>
+    <script src='/resources/scripts/404/scene.js'></script>
+  </body>
+</html>

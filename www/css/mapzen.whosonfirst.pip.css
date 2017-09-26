@@ -1,0 +1,19 @@
+body {
+    font-family: sans-serif;
+    font-size: 1.3em;
+}
+
+#map {
+    height: 500px;
+    width: 100%;
+    border: solid thin;
+}
+
+#status {
+    text-align: center;
+}
+
+.intersects {
+    font-weight: 700;
+    background-color: #ccc;
+}

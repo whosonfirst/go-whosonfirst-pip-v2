@@ -24,6 +24,10 @@ _Please write me._
 
 ### wof-pip-server
 
+#### Fancy
+
+Indexing API results (in this case counties in California) by piping them in to `wof-pip-server` on STDIN:
+
 ```
 ../go-whosonfirst-api/bin/wof-api -param api_key=mapzen-xxxxxx -param method=whosonfirst.places.getDescendants -param id=85688637 -param placetype=county -geojson-ls | ./bin/wof-pip-server -mode geojson-ls -www -mapzen-api-key mapzen-xxxxxx -cache gocache -port 8081 STDIN
 11:18:19.537724 [wof-pip-server] STATUS listening on localhost:8081

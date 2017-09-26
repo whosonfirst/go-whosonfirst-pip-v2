@@ -40,6 +40,8 @@ _Please write me._
 11:18:47.736288 [wof-pip-server] STATUS finished indexing
 ```
 
+![](docs/images/wof-pip-counties.png)
+
 ## See also
 
 * https://github.com/whosonfirst/go-whosonfirst-pip

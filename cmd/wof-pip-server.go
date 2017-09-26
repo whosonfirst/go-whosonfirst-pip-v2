@@ -27,7 +27,7 @@ func main() {
 	var cache = flag.String("cache", "gocache", "...")
 	var cache_all = flag.Bool("cache-all", false, "")
 
-	var failover_cache = flag.String("failover-cache", "gocache", "...")
+	var failover_cache = flag.String("failover-cache", "lru", "...")
 
 	var lru_cache_size = flag.Int("lru-cache-size", 1024, "...")
 	var lru_cache_trigger = flag.Int("lru-cache-trigger", 2000, "")

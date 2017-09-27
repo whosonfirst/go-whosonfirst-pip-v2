@@ -72,21 +72,7 @@ func IntersectsHandler(i pip_index.Index, idx *index.Indexer, opts *IntersectsHa
 			return
 		}
 
-		inputs, err := filter.NewSPRInputs()
-
-		if err != nil {
-			gohttp.Error(rsp, err.Error(), gohttp.StatusBadRequest)
-			return
-		}
-
-		inputs.Placetypes = query["placetype"]
-		inputs.IsCurrent = query["is_current"]
-		inputs.IsDeprecated = query["is_deprecated"]
-		inputs.IsCeased = query["is_ceased"]
-		inputs.IsSuperseded = query["is_superseded"]
-		inputs.IsSuperseding = query["is_superseding"]
-
-		filters, err := filter.NewSPRFilterFromInputs(inputs)
+		filters, err := filter.NewSPRFilterFromQuery(query)
 
 		if err != nil {
 			gohttp.Error(rsp, err.Error(), gohttp.StatusBadRequest)

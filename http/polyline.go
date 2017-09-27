@@ -9,7 +9,7 @@ import (
 	pip_index "github.com/whosonfirst/go-whosonfirst-pip/index"
 	// pip_utils "github.com/whosonfirst/go-whosonfirst-pip/utils"
 	"github.com/whosonfirst/go-whosonfirst-spr"
-	"log"
+	_ "log"
 	gohttp "net/http"
 )
 

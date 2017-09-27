@@ -115,13 +115,25 @@ func (r *RTreeIndex) IndexFeature(f geojson.Feature) error {
 
 func (r *RTreeIndex) GetIntersectsForCoords(coords []geom.Coord, filters filter.Filter) ([]spr.StandardPlacesResults, error) {
 
-	results_ch := make(chan spr.StandardPlacesResults)
+	type Candidates struct {
+		Index int
+		SPR   spr.StandardPlacesResults
+	}
+
+	candidates_ch := make(chan Candidates)
 	error_ch := make(chan error)
 	done_ch := make(chan bool)
 
-	for _, c := range coords {
+	pending := len(coords)
+	results := make([]spr.StandardPlacesResults, pending)
 
-		go func(c geom.Coord, f filter.Filter, results_ch chan spr.StandardPlacesResults, error_ch chan error, done_ch chan bool) {
+	for i, c := range coords {
+
+		// see the way we're passing 'i' around as an index - that's so we rebuild
+		// the result sets in the same order that the coords were passed in - that
+		// part is important (20170927/thisisaaronland)
+
+		go func(idx int, c geom.Coord, f filter.Filter, candidates_ch chan Candidates, error_ch chan error, done_ch chan bool) {
 
 			defer func() {
 				done_ch <- true
@@ -134,17 +146,19 @@ func (r *RTreeIndex) GetIntersectsForCoords(coords []geom.Coord, filters filter.
 				return
 			}
 
-			results_ch <- intersects
+			candidates := Candidates{
+				Index: idx,
+				SPR:   intersects,
+			}
 
-		}(c, filters, results_ch, error_ch, done_ch)
+			candidates_ch <- candidates
+
+		}(i, c, filters, candidates_ch, error_ch, done_ch)
 
 	}
 
 	// notes (20170927/thisisaaronland)
 	// 1. kill remaining goroutines if err
-
-	results := make([]spr.StandardPlacesResults, 0)
-	pending := len(coords)
 
 	for pending > 0 {
 
@@ -152,8 +166,8 @@ func (r *RTreeIndex) GetIntersectsForCoords(coords []geom.Coord, filters filter.
 
 		case err := <-error_ch:
 			return nil, err
-		case result := <-results_ch:
-			results = append(results, result)
+		case candidates := <-candidates_ch:
+			results[candidates.Index] = candidates.SPR
 		case <-done_ch:
 			pending -= 1
 		}

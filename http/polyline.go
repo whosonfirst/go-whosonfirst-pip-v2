@@ -34,7 +34,6 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 		}
 
 		query := req.URL.Query()
-
 		polyline := query.Get("polyline")
 
 		if polyline == "" {
@@ -48,21 +47,7 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 
 		coords := make([]geom.Coord, 0)
 
-		inputs, err := filter.NewSPRInputs()
-
-		if err != nil {
-			gohttp.Error(rsp, err.Error(), gohttp.StatusBadRequest)
-			return
-		}
-
-		inputs.Placetypes = query["placetype"]
-		inputs.IsCurrent = query["is_current"]
-		inputs.IsDeprecated = query["is_deprecated"]
-		inputs.IsCeased = query["is_ceased"]
-		inputs.IsSuperseded = query["is_superseded"]
-		inputs.IsSuperseding = query["is_superseding"]
-
-		filters, err := filter.NewSPRFilterFromInputs(inputs)
+		filters, err := filter.NewSPRFilterFromQuery(query)
 
 		if err != nil {
 			gohttp.Error(rsp, err.Error(), gohttp.StatusBadRequest)

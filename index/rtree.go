@@ -113,6 +113,65 @@ func (r *RTreeIndex) IndexFeature(f geojson.Feature) error {
 	return nil
 }
 
+func (r *RTreeIndex) GetIntersectsByPolyline(coords []geom.Coord, filters filter.Filter) (spr.StandardPlacesResults, error) {
+
+     results_ch := make(chan spr.StandardPlacesResults)
+     error_ch := make(chan error)
+     done_ch := make(chan bool)
+
+     for _, c := range coords {
+
+	go func(c geom.Coord, f filter.Filter, results_ch chan spr.StandardPlacesResults, error_ch chan error, done_ch chan bool){
+
+		defer func(){
+			done_ch <- true
+		}()
+		
+		results, err := r.GetIntersectsByCoord(c, f)
+
+		if err != nil {
+
+			error_ch <- err
+			return				 
+		}
+
+		results_ch <- results
+		
+	}(c, filters, results_ch, error_ch, done_ch)
+	
+     }
+
+     rows := make([]spr.StandardPlacesResult, 0)
+     pending := len(coords)
+
+     for pending > 0 {
+
+     	 select {
+
+	 	// notes (20170927/thisisaaronland)
+		// 1. kill remaining goroutines if err
+		// 2. we actually want a different data structure (than a simple RTreeResults) here but it will do for now...
+		
+	 	case err := <- error_ch:
+			return nil, err
+		case result := <- results_ch:
+
+			for _, r := range result.Results() {
+			    rows = append(rows, r)
+			}
+			
+		case <- done_ch:
+		     pending -= 1
+	 }
+     }
+
+     rs := RTreeResults{
+     	Places: rows,
+     }
+	
+     return &rs, nil     
+}
+
 func (r *RTreeIndex) GetIntersectsByCoord(coord geom.Coord, filters filter.Filter) (spr.StandardPlacesResults, error) {
 
 	// to do: timings that don't slow everything down the way

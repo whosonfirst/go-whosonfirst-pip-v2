@@ -47,6 +47,8 @@ func main() {
 
 	var api_key = flag.String("mapzen-api-key", "mapzen-xxxxxxx", "")
 
+	var polylines = flag.Bool("polylines", false, "")
+	
 	flag.Parse()
 
 	runtime.GOMAXPROCS(*procs)
@@ -188,6 +190,18 @@ func main() {
 	mux.Handle("/ping", ping_handler)
 	mux.Handle("/", intersects_handler)
 
+	if *polylines {
+
+		poly_opts := http.NewDefaultPolylineHandlerOptions()
+		poly_handler, err := http.PolylineHandler(appindex, indexer, poly_opts)
+
+		if err != nil {
+			logger.Fatal("failed to create polyline handler because %s", err)
+		}
+
+		mux.Handle("/polyline", poly_handler)
+	}
+	
 	if *www {
 
 		mapzenjs_handler, err := mapzenjs.MapzenJSHandler()

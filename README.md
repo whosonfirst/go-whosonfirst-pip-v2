@@ -26,6 +26,51 @@ _Please write me._
 
 #### Fancy
 
+Indexing results and then fetching all the places that intersect a polyline:
+
+```
+./bin/wof-pip-server -polylines -mode meta /usr/local/data/whosonfirst-data/meta/wof-microhood-latest.csv
+11:56:04.605805 [wof-pip-server] STATUS listening on localhost:8080
+11:56:05.606812 [wof-pip-server] STATUS indexing 537 records indexed
+11:56:06.608378 [wof-pip-server] STATUS indexing 749 records indexed
+11:56:07.610900 [wof-pip-server] STATUS indexing 1069 records indexed
+11:56:08.609043 [wof-pip-server] STATUS indexing 1298 records indexed
+11:56:09.356357 [wof-pip-server][index] STATUS time to index meta file '/usr/local/data/whosonfirst-data/meta/wof-microhood-latest.csv' 4.750478843s
+11:56:09.356370 [wof-pip-server][index] STATUS time to index path '/usr/local/data/whosonfirst-data/meta/wof-microhood-latest.csv' 4.750568978s
+11:56:09.356374 [wof-pip-server][index] STATUS time to index paths (1) 4.750577455s
+11:56:09.356377 [wof-pip-server] STATUS finished indexing
+```
+
+And then given a polyline (`oqseF~gcjVvRQaJbLhRuIzN_JeFza@cH{@gK`KxMtErX_NeXtf@yW{l@`) like this:
+
+![](docs/images/wof-pip-polyline.png)
+
+You could do this:
+
+```
+curl -s 'localhost:8080/polyline?polyline=oqseF%7EgcjVvRQaJbLhRuIzN_JeFza%40cH%7B%40gK%60KxMtErX_NeXtf%40yW%7Bl%40' | jq '.places[]["wof:name"]'
+"The Sit/Lie"
+"The Park"
+"The Gimlet"
+"The Panhandle"
+"Financial District South"
+"The Post Up"
+"Little Saigon"
+"Little Saigon"
+"The Panhandle"
+"Deli Hills"
+"The Panhandle"
+"Civic Center"
+"Van Ness"
+```
+
+There are two important things to note here, at least as of this writing:
+
+1. It is left as an exercise to consumers of the `/polyline` endpoint to deduplicate results (assuming you wanted a list of unique places that intersect a polyline)
+2. The response format for the `/polyline` endpoint _will_ change so please don't get too attached to anything that is returned today
+
+#### Fancy McFancyPants
+
 Indexing API results (in this case counties in California) by piping them in to `wof-pip-server` on STDIN:
 
 ```

@@ -113,9 +113,7 @@ func (r *RTreeIndex) IndexFeature(f geojson.Feature) error {
 	return nil
 }
 
-// this method name _will_ be changed... (20170927/thisisaaronland)
-
-func (r *RTreeIndex) GetIntersectsByPolyline(coords []geom.Coord, filters filter.Filter) (spr.StandardPlacesResults, error) {
+func (r *RTreeIndex) GetIntersectsForCoords(coords []geom.Coord, filters filter.Filter) (spr.StandardPlacesResults, error) {
 
 	results_ch := make(chan spr.StandardPlacesResults)
 	error_ch := make(chan error)
@@ -132,7 +130,6 @@ func (r *RTreeIndex) GetIntersectsByPolyline(coords []geom.Coord, filters filter
 			results, err := r.GetIntersectsByCoord(c, f)
 
 			if err != nil {
-
 				error_ch <- err
 				return
 			}
@@ -158,8 +155,8 @@ func (r *RTreeIndex) GetIntersectsByPolyline(coords []geom.Coord, filters filter
 			return nil, err
 		case result := <-results_ch:
 
-			for _, r := range result.Results() {
-				rows = append(rows, r)
+			for _, row := range result.Results() {
+				rows = append(rows, row)
 			}
 
 		case <-done_ch:

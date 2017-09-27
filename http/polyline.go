@@ -1,8 +1,12 @@
 package http
 
+// https://developers.google.com/maps/documentation/utilities/polylineutility
+
 import (
 	"encoding/json"
 	"github.com/skelterjohn/geom"
+	"github.com/twpayne/go-polyline"
+	geojson_utils "github.com/whosonfirst/go-whosonfirst-geojson-v2/utils"	
 	"github.com/whosonfirst/go-whosonfirst-index"
 	"github.com/whosonfirst/go-whosonfirst-pip/filter"
 	pip_index "github.com/whosonfirst/go-whosonfirst-pip/index"
@@ -13,12 +17,14 @@ import (
 
 type PolylineHandlerOptions struct {
 	AsGeoJSON bool
+	MaxCoords int
 }
 
 func NewDefaultPolylineHandlerOptions() *PolylineHandlerOptions {
 
 	opts := PolylineHandlerOptions{
 		AsGeoJSON: false,
+		MaxCoords: 500,			   
 	}
 
 	return &opts
@@ -34,18 +40,41 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 		}
 
 		query := req.URL.Query()
-		polyline := query.Get("polyline")
+		str_polyline := query.Get("polyline")
 
-		if polyline == "" {
+		if str_polyline == "" {
 			gohttp.Error(rsp, "Missing 'polyline' parameter", gohttp.StatusBadRequest)
 			return
 		}
 
-		gohttp.Error(rsp, "Y U TRY TO USE THIS YET", gohttp.StatusServiceUnavailable)
+		polyline_coords, _, err := polyline.DecodeCoords([]byte(str_polyline))
 
-		// placeholder until we have a polyline-to-coords thing (20170927/thisisaaronland)
+		if err != nil {
+			gohttp.Error(rsp, err.Error(), gohttp.StatusBadRequest)
+			return
+		}
 
+		if len(polyline_coords) > opts.MaxCoords {
+			gohttp.Error(rsp, "E_EXCESSIVE_COORDINATES", gohttp.StatusBadRequest)
+			return
+		}
+		
 		coords := make([]geom.Coord, 0)
+
+		for _, latlon := range polyline_coords {
+
+			lat := latlon[0]
+			lon := latlon[1]
+			
+			c, err := geojson_utils.NewCoordinateFromLatLons(lat, lon)
+
+			if err != nil {
+				gohttp.Error(rsp, err.Error(), gohttp.StatusBadRequest)
+				return
+			}
+
+			coords = append(coords, c)
+		}
 
 		filters, err := filter.NewSPRFilterFromQuery(query)
 
@@ -54,7 +83,7 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 			return
 		}
 
-		results, err := i.GetIntersectsByPolyline(coords, filters)
+		results, err := i.GetIntersectsForCoords(coords, filters)
 
 		if err != nil {
 			gohttp.Error(rsp, err.Error(), gohttp.StatusInternalServerError)

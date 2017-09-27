@@ -47,6 +47,8 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 			return
 		}
 
+		// note this will _not_ work polylines returned by Mapzen's Valhalla
+		
 		polyline_coords, _, err := polyline.DecodeCoords([]byte(str_polyline))
 
 		if err != nil {

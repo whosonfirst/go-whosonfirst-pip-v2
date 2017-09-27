@@ -3,14 +3,24 @@ package http
 import (
 	"encoding/json"
 	"github.com/skelterjohn/geom"
-	geojson_utils "github.com/whosonfirst/go-whosonfirst-geojson-v2/utils"	
+	geojson_utils "github.com/whosonfirst/go-whosonfirst-geojson-v2/utils"
 	"github.com/whosonfirst/go-whosonfirst-index"
 	"github.com/whosonfirst/go-whosonfirst-pip/filter"
 	pip_index "github.com/whosonfirst/go-whosonfirst-pip/index"
-	pip_utils "github.com/whosonfirst/go-whosonfirst-pip/utils"
-	_ "log"
+	// pip_utils "github.com/whosonfirst/go-whosonfirst-pip/utils"
+	"github.com/whosonfirst/go-whosonfirst-spr"
+	"log"
 	gohttp "net/http"
 )
+
+type PolylineResultsUnique struct {
+	spr.StandardPlacesResults `json:",omitempty"`
+	Rows                      []spr.StandardPlacesResult `json:"places"`
+}
+
+func (r *PolylineResultsUnique) Results() []spr.StandardPlacesResult {
+	return r.Rows
+}
 
 type PolylineHandlerOptions struct {
 	AsGeoJSON bool
@@ -21,7 +31,7 @@ func NewDefaultPolylineHandlerOptions() *PolylineHandlerOptions {
 
 	opts := PolylineHandlerOptions{
 		AsGeoJSON: false,
-		MaxCoords: 500,			   
+		MaxCoords: 500,
 	}
 
 	return &opts
@@ -37,8 +47,10 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 		}
 
 		query := req.URL.Query()
+
 		str_polyline := query.Get("polyline")
-		str_valhalla := query.Get("valhalla")		
+		str_valhalla := query.Get("valhalla")
+		str_unique := query.Get("unique")
 
 		if str_polyline == "" {
 			gohttp.Error(rsp, "Missing 'polyline' parameter", gohttp.StatusBadRequest)
@@ -46,10 +58,10 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 		}
 
 		poly_factor := 1.0e5
-		
+
 		if str_valhalla != "" {
-		   	poly_factor = 1.0e6
-		}		
+			poly_factor = 1.0e6
+		}
 
 		coords, err := DecodePolyline(str_polyline, poly_factor)
 
@@ -62,7 +74,7 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 			gohttp.Error(rsp, "E_EXCESSIVE_COORDINATES", gohttp.StatusBadRequest)
 			return
 		}
-		
+
 		filters, err := filter.NewSPRFilterFromQuery(query)
 
 		if err != nil {
@@ -80,20 +92,51 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 		var final interface{}
 		final = results
 
+		if str_unique != "" {
+
+			rows := make([]spr.StandardPlacesResult, 0)
+			seen := make(map[string]bool)
+
+			for _, rs := range results {
+
+				for _, r := range rs.Results() {
+
+					id := r.Id()
+
+					_, ok := seen[id]
+
+					if ok {
+						continue
+					}
+
+					rows = append(rows, r)
+					seen[id] = true
+				}
+			}
+
+			unq := PolylineResultsUnique{
+				Rows: rows,
+			}
+
+			final = unq
+		}
+
 		// note: we will need a suitable function to handle polyline responses
 		// once said response has been formalized (20170927/thisisaaronland)
 
-		if opts.AsGeoJSON {
+		/*
+			if opts.AsGeoJSON {
 
-			collection, err := pip_utils.ResultsToFeatureCollection(results, i)
+				collection, err := pip_utils.ResultsToFeatureCollection(results, i)
 
-			if err != nil {
-				gohttp.Error(rsp, err.Error(), gohttp.StatusInternalServerError)
-				return
+				if err != nil {
+					gohttp.Error(rsp, err.Error(), gohttp.StatusInternalServerError)
+					return
+				}
+
+				final = collection
 			}
-
-			final = collection
-		}
+		*/
 
 		js, err := json.Marshal(final)
 
@@ -123,10 +166,10 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 // (20170927/thisisaaronland)
 
 func DecodePolyline(encoded string, f float64) ([]geom.Coord, error) {
-	
+
 	var count, index int
 
-     	coords := make([]geom.Coord, 0)
+	coords := make([]geom.Coord, 0)
 	tempLatLng := [2]int{0, 0}
 
 	for index < len(encoded) {

@@ -48,8 +48,8 @@ func main() {
 	var api_key = flag.String("mapzen-api-key", "mapzen-xxxxxxx", "")
 
 	var polylines = flag.Bool("polylines", false, "")
-	var polylines_coords = flag.Int("polylines-max-coords", 500, "")	
-	
+	var polylines_coords = flag.Int("polylines-max-coords", 500, "")
+
 	flag.Parse()
 
 	runtime.GOMAXPROCS(*procs)
@@ -195,7 +195,7 @@ func main() {
 
 		poly_opts := http.NewDefaultPolylineHandlerOptions()
 		poly_opts.MaxCoords = *polylines_coords
-		
+
 		poly_handler, err := http.PolylineHandler(appindex, indexer, poly_opts)
 
 		if err != nil {
@@ -204,7 +204,7 @@ func main() {
 
 		mux.Handle("/polyline", poly_handler)
 	}
-	
+
 	if *www {
 
 		mapzenjs_handler, err := mapzenjs.MapzenJSHandler()

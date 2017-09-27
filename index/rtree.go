@@ -113,7 +113,7 @@ func (r *RTreeIndex) IndexFeature(f geojson.Feature) error {
 	return nil
 }
 
-func (r *RTreeIndex) GetIntersectsForCoords(coords []geom.Coord, filters filter.Filter) (spr.StandardPlacesResults, error) {
+func (r *RTreeIndex) GetIntersectsForCoords(coords []geom.Coord, filters filter.Filter) ([]spr.StandardPlacesResults, error) {
 
 	results_ch := make(chan spr.StandardPlacesResults)
 	error_ch := make(chan error)
@@ -127,14 +127,14 @@ func (r *RTreeIndex) GetIntersectsForCoords(coords []geom.Coord, filters filter.
 				done_ch <- true
 			}()
 
-			results, err := r.GetIntersectsByCoord(c, f)
+			intersects, err := r.GetIntersectsByCoord(c, f)
 
 			if err != nil {
 				error_ch <- err
 				return
 			}
 
-			results_ch <- results
+			results_ch <- intersects
 
 		}(c, filters, results_ch, error_ch, done_ch)
 
@@ -142,9 +142,8 @@ func (r *RTreeIndex) GetIntersectsForCoords(coords []geom.Coord, filters filter.
 
 	// notes (20170927/thisisaaronland)
 	// 1. kill remaining goroutines if err
-	// 2. we actually want a different data structure (than a simple RTreeResults) here but it will do for now...
 
-	rows := make([]spr.StandardPlacesResult, 0)
+	results := make([]spr.StandardPlacesResults, 0)
 	pending := len(coords)
 
 	for pending > 0 {
@@ -154,21 +153,13 @@ func (r *RTreeIndex) GetIntersectsForCoords(coords []geom.Coord, filters filter.
 		case err := <-error_ch:
 			return nil, err
 		case result := <-results_ch:
-
-			for _, row := range result.Results() {
-				rows = append(rows, row)
-			}
-
+			results = append(results, result)
 		case <-done_ch:
 			pending -= 1
 		}
 	}
 
-	rs := RTreeResults{
-		Places: rows,
-	}
-
-	return &rs, nil
+	return results, nil
 }
 
 func (r *RTreeIndex) GetIntersectsByCoord(coord geom.Coord, filters filter.Filter) (spr.StandardPlacesResults, error) {

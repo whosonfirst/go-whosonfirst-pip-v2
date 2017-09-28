@@ -18,11 +18,62 @@ All of this package's dependencies are bundled with the code in the `vendor` dir
 
 _Please write me._
 
+## Interfaces
+
+_Please write me._
+
+### cache.Cache
+
+```
+type Cache interface {
+	Get(string) (CacheItem, error)
+	Set(string, CacheItem) error
+	Hits() int64
+	Misses() int64
+	Evictions() int64
+	Size() int64
+}
+```
+
+### cache.CacheItem
+
+```
+type CacheItem interface {
+	SPR() spr.StandardPlacesResult
+	Polygons() []geojson.Polygon
+	Geometry() pip.GeoJSONGeometry
+}
+```
+
+### cache.FeatureCache
+
+```
+type FeatureCache struct {
+	CacheItem       `json:",omitempty"`
+	FeatureSPR      spr.StandardPlacesResult `json:"spr"`
+	FeaturePolygons []geojson.Polygon        `json:"polygons"`
+}
+```
+
+### index.Index
+
+```
+type Index interface {
+	IndexFeature(geojson.Feature) error
+	Cache() cache.Cache
+	GetIntersectsByCoord(geom.Coord, filter.Filter) (spr.StandardPlacesResults, error)
+	GetCandidatesByCoord(geom.Coord) (*pip.GeoJSONFeatureCollection, error)
+	GetIntersectsByPath(geom.Path, filter.Filter) ([]spr.StandardPlacesResults, error)
+}
+```
+
 ## Tools
 
 _Please write me._
 
 ### wof-pip-server
+
+_Please write me._
 
 #### Fancy
 
@@ -94,4 +145,6 @@ Indexing API results (in this case counties in California) by piping them in to 
 
 ## See also
 
+* https://github.com/whosonfirst/go-whosonfirst-geojson-v2
 * https://github.com/whosonfirst/go-whosonfirst-pip
+* https://github.com/whosonfirst/go-whosonfirst-spr

@@ -52,7 +52,7 @@ func main() {
 	var api_key = flag.String("mapzen-api-key", "mapzen-xxxxxxx", "")
 
 	var candidates = flag.Bool("candidates", false, "")
-	
+
 	var polylines = flag.Bool("polylines", false, "")
 	var polylines_coords = flag.Int("polylines-max-coords", 500, "")
 
@@ -176,7 +176,7 @@ func main() {
 
 	if *www {
 		logger.Status("-www flag is true causing the following flags to also be true: -allow-geojson -candidates")
-		
+
 		*allow_geojson = true
 		*candidates = true
 	}
@@ -214,7 +214,7 @@ func main() {
 
 		mux.Handle("/candidates", candidateshandler)
 	}
-	
+
 	if *polylines {
 
 		poly_opts := http.NewDefaultPolylineHandlerOptions()

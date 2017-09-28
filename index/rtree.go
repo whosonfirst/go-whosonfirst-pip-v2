@@ -113,7 +113,7 @@ func (r *RTreeIndex) IndexFeature(f geojson.Feature) error {
 	return nil
 }
 
-func (r *RTreeIndex) GetIntersectsByPath(coords []geom.Coord, filters filter.Filter) ([]spr.StandardPlacesResults, error) {
+func (r *RTreeIndex) GetIntersectsByPath(path geom.Path, filters filter.Filter) ([]spr.StandardPlacesResults, error) {
 
 	type Candidates struct {
 		Index int
@@ -124,10 +124,10 @@ func (r *RTreeIndex) GetIntersectsByPath(coords []geom.Coord, filters filter.Fil
 	error_ch := make(chan error)
 	done_ch := make(chan bool)
 
-	pending := len(coords)
+	pending := path.Length()
 	results := make([]spr.StandardPlacesResults, pending)
 
-	for i, c := range coords {
+	for i, c := range path.Vertices() {
 
 		// see the way we're passing 'i' around as an index - that's so we rebuild
 		// the result sets in the same order that the coords were passed in - that

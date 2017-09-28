@@ -75,14 +75,14 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 			unique = true
 		}
 
-		coords, err := DecodePolyline(str_polyline, poly_factor)
+		path, err := DecodePolyline(str_polyline, poly_factor)
 
 		if err != nil {
 			gohttp.Error(rsp, err.Error(), gohttp.StatusBadRequest)
 			return
 		}
 
-		if len(coords) > opts.MaxCoords {
+		if path.Length() > opts.MaxCoords {
 			gohttp.Error(rsp, "E_EXCESSIVE_COORDINATES", gohttp.StatusBadRequest)
 			return
 		}
@@ -94,7 +94,7 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 			return
 		}
 
-		results, err := i.GetIntersectsByPath(coords, filters)
+		results, err := i.GetIntersectsByPath(*path, filters)
 
 		if err != nil {
 			gohttp.Error(rsp, err.Error(), gohttp.StatusInternalServerError)
@@ -198,12 +198,13 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 // see also: https://developers.google.com/maps/documentation/utilities/polylineutility
 // (20170927/thisisaaronland)
 
-func DecodePolyline(encoded string, f float64) ([]geom.Coord, error) {
+func DecodePolyline(encoded string, f float64) (*geom.Path, error) {
 
 	var count, index int
 
-	coords := make([]geom.Coord, 0)
 	tempLatLng := [2]int{0, 0}
+
+	path := geom.Path{}
 
 	for index < len(encoded) {
 		var result int
@@ -241,11 +242,11 @@ func DecodePolyline(encoded string, f float64) ([]geom.Coord, error) {
 				return nil, err
 			}
 
-			coords = append(coords, coord)
+			path.AddVertex(coord)
 		}
 
 		count++
 	}
 
-	return coords, nil
+	return &path, nil
 }

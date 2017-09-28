@@ -94,7 +94,7 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 			return
 		}
 
-		results, err := i.GetIntersectsForCoords(coords, filters)
+		results, err := i.GetIntersectsByPath(coords, filters)
 
 		if err != nil {
 			gohttp.Error(rsp, err.Error(), gohttp.StatusInternalServerError)

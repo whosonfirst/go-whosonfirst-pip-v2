@@ -14,7 +14,7 @@ type Index interface {
 	Cache() cache.Cache
 	GetIntersectsByCoord(geom.Coord, filter.Filter) (spr.StandardPlacesResults, error)
 	GetCandidatesByCoord(geom.Coord) (*pip.GeoJSONFeatureCollection, error)
-	GetIntersectsForCoords([]geom.Coord, filter.Filter) ([]spr.StandardPlacesResults, error)
+	GetIntersectsByPath([]geom.Coord, filter.Filter) ([]spr.StandardPlacesResults, error)
 }
 
 type Candidate interface{} // mmmmmaybe?

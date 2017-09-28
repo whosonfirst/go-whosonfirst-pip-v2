@@ -113,7 +113,7 @@ func (r *RTreeIndex) IndexFeature(f geojson.Feature) error {
 	return nil
 }
 
-func (r *RTreeIndex) GetIntersectsForCoords(coords []geom.Coord, filters filter.Filter) ([]spr.StandardPlacesResults, error) {
+func (r *RTreeIndex) GetIntersectsByPath(coords []geom.Coord, filters filter.Filter) ([]spr.StandardPlacesResults, error) {
 
 	type Candidates struct {
 		Index int

@@ -51,6 +51,8 @@ func main() {
 
 	var api_key = flag.String("mapzen-api-key", "mapzen-xxxxxxx", "")
 
+	var candidates = flag.Bool("candidates", false, "")
+	
 	var polylines = flag.Bool("polylines", false, "")
 	var polylines_coords = flag.Int("polylines-max-coords", 500, "")
 
@@ -173,7 +175,10 @@ func main() {
 	// set up the HTTP endpoint
 
 	if *www {
+		logger.Status("-www flag is true causing the following flags to also be true: -allow-geojson -candidates")
+		
 		*allow_geojson = true
+		*candidates = true
 	}
 
 	intersects_opts := http.NewDefaultIntersectsHandlerOptions()
@@ -199,6 +204,17 @@ func main() {
 	mux.Handle("/ping", ping_handler)
 	mux.Handle("/", intersects_handler)
 
+	if *candidates {
+
+		candidateshandler, err := http.CandidatesHandler(appindex, indexer)
+
+		if err != nil {
+			logger.Fatal("failed to create Spatial handler because %s", err)
+		}
+
+		mux.Handle("/candidates", candidateshandler)
+	}
+	
 	if *polylines {
 
 		poly_opts := http.NewDefaultPolylineHandlerOptions()
@@ -282,14 +298,6 @@ func main() {
 		if err != nil {
 			logger.Fatal("failed to create www handler because %s", err)
 		}
-
-		candidateshandler, err := http.CandidatesHandler(appindex, indexer)
-
-		if err != nil {
-			logger.Fatal("failed to create Spatial handler because %s", err)
-		}
-
-		mux.Handle("/candidates", candidateshandler)
 
 		mux.Handle("/javascript/mapzen.min.js", mapzenjs_handler)
 		mux.Handle("/javascript/tangram.min.js", mapzenjs_handler)

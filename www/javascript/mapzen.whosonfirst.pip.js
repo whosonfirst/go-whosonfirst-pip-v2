@@ -55,6 +55,8 @@ window.addEventListener("load", function load(event){
 	}
 	
 	var fetch_candidates = function(lat, lon){
+
+		// the /candidates endpoint returns geojson by default
 		
 		var url = 'http://' + location.host + '/candidates?latitude=' + lat + '&longitude=' + lon;
 		
@@ -115,7 +117,7 @@ window.addEventListener("load", function load(event){
 		
 		var onsuccess = function(rsp){
 
-			// console.log("INTERSECTING", rsp);
+			console.log("INTERSECTING", rsp);
 			
 			if ((rsp["type"]) && ((rsp["type"] == "FeatureCollection") || (rsp["type"] == "Feature"))){
 				show_geojson(rsp);

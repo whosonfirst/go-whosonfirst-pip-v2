@@ -41,9 +41,13 @@ func main() {
 
 	var www = flag.Bool("www", false, "")
 	var www_path = flag.String("www-path", "/debug/", "")
-	var www_geojson = flag.Bool("www-as-geojson", false, "")
 	var www_local = flag.Bool("www-local", false, "")
 	var www_local_root = flag.String("www-local-root", "", "")
+
+	// please replace with a more extinsible -format flag
+	// (20170927/thisisaaronland)
+
+	var allow_geojson = flag.Bool("allow-geojson", false, "")
 
 	var api_key = flag.String("mapzen-api-key", "mapzen-xxxxxxx", "")
 
@@ -168,8 +172,12 @@ func main() {
 
 	// set up the HTTP endpoint
 
+	if *www {
+		*allow_geojson = true
+	}
+
 	intersects_opts := http.NewDefaultIntersectsHandlerOptions()
-	intersects_opts.AsGeoJSON = *www_geojson
+	intersects_opts.AllowGeoJSON = *allow_geojson
 
 	intersects_handler, err := http.IntersectsHandler(appindex, indexer, intersects_opts)
 
@@ -195,6 +203,7 @@ func main() {
 
 		poly_opts := http.NewDefaultPolylineHandlerOptions()
 		poly_opts.MaxCoords = *polylines_coords
+		poly_opts.AllowGeoJSON = *allow_geojson
 
 		poly_handler, err := http.PolylineHandler(appindex, indexer, poly_opts)
 

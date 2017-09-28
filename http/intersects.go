@@ -13,13 +13,13 @@ import (
 )
 
 type IntersectsHandlerOptions struct {
-	AsGeoJSON bool
+	AllowGeoJSON bool
 }
 
 func NewDefaultIntersectsHandlerOptions() *IntersectsHandlerOptions {
 
 	opts := IntersectsHandlerOptions{
-		AsGeoJSON: false,
+		AllowGeoJSON: false,
 	}
 
 	return &opts
@@ -38,8 +38,14 @@ func IntersectsHandler(i pip_index.Index, idx *index.Indexer, opts *IntersectsHa
 
 		str_lat := query.Get("latitude")
 		str_lon := query.Get("longitude")
+		str_format := query.Get("format")
 
 		v1 := query.Get("v1")
+
+		if str_format == "geojson" && !opts.AllowGeoJSON {
+			gohttp.Error(rsp, "Invalid format", gohttp.StatusBadRequest)
+			return
+		}
 
 		if str_lat == "" {
 			gohttp.Error(rsp, "Missing 'latitude' parameter", gohttp.StatusBadRequest)
@@ -100,7 +106,7 @@ func IntersectsHandler(i pip_index.Index, idx *index.Indexer, opts *IntersectsHa
 
 			final = v1_results
 
-		} else if opts.AsGeoJSON {
+		} else if str_format == "geojson" {
 
 			collection, err := pip_utils.ResultsToFeatureCollection(results, i)
 

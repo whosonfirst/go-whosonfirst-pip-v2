@@ -36,3 +36,8 @@ type GeoJSONFeatureCollection struct {
 	Type     string           `json:"type"`
 	Features []GeoJSONFeature `json:"features"`
 }
+
+type GeoJSONFeatureCollectionSet struct {
+	Type        string                      `json:"type"`
+	Collections []*GeoJSONFeatureCollection `json:"features"`
+}

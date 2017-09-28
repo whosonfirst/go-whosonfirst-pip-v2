@@ -5,9 +5,10 @@ import (
 	"github.com/skelterjohn/geom"
 	geojson_utils "github.com/whosonfirst/go-whosonfirst-geojson-v2/utils"
 	"github.com/whosonfirst/go-whosonfirst-index"
+	"github.com/whosonfirst/go-whosonfirst-pip"
 	"github.com/whosonfirst/go-whosonfirst-pip/filter"
 	pip_index "github.com/whosonfirst/go-whosonfirst-pip/index"
-	// pip_utils "github.com/whosonfirst/go-whosonfirst-pip/utils"
+	pip_utils "github.com/whosonfirst/go-whosonfirst-pip/utils"
 	"github.com/whosonfirst/go-whosonfirst-spr"
 	_ "log"
 	gohttp "net/http"
@@ -23,15 +24,15 @@ func (r *PolylineResultsUnique) Results() []spr.StandardPlacesResult {
 }
 
 type PolylineHandlerOptions struct {
-	AsGeoJSON bool
-	MaxCoords int
+	AllowGeoJSON bool
+	MaxCoords    int
 }
 
 func NewDefaultPolylineHandlerOptions() *PolylineHandlerOptions {
 
 	opts := PolylineHandlerOptions{
-		AsGeoJSON: false,
-		MaxCoords: 500,
+		AllowGeoJSON: false,
+		MaxCoords:    500,
 	}
 
 	return &opts
@@ -51,16 +52,27 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 		str_polyline := query.Get("polyline")
 		str_valhalla := query.Get("valhalla")
 		str_unique := query.Get("unique")
+		str_format := query.Get("format")
 
 		if str_polyline == "" {
 			gohttp.Error(rsp, "Missing 'polyline' parameter", gohttp.StatusBadRequest)
 			return
 		}
 
+		if str_format == "geojson" && !opts.AllowGeoJSON {
+			gohttp.Error(rsp, "Invalid format", gohttp.StatusBadRequest)
+			return
+		}
+
+		unique := false
 		poly_factor := 1.0e5
 
 		if str_valhalla != "" {
 			poly_factor = 1.0e6
+		}
+
+		if str_unique != "" {
+			unique = true
 		}
 
 		coords, err := DecodePolyline(str_polyline, poly_factor)
@@ -92,7 +104,7 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 		var final interface{}
 		final = results
 
-		if str_unique != "" {
+		if unique {
 
 			rows := make([]spr.StandardPlacesResult, 0)
 			seen := make(map[string]bool)
@@ -118,16 +130,14 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 				Rows: rows,
 			}
 
-			final = unq
+			final = &unq
 		}
 
-		// note: we will need a suitable function to handle polyline responses
-		// once said response has been formalized (20170927/thisisaaronland)
+		if str_format == "geojson" {
 
-		/*
-			if opts.AsGeoJSON {
+			if unique {
 
-				collection, err := pip_utils.ResultsToFeatureCollection(results, i)
+				collection, err := pip_utils.ResultsToFeatureCollection(final.(spr.StandardPlacesResults), i)
 
 				if err != nil {
 					gohttp.Error(rsp, err.Error(), gohttp.StatusInternalServerError)
@@ -135,8 +145,31 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 				}
 
 				final = collection
+
+			} else {
+
+				collections := make([]*pip.GeoJSONFeatureCollection, 0)
+
+				for _, rs := range results {
+
+					collection, err := pip_utils.ResultsToFeatureCollection(rs, i)
+
+					if err != nil {
+						gohttp.Error(rsp, err.Error(), gohttp.StatusInternalServerError)
+						return
+					}
+
+					collections = append(collections, collection)
+				}
+
+				collection_set := pip.GeoJSONFeatureCollectionSet{
+					Type:        "FeatureCollectionSet",
+					Collections: collections,
+				}
+
+				final = &collection_set
 			}
-		*/
+		}
 
 		js, err := json.Marshal(final)
 

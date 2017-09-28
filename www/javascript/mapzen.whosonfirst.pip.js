@@ -111,7 +111,7 @@ window.addEventListener("load", function load(event){
 		
 		intersecting = [];
 		
-		var url = 'http://' + location.host + '/?latitude=' + lat + '&longitude=' + lon;
+		var url = 'http://' + location.host + '/?latitude=' + lat + '&longitude=' + lon + '&format=geojson';
 		
 		var onsuccess = function(rsp){
 

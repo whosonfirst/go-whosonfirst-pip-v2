@@ -143,6 +143,27 @@ Indexing API results (in this case counties in California) by piping them in to 
 
 ![](docs/images/wof-pip-counties.png)
 
+## Performance
+
+Proper performance and load-testing figures still need to be compiled but this is what happened when I ran `siege` with 200 concurrent clients reading from the [testdata/urls.txt](testdata) file and then forgot about it for a week:
+
+```
+$> siege -v -c 200 -i -f testdata/urls.txt
+...time passes...
+Transactions:              267175219 hits
+Availability:                 100.00 %
+Elapsed time:              686483.75 secs
+Data transferred:         1200409.12 MB
+Response time:                  0.01 secs
+Transaction rate:             389.19 trans/sec
+Throughput:                     1.75 MB/sec
+Concurrency:                    5.32
+Successful transactions:   267175219
+Failed transactions:               0
+Longest transaction:            0.97
+Shortest transaction:           0.00
+```
+
 ## See also
 
 * https://github.com/whosonfirst/go-whosonfirst-geojson-v2

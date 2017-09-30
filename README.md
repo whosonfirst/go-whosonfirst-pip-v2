@@ -18,6 +18,10 @@ All of this package's dependencies are bundled with the code in the `vendor` dir
 
 _Please write me._
 
+## Responses
+
+This is still in flux but the short version is the everything will be a [standard places result](https://github.com/whosonfirst/go-whosonfirst-spr). Once what that means _exactly_ has been nailed down (it's close).
+
 ## Interfaces
 
 _Please write me._

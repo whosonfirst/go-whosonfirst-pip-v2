@@ -33,11 +33,20 @@ type GeoJSONFeature struct {
 }
 
 type GeoJSONFeatureCollection struct {
-	Type     string           `json:"type"`
-	Features []GeoJSONFeature `json:"features"`
+	Type       string           `json:"type"`
+	Features   []GeoJSONFeature `json:"features"`
+	Pagination Pagination       `json:"pagination,omitempty"`
 }
 
 type GeoJSONFeatureCollectionSet struct {
 	Type        string                      `json:"type"`
 	Collections []*GeoJSONFeatureCollection `json:"features"`
+	Pagination  Pagination                  `json:"pagination,omitempty"`
+}
+
+type Pagination struct {
+	TotalCount int `json:"total_count"`
+	Page       int `json:"page"`
+	PerPage    int `json:"per_page"`
+	PageCount  int `json:"page_count"`
 }

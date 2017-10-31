@@ -10,7 +10,7 @@ import (
 	pip_index "github.com/whosonfirst/go-whosonfirst-pip/index"
 	pip_utils "github.com/whosonfirst/go-whosonfirst-pip/utils"
 	"github.com/whosonfirst/go-whosonfirst-spr"
-	"log"
+	_ "log"
 	"math"
 	gohttp "net/http"
 	"strconv"
@@ -82,6 +82,12 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 
 			if err != nil {
 				gohttp.Error(rsp, err.Error(), gohttp.StatusBadRequest)
+				return
+			}
+
+			if p < 1 {
+				gohttp.Error(rsp, "Invalid page parameter", gohttp.StatusBadRequest)
+				return
 			}
 
 			page = p
@@ -93,12 +99,19 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 
 			if err != nil {
 				gohttp.Error(rsp, err.Error(), gohttp.StatusBadRequest)
+				return
 			}
 
 			per_page = p
 
+			if per_page < 1 {
+				gohttp.Error(rsp, "Invalid per_page parameter", gohttp.StatusBadRequest)
+				return
+			}
+
 			if per_page > opts.MaxCoords {
 				gohttp.Error(rsp, "Invalid per_page parameter", gohttp.StatusBadRequest)
+				return
 			}
 		}
 
@@ -120,23 +133,27 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 			return
 		}
 
-		log.Println("PATH", path, path.Length())
-		
 		total_count = path.Length()
 
 		if total_count > per_page {
 
 			first := (page - 1) * per_page
-			last := first + per_page
+			last := first + (per_page - 1)
 
-			log.Println("FIRST", first)
-			log.Println("LAST", last)
-			
+			if last > total_count {
+				last = total_count - 1
+			}
+
 			total_count_fl := float64(total_count)
 			per_page_fl := float64(per_page)
 
 			page_count_fl := math.Ceil(total_count_fl / per_page_fl)
 			page_count = int(page_count_fl)
+
+			if page > page_count {
+				gohttp.Error(rsp, "Invalid page parameter", gohttp.StatusBadRequest)
+				return
+			}
 
 			vertices := path.Vertices()
 
@@ -147,8 +164,6 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 			}
 
 			path = &slice
-			
-			log.Println("PATH", path, path.Length())			
 		}
 
 		pagination := pip.Pagination{
@@ -158,8 +173,6 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 			PageCount:  page_count,
 		}
 
-		log.Println("PAGINATION", pagination)
-		
 		filters, err := filter.NewSPRFilterFromQuery(query)
 
 		if err != nil {
@@ -240,7 +253,6 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 				collection_set := pip.GeoJSONFeatureCollectionSet{
 					Type:        "FeatureCollectionSet",
 					Collections: collections,
-
 				}
 
 				final = &collection_set

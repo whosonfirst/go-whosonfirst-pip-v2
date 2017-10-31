@@ -12,6 +12,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-spr"
 	_ "log"
 	gohttp "net/http"
+	"strconv"
 )
 
 type PolylineResultsUnique struct {
@@ -54,6 +55,12 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 		str_unique := query.Get("unique")
 		str_format := query.Get("format")
 
+		str_page := query.Get("page")
+		str_per_page := query.Get("per_page")
+
+		page := 1
+		per_page := opts.MaxCoords
+
 		if str_polyline == "" {
 			gohttp.Error(rsp, "Missing 'polyline' parameter", gohttp.StatusBadRequest)
 			return
@@ -62,6 +69,32 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 		if str_format == "geojson" && !opts.AllowGeoJSON {
 			gohttp.Error(rsp, "Invalid format", gohttp.StatusBadRequest)
 			return
+		}
+
+		if str_page != "" {
+
+			p, err := strconv.Atoi(str_page)
+
+			if err != nil {
+				gohttp.Error(rsp, err.Error(), gohttp.StatusBadRequest)
+			}
+
+			page = p
+		}
+
+		if str_per_page != "" {
+
+			p, err := strconv.Atoi(str_per_page)
+
+			if err != nil {
+				gohttp.Error(rsp, err.Error(), gohttp.StatusBadRequest)
+			}
+
+			per_page = p
+
+			if per_page > opts.MaxCoords {
+				gohttp.Error(rsp, "Invalid per_page parameter", gohttp.StatusBadRequest)
+			}
 		}
 
 		unique := false
@@ -82,9 +115,29 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 			return
 		}
 
-		if path.Length() > opts.MaxCoords {
-			gohttp.Error(rsp, "E_EXCESSIVE_COORDINATES", gohttp.StatusBadRequest)
-			return
+		total_count := path.Length()
+
+		/*
+			if path.Length() > opts.MaxCoords {
+				gohttp.Error(rsp, "E_EXCESSIVE_COORDINATES", gohttp.StatusBadRequest)
+				return
+			}
+		*/
+
+		if total_count > per_page {
+
+			first := (page - 1) * per_page
+			last := first + per_page
+
+			vertices := path.Vertices()
+
+			slice := geom.Path{}
+
+			for _, c := range vertices[first:last] {
+				slice.AddVertex(c)
+			}
+
+			*path = slice
 		}
 
 		filters, err := filter.NewSPRFilterFromQuery(query)

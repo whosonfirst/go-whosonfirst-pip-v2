@@ -54,7 +54,7 @@ func main() {
 	var candidates = flag.Bool("candidates", false, "")
 
 	var polylines = flag.Bool("polylines", false, "")
-	var polylines_coords = flag.Int("polylines-max-coords", 500, "")
+	var polylines_coords = flag.Int("polylines-max-coords", 100, "")
 
 	flag.Parse()
 

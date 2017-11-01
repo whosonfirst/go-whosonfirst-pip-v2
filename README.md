@@ -125,6 +125,8 @@ There are two important things to note here, at least as of this writing:
 2. If you are passing in [a polyline line returned from Mapzen's Turn-By-Turn service](https://mapzen.com/documentation/mobility/decoding/) you will need to include a `?valhalla=1` query parameter with your request so that the code can properly decode your polyline
 2. The response format for the `/polyline` endpoint _will_ change so please don't get too attached to anything that is returned today
 
+See also: https://github.com/whosonfirst/go-mapzen-valhalla#valhalla-route
+
 #### Fancy McFancyPants
 
 Indexing API results (in this case counties in California) by piping them in to `wof-pip-server` on STDIN:

@@ -16,15 +16,27 @@ import (
 	"strconv"
 )
 
-type PolylineResultsUnique struct {
-	spr.StandardPlacesResults `json:",omitempty"`
-	Rows                      []spr.StandardPlacesResult `json:"places"`
-	Pagination                pip.Pagination             `json:"pagination,omitempty"`
+// see this - see the way some things are an SPR thingy and both things have a `pip`
+// Pagination property but not an `spr` equivalent - yeah, we need to sort that out
+// (20171031/thisisaaronland)
+
+type PolylineResults struct {
+	// spr.StandardPlacesResults `json:",omitempty"`
+	Rows       [][]spr.StandardPlacesResult `json:"places"`
+	Pagination pip.Pagination               `json:"pagination,omitempty"`
 }
 
-func (r *PolylineResultsUnique) Results() []spr.StandardPlacesResult {
-	return r.Rows
+type PolylineResultsUnique struct {
+	// spr.StandardPlacesResults `json:",omitempty"`
+	Rows       [][]spr.StandardPlacesResult `json:"places"`
+	Pagination pip.Pagination               `json:"pagination,omitempty"`
 }
+
+// see above inre `pip` and `spr` and things left to figure out...
+// (20171031/thisisaaronland)
+// func (r *PolylineResultsUnique) Results() []spr.StandardPlacesResult {
+//	return r.Rows
+// }
 
 type PolylineHandlerOptions struct {
 	AllowGeoJSON bool
@@ -137,8 +149,12 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 
 		if total_count > per_page {
 
+			// log.Println("PAGE", page, per_page)
+
 			first := (page - 1) * per_page
-			last := first + (per_page - 1)
+			last := first + per_page
+
+			// log.Println("SLICE", first, last)
 
 			if last > total_count {
 				last = total_count - 1
@@ -187,8 +203,26 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 			return
 		}
 
+		p_rows := make([][]spr.StandardPlacesResult, 0)
+
+		for _, rs := range results {
+
+			rows := make([]spr.StandardPlacesResult, 0)
+
+			for _, r := range rs.Results() {
+				rows = append(rows, r)
+			}
+
+			p_rows = append(p_rows, rows)
+		}
+
+		p_results := PolylineResults{
+			Rows:       p_rows,
+			Pagination: pagination,
+		}
+
 		var final interface{}
-		final = results
+		final = p_results
 
 		if unique {
 
@@ -212,8 +246,10 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 				}
 			}
 
+			p_rows := [][]spr.StandardPlacesResult{rows}
+
 			unq := PolylineResultsUnique{
-				Rows:       rows,
+				Rows:       p_rows,
 				Pagination: pagination,
 			}
 

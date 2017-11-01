@@ -47,7 +47,7 @@ func NewDefaultPolylineHandlerOptions() *PolylineHandlerOptions {
 
 	opts := PolylineHandlerOptions{
 		AllowGeoJSON: false,
-		MaxCoords:    500,
+		MaxCoords:    100,
 	}
 
 	return &opts

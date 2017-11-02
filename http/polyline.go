@@ -65,7 +65,7 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 		query := req.URL.Query()
 
 		str_polyline := query.Get("polyline")
-		str_valhalla := query.Get("valhalla")
+		str_precision := query.Get("precision")
 		str_unique := query.Get("unique")
 		str_format := query.Get("format")
 
@@ -117,12 +117,12 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 			per_page = p
 
 			if per_page < 1 {
-				gohttp.Error(rsp, "Invalid per_page parameter", gohttp.StatusBadRequest)
+				gohttp.Error(rsp, "Invalid per_page value", gohttp.StatusBadRequest)
 				return
 			}
 
 			if per_page > opts.MaxCoords {
-				gohttp.Error(rsp, "Invalid per_page parameter", gohttp.StatusBadRequest)
+				gohttp.Error(rsp, "Invalid per_page value", gohttp.StatusBadRequest)
 				return
 			}
 		}
@@ -130,8 +130,24 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 		unique := false
 		poly_factor := 1.0e5
 
-		if str_valhalla != "" {
-			poly_factor = 1.0e6
+		if str_precision != "" {
+
+			precision, err := strconv.Atoi(str_precision)
+
+			if err != nil {
+				gohttp.Error(rsp, err.Error(), gohttp.StatusBadRequest)
+				return
+			}
+
+			switch precision {
+			case 5:
+				// pass, already set above
+			case 6:
+				poly_factor = 1.0e6
+			default:
+				gohttp.Error(rsp, "Invalid precision value", gohttp.StatusBadRequest)
+				return
+			}
 		}
 
 		if str_unique != "" {

@@ -14,12 +14,13 @@ self:   prep rmdeps
 	mkdir -p src/github.com/whosonfirst/go-whosonfirst-pip/index
 	mkdir -p src/github.com/whosonfirst/go-whosonfirst-pip/utils
 	cp *.go src/github.com/whosonfirst/go-whosonfirst-pip/
-	cp app/*.go src/github.com/whosonfirst/go-whosonfirst-pip/app/
-	cp cache/*.go src/github.com/whosonfirst/go-whosonfirst-pip/cache/
-	cp filter/*.go src/github.com/whosonfirst/go-whosonfirst-pip/filter/
-	cp http/*.go src/github.com/whosonfirst/go-whosonfirst-pip/http/
-	cp index/*.go src/github.com/whosonfirst/go-whosonfirst-pip/index/
-	cp utils/*.go src/github.com/whosonfirst/go-whosonfirst-pip/utils/
+	cp -r app src/github.com/whosonfirst/go-whosonfirst-pip/
+	cp -r cache src/github.com/whosonfirst/go-whosonfirst-pip/
+	cp -r filter src/github.com/whosonfirst/go-whosonfirst-pip/
+	cp -r flags src/github.com/whosonfirst/go-whosonfirst-pip/
+	cp -r http src/github.com/whosonfirst/go-whosonfirst-pip/
+	cp -r index src/github.com/whosonfirst/go-whosonfirst-pip/
+	cp -r utils src/github.com/whosonfirst/go-whosonfirst-pip/
 	cp -r vendor/* src/
 
 rmdeps:
@@ -64,6 +65,7 @@ fmt:
 	go fmt cache/*.go
 	go fmt cmd/*.go
 	go fmt filter/*.go
+	go fmt flags/*.go
 	go fmt http/*.go
 	go fmt index/*.go
 	go fmt utils/*.go

@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+type WOFConcordances map[string]string
+
 type WOFCentroid struct {
 	geojson.Centroid
 	coord  geom.Coord
@@ -89,6 +91,23 @@ func Centroid(f geojson.Feature) (geojson.Centroid, error) {
 	}
 
 	return NewWOFCentroid(0.0, 0.0, "nullisland")
+}
+
+func Concordances(f geojson.Feature) (WOFConcordances, error) {
+
+	concordances := make(map[string]string)
+
+	rsp := gjson.GetBytes(f.Bytes(), "properties.wof:concordances")
+
+	if !rsp.Exists() {
+		return concordances, nil
+	}
+
+	for k, v := range rsp.Map() {
+		concordances[k] = v.String()
+	}
+
+	return concordances, nil
 }
 
 func Country(f geojson.Feature) string {

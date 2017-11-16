@@ -49,8 +49,8 @@ func (p Polygon) ContainsCoord(c geom.Coord) bool {
 
 func GeometryForFeature(f geojson.Feature) (*geojson.Geometry, error) {
 
-     	// see notes below in PolygonsForFeature
-	
+	// see notes below in PolygonsForFeature
+
 	t := gjson.GetBytes(f.Bytes(), "geometry.type")
 
 	if !t.Exists() {
@@ -77,7 +77,7 @@ func GeometryForFeature(f geojson.Feature) (*geojson.Geometry, error) {
 
 func PolygonsForFeature(f geojson.Feature) ([]geojson.Polygon, error) {
 
-     	// so here's the thing - in the first function (GeometryForFeature)
+	// so here's the thing - in the first function (GeometryForFeature)
 	// we're going UnMarshal the geomtry and then in the second function
 	// (PolygonsForGeometry) we Marshal it again - we do this because the
 	// second function hands off to a bunch of 'gjsonToFoo' functions to
@@ -95,7 +95,7 @@ func PolygonsForFeature(f geojson.Feature) ([]geojson.Polygon, error) {
 	// function that caching layers can access... I mean I suppose we could
 	// monkey-patch the geom package too but not today
 	// (20170920/thisisaaronland)
-	
+
 	g, err := GeometryForFeature(f)
 
 	if err != nil {

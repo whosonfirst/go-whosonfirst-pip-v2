@@ -5,6 +5,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/feature"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/geometry"
+	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/whosonfirst"
 	"github.com/whosonfirst/go-whosonfirst-index"
 	pip "github.com/whosonfirst/go-whosonfirst-pip/index"
 	pip_utils "github.com/whosonfirst/go-whosonfirst-pip/utils"
@@ -13,15 +14,23 @@ import (
 )
 
 type ApplicationIndexerOptions struct {
-	IndexMode string
-	IsWOF     bool
+	IndexMode         string
+	IsWOF             bool
+	IncludeDeprecated bool
+	IncludeSuperseded bool
+	IncludeCeased     bool
+	IncludeNotCurrent bool
 }
 
 func DefaultApplicationIndexerOptions() (ApplicationIndexerOptions, error) {
 
 	opts := ApplicationIndexerOptions{
-		IndexMode: "",
-		IsWOF:     true,
+		IndexMode:         "",
+		IsWOF:             true,
+		IncludeDeprecated: true,
+		IncludeSuperseded: true,
+		IncludeCeased:     true,
+		IncludeNotCurrent: true,
 	}
 
 	return opts, nil
@@ -49,6 +58,58 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 
 			if err != nil {
 				return err
+			}
+
+			if !opts.IncludeNotCurrent {
+
+				fl, err := whosonfirst.IsCurrent(f)
+
+				if err != nil {
+					return err
+				}
+
+				if fl.IsTrue() && fl.IsKnown() {
+					return nil
+				}
+			}
+
+			if !opts.IncludeDeprecated {
+
+				fl, err := whosonfirst.IsDeprecated(f)
+
+				if err != nil {
+					return err
+				}
+
+				if fl.IsTrue() && fl.IsKnown() {
+					return nil
+				}
+			}
+
+			if !opts.IncludeCeased {
+
+				fl, err := whosonfirst.IsCeased(f)
+
+				if err != nil {
+					return err
+				}
+
+				if fl.IsTrue() && fl.IsKnown() {
+					return nil
+				}
+			}
+
+			if !opts.IncludeSuperseded {
+
+				fl, err := whosonfirst.IsSuperseded(f)
+
+				if err != nil {
+					return err
+				}
+
+				if fl.IsTrue() && fl.IsKnown() {
+					return nil
+				}
 			}
 
 			f = tmp

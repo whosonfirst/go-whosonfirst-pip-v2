@@ -6,11 +6,20 @@ import (
 )
 
 type ApplicationIndexOptions struct {
+     IncludeDeprecated bool
+     IncludeSuperseded bool
+     IncludeCeased bool
+     IncludeNotCurrent bool
 }
 
 func DefaultApplicationIndexOptions() (ApplicationIndexOptions, error) {
 
-	opts := ApplicationIndexOptions{}
+	opts := ApplicationIndexOptions{
+	     IncludeDeprecated: true,
+	     IncludeSuperseded: true,
+	     IncludeCeased: true,
+	     IncludeNotCurrent: true,
+	}
 
 	return opts, nil
 }

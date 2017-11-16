@@ -156,6 +156,49 @@ Indexing API results (in this case counties in California) by piping them in to 
 
 ![](docs/images/wof-pip-counties.png)
 
+#### Plain old GeoJSON
+
+Let assume that you've downloaded the [OSM water polygons data](http://openstreetmapdata.com/data/water-polygons) and created a GeoJSON file. For example:
+
+```
+cd /usr/local
+wget http://data.openstreetmapdata.com/water-polygons-split-4326.zip
+unzip water-polygons-split-4326.zip
+cd water-polygons-split-4326
+ogr2ogr -F GeoJSON water_polygons.geojson water_polygons.shp
+```
+
+Now we start up the PIP server passing along the `-plain-old-geojson` and `-mode feature-collection` flag:
+
+```
+./bin/wof-pip-server -port 5555 -cache-all -allow-geojson -www -mapzen-api-key mapzen-xxxxxxx \
+	-plain-old-geojson -mode feature-collection /usr/local/water-polygons-split-4326/water_polygons.geojson
+
+10:33:49.735255 [wof-pip-server] STATUS -www flag is true causing the following flags to also be true: -allow-geojson -candidates
+10:33:49.735402 [wof-pip-server] STATUS listening on localhost:5555
+10:33:50.735473 [wof-pip-server] STATUS indexing 0 records indexed
+10:33:51.736308 [wof-pip-server] STATUS indexing 0 records indexed
+10:33:52.735489 [wof-pip-server] STATUS indexing 0 records indexed
+...
+10:47:52.756351 [wof-pip-server] STATUS indexing 41239 records indexed
+10:47:53.755285 [wof-pip-server] STATUS indexing 41311 records indexed
+10:47:54.754969 [wof-pip-server] STATUS indexing 41376 records indexed
+10:47:55.757847 [wof-pip-server] STATUS indexing 41405 records indexed
+10:47:56.479703 [wof-pip-server][index] STATUS time to index feature collection '/usr/local/water-polygons-split-4326/water_polygons.geojson' 14m6.724468767s
+10:47:56.479721 [wof-pip-server][index] STATUS time to index path '/usr/local/water-polygons-split-4326/water_polygons.geojson' 14m6.725233324s
+10:47:56.479725 [wof-pip-server][index] STATUS time to index paths (1) 14m6.725246195s
+10:47:56.479729 [wof-pip-server] STATUS finished indexing
+```
+
+And then you would query it as usual:
+
+```
+curl 'http://localhost:5555/?latitude=54.793624&longitude=-79.948933&format=geojson' \
+{"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"MultiPolygon","coordinates":[[[[-80.15635,54.140525],[-80.15635,54.84385],[-79.8045875,54.84385],[-79.8045875,54.72711395185386],[-79.8061901,54.7266501],[-79.8070701,54.7267899],[-79.8075399,54.7257701],[-79.8102099,54.72528],[-79.81023,54.7247701],[-79.8111099,54.7249099],[-79.8119999,54.72453],[-79.81206,54.72274],[-79.8045875,54.724551416699605],[-79.8045875,54.140525],[-80.15635,54.140525]],[],[],[[-79.93955,54.4322999],[-79.93886,54.4331899],[-79.9390599,54.43422],[-79.943,54.4345099],[-79.94302,54.4337399],[-79.94258,54.4337299],[-79.9417399,54.43257],[-79.93955,54.4322999]],[[-79.83404,54.7429299],[-79.82869,54.74429],[-79.8282299,54.7449199],[-79.82735,54.7449199],[-79.8273199,54.74594],[-79.8268701,54.74594],[-79.82729,54.74696],[-79.82818,54.74672],[-79.8281901,54.7462],[-79.8299701,54.74597],[-79.8304399,54.7452],[-79.8317699,54.74521],[-79.8326799,54.7442],[-79.8344499,54.7442201],[-79.8341901,54.74328],[-79.83449,54.74295],[-79.83404,54.7429299]]]]},"properties":{"spr:id":"f1xnh0000000","spr:name":"f1xnh0000000","spr:placetype":"polygon","spr:latitude":54.4921875,"spr:longitude":-79.98046875,"spr:min_latitude":54.140525,"spr:min_longitude":-80.15635,"spr:max_latitude":54.84385,"spr:max_longitude":-79.8045875}}],"pagination":{"total_count":0,"page":0,"per_page":0,"page_count":0}}
+```
+
+![](docs/images/wof-pip-water-polygons.png)
+
 ## Performance
 
 Proper performance and load-testing figures still need to be compiled but this is what happened when I ran `siege` with 200 concurrent clients reading from the [testdata/urls.txt](testdata) file and then forgot about it for a week:

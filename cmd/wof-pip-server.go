@@ -8,6 +8,7 @@ import (
 	"github.com/whosonfirst/go-http-rewrite"
 	"github.com/whosonfirst/go-whosonfirst-log"
 	"github.com/whosonfirst/go-whosonfirst-pip/app"
+	"github.com/whosonfirst/go-whosonfirst-pip/flags"
 	"github.com/whosonfirst/go-whosonfirst-pip/http"
 	gohttp "net/http"
 	"os"
@@ -43,6 +44,8 @@ func main() {
 	var www_path = flag.String("www-path", "/debug/", "")
 	var www_local = flag.Bool("www-local", false, "")
 	var www_local_root = flag.String("www-local-root", "", "")
+
+	var exclude flags.Exclude
 
 	// please replace with a more extinsible -format flag
 	// (20170927/thisisaaronland)
@@ -126,6 +129,22 @@ func main() {
 
 	if *plain_old_geojson {
 		indexer_opts.IsWOF = false // if true we skip the WOF specific "is valid record" checks
+	}
+
+	for _, e := range exclude {
+
+		switch e {
+		case "deprecated":
+			indexer_opts.IncludeDeprecated = false
+		case "ceased":
+			indexer_opts.IncludeCeased = false
+		case "superseded":
+			indexer_opts.IncludeSuperseded = false
+		case "not-current":
+			indexer_opts.IncludeNotCurrent = false
+		default:
+			logger.Warning("unknown exclude filter (%s), ignoring", e)
+		}
 	}
 
 	indexer, err := app.NewApplicationIndexer(appindex, indexer_opts)

@@ -1,5 +1,9 @@
 package flags
 
+import (
+	"strings"
+)
+
 type Exclude []string
 
 func (e *Exclude) String() string {

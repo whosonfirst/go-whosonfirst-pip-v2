@@ -4,19 +4,52 @@ window.addEventListener("load", function load(event){
 	var marker;			    
 	var candidates;
 	var intersecting = [];
-	
-	var draw_coords = function(){
+
+	var jump_to = function(str_latlon){
+
+		str_latlon = str_latlon.trim();
 		
-		var center = map.getCenter();
-		var lat = center.lat;
-		var lon = center.lng;
+		if (str_latlon == ""){
+			return false;
+		}
+		
+		var latlon = str_latlon.split(",");
+
+		if (latlon.length != 2) {
+			alert("Invalid lat,lon pair");
+			return false;
+		}
+
+		var lat = parseFloat(latlon[0]);
+
+		if (! lat){
+			alert("Invalid latitude");
+			return false;
+		}
+
+		var lon = parseFloat(latlon[1]);
+		
+		if (! lon){
+			alert("Invalid longitude");
+			return false;
+		}
+
+		map.setView([ lat, lon ], map.getZoom());
+
+		draw_coords(lat, lon);		
+	};
+	
+	var draw_coords = function(lat, lon){
+
+		if ((! lat) || (! lon)){
+			var center = map.getCenter();
+			lat = center.lat;
+			lon = center.lng;
+		}
 		
 		lat = lat.toFixed(6);
 		lon = lon.toFixed(6);
-		
-		var coords = document.getElementById("coords");
-		coords.innerText = lat + ", " + lon;
-		
+				
 		var geojson = {
 			"type": "Feature",
 			"geometry": { "type": "Point", "coordinates": [ lon, lat ] }
@@ -211,6 +244,8 @@ window.addEventListener("load", function load(event){
 	
 	map = L.Mapzen.map('map', map_opts);
 	map.setView([37.7749, -122.4194], 12);
+
+	slippymap.crosshairs.init(map);
 	
         var layers = [
 		"neighbourhood",			    
@@ -235,10 +270,17 @@ window.addEventListener("load", function load(event){
 		map: map
 	});
 	
-	map.on('move', draw_coords);
 	map.on('dragend', pip);
 	
-	draw_coords();
 	pip();
 
+	var jump_form = document.getElementById("jump-to-form");
+	
+	jump_form.onsubmit = function(){
+
+		var input = document.getElementById("jump-to-latlon");
+
+		jump_to(input.value);
+		return false;
+	};
 });

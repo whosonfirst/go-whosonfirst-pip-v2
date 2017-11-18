@@ -327,6 +327,7 @@ func main() {
 		mux.Handle("/tangram/refill-style.zip", mapzenjs_handler)
 
 		mux.Handle("/javascript/mapzen.whosonfirst.pip.js", www_handler)
+		mux.Handle("/javascript/slippymap.crosshairs.js", www_handler)		
 		mux.Handle("/css/mapzen.whosonfirst.pip.css", www_handler)
 
 		mux.Handle(*www_path, debug_handler)

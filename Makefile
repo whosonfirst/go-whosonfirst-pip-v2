@@ -100,3 +100,6 @@ mapzenjs:
 	curl -s -o www/css/mapzen.js.css https://mapzen.com/js/mapzen.css
 	curl -s -o www/javascript/mapzen.js https://mapzen.com/js/mapzen.js
 	curl -s -o www/javascript/mapzen.min.js https://mapzen.com/js/mapzen.min.js
+
+crosshairs:
+	curl -s -o www/javascript/slippymap.crosshairs.js https://raw.githubusercontent.com/whosonfirst/js-slippymap-crosshairs/master/src/slippymap.crosshairs.js	

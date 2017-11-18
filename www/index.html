@@ -5,14 +5,24 @@
 
 		<link rel="stylesheet" href="/css/mapzen.js.css">
 		<script src="/javascript/mapzen.min.js"></script>
-
+		
+		<script src="/javascript/slippymap.crosshairs.js"></script>
+		
 		<link rel="stylesheet" href="/css/mapzen.whosonfirst.pip.css">
-		<script src="/javascript/mapzen.whosonfirst.pip.js"></script>				
+		<script src="/javascript/mapzen.whosonfirst.pip.js"></script>
 	</head>
 	<body>
 		<div id="map"></div>
 		<div id="status"><span id="coords"></span></div>
-		<ul id="candidates-list"></ul>
-		<ul id="intersecting-list"></ul>
+		<div id="jump-to-form">
+		  <form>
+		    <input type="text" name="jump-to-latlon" id="jump-to-latlon" placeholder="jump to lat,lon" value="" />
+		    <button type="submit" id="jump-to-button">jump</button>
+		  </form>
+		</div>
+		<div id="results">
+		  <ul id="candidates-list"></ul>
+		  <ul id="intersecting-list"></ul>
+		</div>
 	</body>
 </html>	

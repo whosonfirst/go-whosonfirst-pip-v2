@@ -17,3 +17,17 @@ body {
     font-weight: 700;
     background-color: #ccc;
 }
+
+#slippymap-coords {
+    text-align: center;
+    font-size: small;
+    margin-top: .5em;
+}
+
+#jump-to-form {
+    text-align: center;
+    margin-top:.5em;
+    margin-bottom:1em;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: .5em;
+}

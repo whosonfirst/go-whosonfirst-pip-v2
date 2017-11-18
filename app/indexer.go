@@ -62,7 +62,7 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 
 			if !opts.IncludeNotCurrent {
 
-				fl, err := whosonfirst.IsCurrent(f)
+				fl, err := whosonfirst.IsCurrent(tmp)
 
 				if err != nil {
 					return err
@@ -75,7 +75,7 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 
 			if !opts.IncludeDeprecated {
 
-				fl, err := whosonfirst.IsDeprecated(f)
+				fl, err := whosonfirst.IsDeprecated(tmp)
 
 				if err != nil {
 					return err
@@ -88,7 +88,7 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 
 			if !opts.IncludeCeased {
 
-				fl, err := whosonfirst.IsCeased(f)
+				fl, err := whosonfirst.IsCeased(tmp)
 
 				if err != nil {
 					return err
@@ -101,7 +101,7 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 
 			if !opts.IncludeSuperseded {
 
-				fl, err := whosonfirst.IsSuperseded(f)
+				fl, err := whosonfirst.IsSuperseded(tmp)
 
 				if err != nil {
 					return err

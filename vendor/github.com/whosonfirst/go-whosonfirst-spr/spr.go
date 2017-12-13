@@ -26,7 +26,7 @@ type StandardPlacesResult interface {
 	IsSuperseding() flags.ExistentialFlag
 	SupersededBy() []int64
 	Supersedes() []int64
-	LastModified()	int64
+	LastModified() int64
 }
 
 type Pagination interface {

@@ -9,6 +9,7 @@ prep:
 self:   prep rmdeps
 	if test -d src; then rm -rf src; fi
 	mkdir -p src/github.com/whosonfirst/go-whosonfirst-spr/
+	cp -r util src/github.com/whosonfirst/go-whosonfirst-spr/
 	cp *.go src/github.com/whosonfirst/go-whosonfirst-spr
 	# cp -r vendor/src/* src/
 
@@ -28,5 +29,6 @@ vendor-deps: deps
 
 fmt:
 	go fmt *.go
+	go fmt util/*.go
 
 bin:	self

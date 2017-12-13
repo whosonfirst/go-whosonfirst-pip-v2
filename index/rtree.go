@@ -10,6 +10,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-pip/cache"
 	"github.com/whosonfirst/go-whosonfirst-pip/filter"
 	"github.com/whosonfirst/go-whosonfirst-spr"
+	// golog "log"		
 	"sync"
 )
 
@@ -98,7 +99,7 @@ func (r *RTreeIndex) IndexFeature(f geojson.Feature) error {
 			return err
 		}
 
-		r.Logger.Debug("index %s %v", str_id, rect)
+		r.Logger.Status("index %s %v", str_id, rect)
 
 		sp := RTreeSpatialIndex{
 			bounds: rect,

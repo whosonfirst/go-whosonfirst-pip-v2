@@ -11,6 +11,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-pip/flags"
 	"github.com/whosonfirst/go-whosonfirst-pip/http"
 	gohttp "net/http"
+	"io"
 	"os"
 	"runtime"
 	godebug "runtime/debug"
@@ -65,6 +66,9 @@ func main() {
 	runtime.GOMAXPROCS(*procs)
 
 	logger := log.SimpleWOFLogger()
+	
+	stdout := io.Writer(os.Stdout)
+	logger.AddLogger(stdout, "status")
 
 	// set up the caching layer for the point-in-poly index
 

@@ -14,6 +14,12 @@ make bin
 
 All of this package's dependencies are bundled with the code in the `vendor` directory.
 
+## Important
+
+The documentation in this package is incomplete where "incomplete" really means something like "we took the entire motorcyle apart and it's still spread out on the floor of the garage waiting to be reassembled". This is not a feature. It's an unfortunate by-product of the usual bad craziness around here.
+
+Proper documentation is quickly making itself a priority but in the interim if you want to understand what's going on, in broad strokes, I'd suggest looking at [https://github.com/whosonfirst/go-whosonfirst-pip](https://github.com/whosonfirst/go-whosonfirst-pip). Pretty much everything under the hood has changed as have the public interfaces but _in broad stokes_ both packages have the same goal and do the same thing.
+
 ## Example
 
 _Please write me._
@@ -78,6 +84,44 @@ _Please write me._
 ### wof-pip-server
 
 _Please write me._
+
+For example, to index [Who's On First data published as a SQLite database](https://whosonfirst.mapzen.com/sqlite) and spinning up a little web server for debugging things you might do something like:
+
+```
+wget https://whosonfirst.mapzen.com/sqlite/region-20171212.db.bz2
+bunzip2 region-20171212.db.bz2
+```
+
+And then:
+
+```
+./bin/wof-pip-server -cache-all -mode sqlite -www -mapzen-api-key mapzen-**** region-20171212.db
+16:37:25.490337 [wof-pip-server] STATUS -www flag is true causing the following flags to also be true: -allow-geojson -candidates
+16:37:25.490562 [wof-pip-server] STATUS listening on localhost:8080
+16:37:26.491416 [wof-pip-server] STATUS indexing 33 records indexed
+16:37:27.495491 [wof-pip-server] STATUS indexing 118 records indexed
+16:37:28.490831 [wof-pip-server] STATUS indexing 138 records indexed
+16:37:29.490722 [wof-pip-server] STATUS indexing 312 records indexed
+...time passes...
+16:40:25.496078 [wof-pip-server] STATUS indexing 4691 records indexed
+16:40:26.498284 [wof-pip-server] STATUS indexing 4694 records indexed
+16:40:27.494674 [wof-pip-server] STATUS indexing 4697 records indexed
+16:40:28.494235 [wof-pip-server] STATUS indexing 4900 records indexed
+16:40:29.498331 [wof-pip-server] STATUS indexing 4952 records indexed
+16:40:29.562617 [wof-pip-server] STATUS finished indexing
+```
+
+_Note the part where you need to get a [Mapzen API key](https://mapzen.com/developers/) in order for the map-y parts of things to work._
+
+And finally:
+
+```
+open localhost:8080/debug
+```
+
+And you should see something like this:
+
+![](docs/images/wof-pip-server.png)
 
 #### Fancy
 

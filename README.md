@@ -121,7 +121,7 @@ open localhost:8080/debug
 
 And you should see something like this:
 
-![](docs/images/wof-pip-server.png)
+![](docs/images/wof-pip-sqlite.png)
 
 #### Fancy
 

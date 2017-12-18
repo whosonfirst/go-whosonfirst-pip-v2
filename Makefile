@@ -55,6 +55,7 @@ deps:
 	rm -rf src/github.com/whosonfirst/go-whosonfirst-geojson-v2/vendor/github.com/whosonfirst/go-whosonfirst-flags
 	rm -rf src/github.com/whosonfirst/go-whosonfirst-geojson-v2/vendor/github.com/skelterjohn/geom
 	rm -rf src/github.com/whosonfirst/go-whosonfirst-index/vendor/github.com/whosonfirst/go-whosonfirst-sqlite
+	rm -rf src/github.com/whosonfirst/go-whosonfirst-sqlite/vendor/github.com/whosonfirst/go-whosonfirst-geojson-v2
 	rm -rf src/github.com/jteeuwen/go-bindata/testdata
 
 vendor-deps: rmdeps deps

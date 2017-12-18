@@ -9,8 +9,12 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-index"
 	pip "github.com/whosonfirst/go-whosonfirst-pip/index"
 	pip_utils "github.com/whosonfirst/go-whosonfirst-pip/utils"
+	"github.com/whosonfirst/go-whosonfirst-sqlite"
+	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
+	"github.com/whosonfirst/go-whosonfirst-sqlite/tables"
 	"io"
-	_ "log"
+	"log"
+	"sync"
 )
 
 type ApplicationIndexerOptions struct {
@@ -20,6 +24,8 @@ type ApplicationIndexerOptions struct {
 	IncludeSuperseded bool
 	IncludeCeased     bool
 	IncludeNotCurrent bool
+	IndexExtras       bool
+	ExtrasDB          string
 }
 
 func DefaultApplicationIndexerOptions() (ApplicationIndexerOptions, error) {
@@ -31,6 +37,8 @@ func DefaultApplicationIndexerOptions() (ApplicationIndexerOptions, error) {
 		IncludeSuperseded: true,
 		IncludeCeased:     true,
 		IncludeNotCurrent: true,
+		IndexExtras:       false,
+		ExtrasDB:          "",
 	}
 
 	return opts, nil
@@ -38,20 +46,30 @@ func DefaultApplicationIndexerOptions() (ApplicationIndexerOptions, error) {
 
 func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (*index.Indexer, error) {
 
-     	/*
-	db, err := database.NewDB(db_path)
+	var wg *sync.WaitGroup
+	var mu *sync.Mutex
+	var gt sqlite.Table
 
-	if err != nil {
-		return nil, err
+	if opts.IndexExtras {
+
+		db, err := database.NewDB(opts.ExtrasDB)
+
+		if err != nil {
+			return nil, err
+		}
+
+		defer db.Close()
+
+		gt, err = tables.NewGeoJSONTableWithDatabase(db)
+
+		if err != nil {
+			return nil, err
+		}
+
+		wg = new(sync.WaitGroup)
+		mu = new(sync.Mutex)
 	}
 
-	gt, err := tables.NewGeoJSONTableWithDatabase(db)
-
-	if err != nil {
-		return nil, err
-	}
-	*/
-	
 	cb := func(fh io.Reader, ctx context.Context, args ...interface{}) error {
 
 		var f geojson.Feature
@@ -155,10 +173,46 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 		// in a SQLite database for extras lookup here...
 		// see notes in http/intersects.go (20171217/thisisaaronland)
 
-		// err = gt.IndexFeature(db, f)
-					
+		if opts.IndexExtras {
+
+			wg.Add(1)
+
+			go func(f geojson.Feature, wg *sync.WaitGroup) error {
+
+				defer wg.Done()
+
+				db, err := database.NewDB(opts.ExtrasDB)
+
+				if err != nil {
+					log.Println(err)
+					return err
+				}
+
+				defer db.Close()
+
+				mu.Lock()
+
+				err = gt.IndexFeature(db, f)
+
+				mu.Unlock()
+
+				if err != nil {
+					log.Println("FAILED TO INDEX", err) // something
+				}
+
+				return err
+
+			}(f, wg)
+		}
+
 		return nil
 	}
 
-	return index.NewIndexer(opts.IndexMode, cb)
+	idx, err := index.NewIndexer(opts.IndexMode, cb)
+
+	if opts.IndexExtras {
+		wg.Wait()
+	}
+
+	return idx, err
 }

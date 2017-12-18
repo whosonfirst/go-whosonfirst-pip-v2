@@ -10,8 +10,8 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-pip/app"
 	"github.com/whosonfirst/go-whosonfirst-pip/flags"
 	"github.com/whosonfirst/go-whosonfirst-pip/http"
-	gohttp "net/http"
 	"io"
+	gohttp "net/http"
 	"os"
 	"runtime"
 	godebug "runtime/debug"
@@ -49,10 +49,14 @@ func main() {
 	var exclude flags.Exclude
 	flag.Var(&exclude, "exclude", "Exclude (WOF) records based on their existential flags. Valid options are: ceased, deprecated, not-current, superseded.")
 
+	var databases flags.Database
+	flag.Var(&databases, "extras-database", "...")
+
 	// please replace with a more extinsible -format flag
 	// (20170927/thisisaaronland)
 
 	var allow_geojson = flag.Bool("allow-geojson", false, "")
+	var allow_extras = flag.Bool("allow-extras", false, "")
 
 	var api_key = flag.String("mapzen-api-key", "mapzen-xxxxxxx", "")
 
@@ -66,7 +70,7 @@ func main() {
 	runtime.GOMAXPROCS(*procs)
 
 	logger := log.SimpleWOFLogger()
-	
+
 	stdout := io.Writer(os.Stdout)
 	logger.AddLogger(stdout, "status")
 
@@ -207,6 +211,8 @@ func main() {
 
 	intersects_opts := http.NewDefaultIntersectsHandlerOptions()
 	intersects_opts.AllowGeoJSON = *allow_geojson
+	intersects_opts.AllowExtras = *allow_extras
+	intersects_opts.ExtrasDatabases = databases
 
 	intersects_handler, err := http.IntersectsHandler(appindex, indexer, intersects_opts)
 
@@ -331,7 +337,7 @@ func main() {
 		mux.Handle("/tangram/refill-style.zip", mapzenjs_handler)
 
 		mux.Handle("/javascript/mapzen.whosonfirst.pip.js", www_handler)
-		mux.Handle("/javascript/slippymap.crosshairs.js", www_handler)		
+		mux.Handle("/javascript/slippymap.crosshairs.js", www_handler)
 		mux.Handle("/css/mapzen.whosonfirst.pip.css", www_handler)
 
 		mux.Handle(*www_path, debug_handler)

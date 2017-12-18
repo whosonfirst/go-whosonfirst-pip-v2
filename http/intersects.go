@@ -1,25 +1,35 @@
 package http
 
 import (
+	"database/sql"
 	"encoding/json"
+	"fmt"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/utils"
 	"github.com/whosonfirst/go-whosonfirst-index"
 	"github.com/whosonfirst/go-whosonfirst-pip/filter"
 	pip_index "github.com/whosonfirst/go-whosonfirst-pip/index"
 	pip_utils "github.com/whosonfirst/go-whosonfirst-pip/utils"
-	_ "log"
+	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
+	"log"
 	gohttp "net/http"
 	"strconv"
+	"strings"
 )
 
 type IntersectsHandlerOptions struct {
-	AllowGeoJSON bool
+	AllowGeoJSON    bool
+	AllowExtras     bool
+	ExtrasDatabases []string
 }
 
 func NewDefaultIntersectsHandlerOptions() *IntersectsHandlerOptions {
 
 	opts := IntersectsHandlerOptions{
-		AllowGeoJSON: false,
+		AllowGeoJSON:    false,
+		AllowExtras:     false,
+		ExtrasDatabases: []string{},
 	}
 
 	return &opts
@@ -125,6 +135,45 @@ func IntersectsHandler(i pip_index.Index, idx *index.Indexer, opts *IntersectsHa
 			return
 		}
 
+		str_extras := query.Get("extras")
+		str_extras = strings.Trim(str_extras, " ")
+
+		log.Println("EXTRAS", str_extras)
+		extras := strings.Split(str_extras, ",")
+
+		log.Println("EXTRAS", extras)
+
+		if len(extras) > 0 && opts.AllowExtras {
+
+			places := gjson.GetBytes(js, "places.#.wof:id")
+
+			if places.Exists() {
+
+				for _, path := range opts.ExtrasDatabases {
+
+					db, err := database.NewDB(path)
+
+					if err != nil {
+						break
+					}
+
+					defer db.Close()
+
+					var match bool
+					js, err, match = AppendExtras(js, extras, places, db)
+
+					if err != nil {
+						break
+					}
+
+					if match {
+						break
+					}
+				}
+
+			}
+		}
+
 		rsp.Header().Set("Content-Type", "application/json")
 		rsp.Header().Set("Access-Control-Allow-Origin", "*")
 
@@ -133,4 +182,82 @@ func IntersectsHandler(i pip_index.Index, idx *index.Indexer, opts *IntersectsHa
 
 	h := gohttp.HandlerFunc(fn)
 	return h, nil
+}
+
+func AppendExtras(js []byte, extras []string, places gjson.Result, db *database.SQLiteDatabase) ([]byte, error, bool) {
+
+	for i, id := range places.Array() {
+
+		conn, err := db.Conn()
+
+		if err != nil {
+			return js, err, false
+		}
+
+		wofid := id.Int()
+
+		// apparently JSON_EXTRACT isn't available in go-sqlite yet?
+		// 2017/12/17 20:07:00 420561633 no such function: JSON_EXTRACT
+		// row := conn.QueryRow("SELECT JSON_EXTRACT(body, '$.properties') FROM geojson WHERE id=?", wofid)
+
+		row := conn.QueryRow("SELECT body FROM geojson WHERE id=?", wofid)
+
+		var body []byte
+		err = row.Scan(&body)
+
+		switch {
+		case err == sql.ErrNoRows:
+			return js, nil, false
+		case err != nil:
+			return js, err, false
+		default:
+			// pass
+		}
+
+		for _, e := range extras {
+
+			paths := make([]string, 0)
+
+			if strings.HasSuffix(e, "*") {
+
+				e = strings.Replace(e, "*", "", -1)
+
+				props := gjson.GetBytes(body, "properties")
+
+				for k, _ := range props.Map() {
+
+					if strings.HasPrefix(k, e) {
+						paths = append(paths, k)
+					}
+				}
+
+			} else {
+				paths = append(paths, e)
+			}
+
+			for _, p := range paths {
+
+				// see above inre absence of JSON_EXTRACT function
+
+				get_path := fmt.Sprintf("properties.%s", p)
+				set_path := fmt.Sprintf("places.%d.%s", i, p)
+
+				v := gjson.GetBytes(body, get_path)
+
+				if v.Exists() {
+					js, err = sjson.SetBytes(js, set_path, v.String())
+				} else {
+					js, err = sjson.SetBytes(js, set_path, "")
+				}
+
+				if err != nil {
+					return js, err, false
+				}
+			}
+		}
+
+		break
+	}
+
+	return js, nil, true
 }

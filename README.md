@@ -22,6 +22,18 @@ Proper documentation is quickly making itself a priority but in the interim if y
 
 ## Example
 
+To run as a pip-server, specify "-mode directory" and give the data directory as the first (non optional) argument.
+```
+./bin/wof-pip-server -mode directory -port 8080 /usr/local/data/whosonfirst-data/data
+12:25:55.267986 [wof-pip-server] STATUS listening on localhost:8080
+12:25:56.272296 [wof-pip-server] STATUS indexing 3023 records indexed
+12:25:57.271904 [wof-pip-server] STATUS indexing 6554 records indexed
+12:25:58.273400 [wof-pip-server] STATUS indexing 10200 records indexed
+12:25:59.276565 [wof-pip-server] STATUS indexing 13596 records indexed
+...
+12:34:37.980572 [wof-pip-server] STATUS finished indexing
+```
+
 _Please write me._
 
 ## Responses

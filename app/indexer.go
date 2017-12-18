@@ -131,7 +131,17 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 			return nil
 		}
 
-		return appindex.IndexFeature(f)
+		err := appindex.IndexFeature(f)
+
+		if err != nil {
+			return err
+		}
+
+		// something something something store properties
+		// in a SQLite database for extras lookup here...
+		// see notes in http/intersects.go (20171217/thisisaaronland)
+
+		return nil
 	}
 
 	return index.NewIndexer(opts.IndexMode, cb)

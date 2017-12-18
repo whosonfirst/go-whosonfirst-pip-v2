@@ -20,8 +20,8 @@ import (
 
 type IntersectsHandlerOptions struct {
 	AllowGeoJSON    bool
-	AllowExtras     bool
-	ExtrasDatabases []string
+	AllowExtras     bool     // see notes below
+	ExtrasDatabases []string // see notes below
 }
 
 func NewDefaultIntersectsHandlerOptions() *IntersectsHandlerOptions {
@@ -135,6 +135,17 @@ func IntersectsHandler(i pip_index.Index, idx *index.Indexer, opts *IntersectsHa
 			return
 		}
 
+		// this is VERY VERY experimental still - basically we're going to decorate the
+		// final JSON output with extras data read from one or more SQLite databases -
+		// in time this will probably be updated to use go-whosonfirst-readwrite.Reader
+		// instances and some "S3 SELECT" -like for user-defined databases but not today
+		//
+		// also currently we require that one or more -extras-database parameters be
+		// passed but in time we will update the app/indexer.go package to generate a
+		// lookup table/database as we are indexing records at startup
+		//
+		// (20171217/thisisaaronland)
+
 		if opts.AllowExtras {
 
 			str_extras := query.Get("extras")
@@ -148,28 +159,25 @@ func IntersectsHandler(i pip_index.Index, idx *index.Indexer, opts *IntersectsHa
 
 			if len(extras) > 0 {
 
+				// currently (and maybe ever really) this is only supported for SPR
+				// responses - it probably wouldn't be that hard to make it work for
+				// geojson feature collection results (20171217/thisisaaronland)
+
 				places := gjson.GetBytes(js, "places.#.wof:id")
 
 				if places.Exists() {
 
+					// to do - loop over each database in a goroutine and return
+					// match/body with a channel (20171217/thisisaaronland)
+
 					for _, path := range opts.ExtrasDatabases {
 
-						db, err := database.NewDB(path)
-
-						if err != nil {
-							break
-						}
-
-						defer db.Close()
-
 						var match bool
-						js, err, match = AppendExtras(js, extras, places, db)
+						js, err, match = AppendExtras(js, extras, places, path)
 
 						if err != nil {
 							break
 						}
-
-						// log.Println("EXTRAS", path, match)
 
 						if match {
 							break
@@ -190,15 +198,23 @@ func IntersectsHandler(i pip_index.Index, idx *index.Indexer, opts *IntersectsHa
 	return h, nil
 }
 
-func AppendExtras(js []byte, extras []string, places gjson.Result, db *database.SQLiteDatabase) ([]byte, error, bool) {
+func AppendExtras(js []byte, extras []string, places gjson.Result, db_path string) ([]byte, error, bool) {
+
+	db, err := database.NewDB(db_path)
+
+	if err != nil {
+		return js, err, false
+	}
+
+	defer db.Close()
+
+	conn, err := db.Conn()
+
+	if err != nil {
+		return js, err, false
+	}
 
 	for i, id := range places.Array() {
-
-		conn, err := db.Conn()
-
-		if err != nil {
-			return js, err, false
-		}
 
 		wofid := id.Int()
 
@@ -251,7 +267,7 @@ func AppendExtras(js []byte, extras []string, places gjson.Result, db *database.
 				v := gjson.GetBytes(body, get_path)
 
 				if v.Exists() {
-					js, err = sjson.SetBytes(js, set_path, v.String())
+					js, err = sjson.SetBytes(js, set_path, v.Value())
 				} else {
 					js, err = sjson.SetBytes(js, set_path, nil)
 				}

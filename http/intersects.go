@@ -140,10 +140,6 @@ func IntersectsHandler(i pip_index.Index, idx *index.Indexer, opts *IntersectsHa
 		// in time this will probably be updated to use go-whosonfirst-readwrite.Reader
 		// instances and some "S3 SELECT" -like for user-defined databases but not today
 		//
-		// also currently we require that one or more -extras-database parameters be
-		// passed but in time we will update the app/indexer.go package to generate a
-		// lookup table/database as we are indexing records at startup
-		//
 		// (20171217/thisisaaronland)
 
 		if opts.AllowExtras {

@@ -50,9 +50,6 @@ func main() {
 	var exclude flags.Exclude
 	flag.Var(&exclude, "exclude", "Exclude (WOF) records based on their existential flags. Valid options are: ceased, deprecated, not-current, superseded.")
 
-	var databases flags.Database
-	flag.Var(&databases, "extras-database", "...")
-
 	// please replace with a more extinsible -format flag
 	// (20170927/thisisaaronland)
 

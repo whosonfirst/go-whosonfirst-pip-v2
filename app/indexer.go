@@ -169,9 +169,11 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 			return err
 		}
 
-		// something something something store properties
-		// in a SQLite database for extras lookup here...
-		// see notes in http/intersects.go (20171217/thisisaaronland)
+		// see also: http/intersects.go (20171217/thisisaaronland)
+
+		// notice the way errors indexing things in SQLite do not trigger
+		// an error signal - maybe we want to do that? maybe not...?
+		// (20171218/thisisaaronland)
 
 		if opts.IndexExtras {
 
@@ -197,7 +199,7 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 				mu.Unlock()
 
 				if err != nil {
-					log.Println("FAILED TO INDEX", err) // something
+					// log.Println("FAILED TO INDEX", err) // something
 				}
 
 				return err

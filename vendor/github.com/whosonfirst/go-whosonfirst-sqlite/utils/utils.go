@@ -84,6 +84,7 @@ func CreateTableIfNecessary(db sqlite.Database, t sqlite.Table) error {
 		if err != nil {
 			return err
 		}
+
 	}
 
 	return nil

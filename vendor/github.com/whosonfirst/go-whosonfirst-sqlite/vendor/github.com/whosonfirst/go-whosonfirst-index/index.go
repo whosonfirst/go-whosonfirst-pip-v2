@@ -9,13 +9,16 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-crawl"
 	"github.com/whosonfirst/go-whosonfirst-csv"
 	"github.com/whosonfirst/go-whosonfirst-log"
+	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
+	"github.com/whosonfirst/go-whosonfirst-sqlite/utils"
 	"io"
 	"io/ioutil"
+	// golog "log"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
-	"time"		
+	"time"
 )
 
 const (
@@ -45,6 +48,7 @@ func Modes() []string {
 		"meta",
 		"path",
 		"repo",
+		"sqlite",			
 	}
 }
 
@@ -87,11 +91,11 @@ func (i *Indexer) IndexPaths(paths []string, args ...interface{}) error {
 
 	t1 := time.Now()
 
-	defer func(){
+	defer func() {
 		t2 := time.Since(t1)
-		i.Logger.Status("time to index paths (%d) %v", len(paths), t2)		   
+		i.Logger.Status("time to index paths (%d) %v", len(paths), t2)
 	}()
-	
+
 	i.increment()
 	defer i.decrement()
 
@@ -111,7 +115,7 @@ func (i *Indexer) IndexPath(path string, args ...interface{}) error {
 
 	t1 := time.Now()
 
-	defer func(){
+	defer func() {
 		t2 := time.Since(t1)
 		i.Logger.Status("time to index path '%s' %v", path, t2)
 	}()
@@ -207,6 +211,16 @@ func (i *Indexer) IndexPath(path string, args ...interface{}) error {
 
 		return i.IndexDirectory(data, args...)
 
+	} else if i.Mode == "sqlite" {
+
+		abs_path, err := filepath.Abs(path)
+
+		if err != nil {
+			return err
+		}
+
+		return i.IndexSQLiteDB(abs_path, args...)
+
 	} else {
 
 		return errors.New("Invalid indexer")
@@ -218,7 +232,7 @@ func (i *Indexer) IndexFile(path string, args ...interface{}) error {
 
 	t1 := time.Now()
 
-	defer func(){
+	defer func() {
 		t2 := time.Since(t1)
 		i.Logger.Status("time to index file '%s' %v", path, t2)
 	}()
@@ -241,7 +255,7 @@ func (i *Indexer) IndexDirectory(path string, args ...interface{}) error {
 
 	t1 := time.Now()
 
-	defer func(){
+	defer func() {
 		t2 := time.Since(t1)
 		i.Logger.Status("time to index directory '%s' %v", path, t2)
 	}()
@@ -272,7 +286,7 @@ func (i *Indexer) IndexGeoJSONFeatureCollection(path string, args ...interface{}
 
 	t1 := time.Now()
 
-	defer func(){
+	defer func() {
 		t2 := time.Since(t1)
 		i.Logger.Status("time to index feature collection '%s' %v", path, t2)
 	}()
@@ -330,7 +344,7 @@ func (i *Indexer) IndexGeoJSONLS(path string, args ...interface{}) error {
 
 	t1 := time.Now()
 
-	defer func(){
+	defer func() {
 		t2 := time.Since(t1)
 		i.Logger.Status("time to index geojson-ls '%s' %v", path, t2)
 	}()
@@ -389,7 +403,7 @@ func (i *Indexer) IndexMetaFile(path string, data_root string, args ...interface
 
 	t1 := time.Now()
 
-	defer func(){
+	defer func() {
 		t2 := time.Since(t1)
 		i.Logger.Status("time to index meta file '%s' %v", path, t2)
 	}()
@@ -443,11 +457,79 @@ func (i *Indexer) IndexMetaFile(path string, data_root string, args ...interface
 	return nil
 }
 
+func (i *Indexer) IndexSQLiteDB(path string, args ...interface{}) error {
+
+	db, err := database.NewDB(path)
+
+	if err != nil {
+		return err
+	}
+
+	defer db.Close()
+
+	conn, err := db.Conn()
+
+	if err != nil {
+		return err
+	}
+
+	has_table, err := utils.HasTable(db, "geojson")
+
+	if err != nil {
+		return err
+	}
+
+	if !has_table {
+		return errors.New("database is missing a geojson table")
+	}
+
+	rows, err := conn.Query("SELECT id, body FROM geojson")
+
+	if err != nil {
+		return err
+	}
+
+	for rows.Next() {
+
+		var wofid int64
+		var body string
+
+		err := rows.Scan(&wofid, &body)
+
+		if err != nil {
+			return err
+		}
+
+		// uri := fmt.Sprintf("sqlite://%s#geojson:%d", path, wofid)
+
+		// see the way we're passing in STDIN and not uri as the path?
+		// that because we call ctx, err := ContextForPath(path) in the
+		// process() method and since uri won't be there nothing will
+		// get indexed - it's not ideal it's just what it is today...
+		// (20171213/thisisaaronland)
+
+		fh := strings.NewReader(body)
+		err = i.process(fh, STDIN)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	err = rows.Err()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (i *Indexer) IndexFileList(path string, args ...interface{}) error {
 
 	t1 := time.Now()
 
-	defer func(){
+	defer func() {
 		t2 := time.Since(t1)
 		i.Logger.Status("time to index file list '%s' %v", path, t2)
 	}()
@@ -530,13 +612,13 @@ func (i *Indexer) process_path(path string, args ...interface{}) error {
 
 func (i *Indexer) process(fh io.Reader, path string, args ...interface{}) error {
 
-     	t1 := time.Now()
+	t1 := time.Now()
 
-	defer func(){
+	defer func() {
 		t2 := time.Since(t1)
-		i.Logger.Debug("time to process record '%s' %v", path, t2)		
+		i.Logger.Debug("time to process record '%s' %v", path, t2)
 	}()
-	
+
 	i.increment()
 	defer i.decrement()
 

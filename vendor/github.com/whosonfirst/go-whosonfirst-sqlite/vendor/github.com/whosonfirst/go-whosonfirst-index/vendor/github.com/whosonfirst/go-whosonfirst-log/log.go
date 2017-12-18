@@ -52,11 +52,11 @@ func SimpleWOFLogger(args ...string) *WOFLogger {
 
 	logger := NewWOFLogger(args...)
 
-	stdout := io.Writer(os.Stdout)
 	stderr := io.Writer(os.Stderr)
-
-	logger.AddLogger(stdout, "status")
 	logger.AddLogger(stderr, "error")
+
+	// stdout := io.Writer(os.Stdout)
+	// logger.AddLogger(stdout, "status")
 
 	return logger
 }

@@ -58,6 +58,22 @@ CREATE INDEX ancestors_by_ancestor ON ancestors (ancestor_id,ancestor_placetype,
 CREATE INDEX ancestors_by_lastmod ON ancestors (lastmodified);
 ```
 
+### concordances
+
+```
+CREATE TABLE concordances (
+	id INTEGER NOT NULL,
+	concordance_id INTEGER NOT NULL,
+	concordance_souce TEXT,
+	lastmodified INTEGER
+);
+
+CREATE INDEX concordances_by_id ON concordances (id,lastmodified);
+CREATE INDEX concordances_by_other ON concordances (other_source,other_id);	
+CREATE INDEX concordances_by_other_lastmod ON concordances (other_source,other_id,lastmodified);
+CREATE INDEX ancestors_by_lastmod ON concordances (lastmodified);`
+```
+
 ### geojson
 
 ```
@@ -178,6 +194,8 @@ Usage of ./bin/wof-sqlite-index:
     	Index all tables
   -ancestors
     	Index the 'ancestors' tables
+  -concordances
+    	Index the 'concordances' tables	
   -dsn string
     	 (default ":memory:")
   -geojson

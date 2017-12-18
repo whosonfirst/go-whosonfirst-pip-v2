@@ -38,6 +38,20 @@ func DefaultApplicationIndexerOptions() (ApplicationIndexerOptions, error) {
 
 func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (*index.Indexer, error) {
 
+     	/*
+	db, err := database.NewDB(db_path)
+
+	if err != nil {
+		return nil, err
+	}
+
+	gt, err := tables.NewGeoJSONTableWithDatabase(db)
+
+	if err != nil {
+		return nil, err
+	}
+	*/
+	
 	cb := func(fh io.Reader, ctx context.Context, args ...interface{}) error {
 
 		var f geojson.Feature
@@ -141,6 +155,8 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 		// in a SQLite database for extras lookup here...
 		// see notes in http/intersects.go (20171217/thisisaaronland)
 
+		// err = gt.IndexFeature(db, f)
+					
 		return nil
 	}
 

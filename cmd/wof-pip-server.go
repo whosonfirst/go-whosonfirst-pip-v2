@@ -11,6 +11,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-pip/flags"
 	"github.com/whosonfirst/go-whosonfirst-pip/http"
 	"io"
+	"io/ioutil"
 	gohttp "net/http"
 	"os"
 	"runtime"
@@ -57,6 +58,8 @@ func main() {
 
 	var allow_geojson = flag.Bool("allow-geojson", false, "")
 	var allow_extras = flag.Bool("allow-extras", false, "")
+
+	var extras_db = flag.String("extras-db", "", "")
 
 	var api_key = flag.String("mapzen-api-key", "mapzen-xxxxxxx", "")
 
@@ -132,6 +135,27 @@ func main() {
 
 	if err != nil {
 		logger.Fatal("failed to create indexer options because %s", err)
+	}
+
+	if *allow_extras {
+
+		if *extras_db == "" {
+
+			tmpfile, err := ioutil.TempFile("", "pip-extras")
+
+			if err != nil {
+				logger.Fatal("Failed to create temp file, because %s", err)
+			}
+
+			tmpfile.Close()
+
+			*extras_db = tmpfile.Name()
+		}
+
+		logger.Status("index extras %s", *extras_db)
+
+		indexer_opts.IndexExtras = *allow_extras
+		indexer_opts.ExtrasDB = *extras_db
 	}
 
 	indexer_opts.IndexMode = *mode
@@ -212,7 +236,7 @@ func main() {
 	intersects_opts := http.NewDefaultIntersectsHandlerOptions()
 	intersects_opts.AllowGeoJSON = *allow_geojson
 	intersects_opts.AllowExtras = *allow_extras
-	intersects_opts.ExtrasDatabases = databases
+	intersects_opts.ExtrasDB = *extras_db
 
 	intersects_handler, err := http.IntersectsHandler(appindex, indexer, intersects_opts)
 

@@ -19,17 +19,17 @@ import (
 )
 
 type IntersectsHandlerOptions struct {
-	AllowGeoJSON    bool
-	AllowExtras     bool     // see notes below
-	ExtrasDatabases []string // see notes below
+	AllowGeoJSON bool
+	AllowExtras  bool   // see notes below
+	ExtrasDB     string // see notes below
 }
 
 func NewDefaultIntersectsHandlerOptions() *IntersectsHandlerOptions {
 
 	opts := IntersectsHandlerOptions{
-		AllowGeoJSON:    false,
-		AllowExtras:     false,
-		ExtrasDatabases: []string{},
+		AllowGeoJSON: false,
+		AllowExtras:  false,
+		ExtrasDB:     "",
 	}
 
 	return &opts
@@ -167,23 +167,12 @@ func IntersectsHandler(i pip_index.Index, idx *index.Indexer, opts *IntersectsHa
 
 				if places.Exists() {
 
-					// to do - loop over each database in a goroutine and return
-					// match/body with a channel (20171217/thisisaaronland)
+					js, err, _ = AppendExtras(js, extras, places, opts.ExtrasDB)
 
-					for _, path := range opts.ExtrasDatabases {
-
-						var match bool
-						js, err, match = AppendExtras(js, extras, places, path)
-
-						if err != nil {
-							break
-						}
-
-						if match {
-							break
-						}
+					if err != nil {
+						gohttp.Error(rsp, err.Error(), gohttp.StatusInternalServerError)
+						return
 					}
-
 				}
 			}
 		}

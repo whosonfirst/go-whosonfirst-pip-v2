@@ -12,7 +12,7 @@ import (
 	pip_index "github.com/whosonfirst/go-whosonfirst-pip/index"
 	pip_utils "github.com/whosonfirst/go-whosonfirst-pip/utils"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
-	"log"
+	_ "log"
 	gohttp "net/http"
 	"strconv"
 	"strings"
@@ -135,42 +135,48 @@ func IntersectsHandler(i pip_index.Index, idx *index.Indexer, opts *IntersectsHa
 			return
 		}
 
-		str_extras := query.Get("extras")
-		str_extras = strings.Trim(str_extras, " ")
+		if opts.AllowExtras {
 
-		log.Println("EXTRAS", str_extras)
-		extras := strings.Split(str_extras, ",")
+			str_extras := query.Get("extras")
+			str_extras = strings.Trim(str_extras, " ")
 
-		log.Println("EXTRAS", extras)
+			var extras []string
 
-		if len(extras) > 0 && opts.AllowExtras {
+			if str_extras != "" {
+				extras = strings.Split(str_extras, ",")
+			}
 
-			places := gjson.GetBytes(js, "places.#.wof:id")
+			if len(extras) > 0 {
 
-			if places.Exists() {
+				places := gjson.GetBytes(js, "places.#.wof:id")
 
-				for _, path := range opts.ExtrasDatabases {
+				if places.Exists() {
 
-					db, err := database.NewDB(path)
+					for _, path := range opts.ExtrasDatabases {
 
-					if err != nil {
-						break
+						db, err := database.NewDB(path)
+
+						if err != nil {
+							break
+						}
+
+						defer db.Close()
+
+						var match bool
+						js, err, match = AppendExtras(js, extras, places, db)
+
+						if err != nil {
+							break
+						}
+
+						// log.Println("EXTRAS", path, match)
+
+						if match {
+							break
+						}
 					}
 
-					defer db.Close()
-
-					var match bool
-					js, err, match = AppendExtras(js, extras, places, db)
-
-					if err != nil {
-						break
-					}
-
-					if match {
-						break
-					}
 				}
-
 			}
 		}
 
@@ -218,7 +224,7 @@ func AppendExtras(js []byte, extras []string, places gjson.Result, db *database.
 
 			paths := make([]string, 0)
 
-			if strings.HasSuffix(e, "*") {
+			if strings.HasSuffix(e, "*") || strings.HasSuffix(e, ":") {
 
 				e = strings.Replace(e, "*", "", -1)
 
@@ -247,7 +253,7 @@ func AppendExtras(js []byte, extras []string, places gjson.Result, db *database.
 				if v.Exists() {
 					js, err = sjson.SetBytes(js, set_path, v.String())
 				} else {
-					js, err = sjson.SetBytes(js, set_path, "")
+					js, err = sjson.SetBytes(js, set_path, nil)
 				}
 
 				if err != nil {

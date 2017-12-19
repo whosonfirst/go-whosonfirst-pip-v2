@@ -9,8 +9,12 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-index"
 	pip "github.com/whosonfirst/go-whosonfirst-pip/index"
 	pip_utils "github.com/whosonfirst/go-whosonfirst-pip/utils"
+	"github.com/whosonfirst/go-whosonfirst-sqlite"
+	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
+	"github.com/whosonfirst/go-whosonfirst-sqlite/tables"
 	"io"
-	_ "log"
+	"log"
+	"sync"
 )
 
 type ApplicationIndexerOptions struct {
@@ -20,6 +24,8 @@ type ApplicationIndexerOptions struct {
 	IncludeSuperseded bool
 	IncludeCeased     bool
 	IncludeNotCurrent bool
+	IndexExtras       bool
+	ExtrasDB          string
 }
 
 func DefaultApplicationIndexerOptions() (ApplicationIndexerOptions, error) {
@@ -31,12 +37,47 @@ func DefaultApplicationIndexerOptions() (ApplicationIndexerOptions, error) {
 		IncludeSuperseded: true,
 		IncludeCeased:     true,
 		IncludeNotCurrent: true,
+		IndexExtras:       false,
+		ExtrasDB:          "",
 	}
 
 	return opts, nil
 }
 
 func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (*index.Indexer, error) {
+
+	var wg *sync.WaitGroup
+	var mu *sync.Mutex
+	var gt sqlite.Table
+
+	if opts.IndexExtras {
+
+		db, err := database.NewDB(opts.ExtrasDB)
+
+		if err != nil {
+			return nil, err
+		}
+
+		defer db.Close()
+
+		err = db.LiveHardDieFast()	// otherwise indexing will be brutally slow with large datasets
+
+		if err != nil {
+			return nil, err
+		}
+
+		// see also:
+		// https://github.com/whosonfirst/go-whosonfirst-pip-v2/issues/19
+		
+		gt, err = tables.NewGeoJSONTableWithDatabase(db)
+
+		if err != nil {
+			return nil, err
+		}
+
+		wg = new(sync.WaitGroup)
+		mu = new(sync.Mutex)
+	}
 
 	cb := func(fh io.Reader, ctx context.Context, args ...interface{}) error {
 
@@ -131,8 +172,58 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 			return nil
 		}
 
-		return appindex.IndexFeature(f)
+		err := appindex.IndexFeature(f)
+
+		if err != nil {
+			return err
+		}
+
+		// see also: http/intersects.go (20171217/thisisaaronland)
+
+		// notice the way errors indexing things in SQLite do not trigger
+		// an error signal - maybe we want to do that? maybe not...?
+		// (20171218/thisisaaronland)
+
+		if opts.IndexExtras {
+
+			wg.Add(1)
+
+			go func(f geojson.Feature, wg *sync.WaitGroup) error {
+
+				defer wg.Done()
+
+				db, err := database.NewDB(opts.ExtrasDB)
+
+				if err != nil {
+					log.Println(err)
+					return err
+				}
+
+				defer db.Close()
+
+				mu.Lock()
+
+				err = gt.IndexFeature(db, f)
+
+				mu.Unlock()
+
+				if err != nil {
+					// log.Println("FAILED TO INDEX", err) // something
+				}
+
+				return err
+
+			}(f, wg)
+		}
+
+		return nil
 	}
 
-	return index.NewIndexer(opts.IndexMode, cb)
+	idx, err := index.NewIndexer(opts.IndexMode, cb)
+
+	if opts.IndexExtras {
+		wg.Wait()
+	}
+
+	return idx, err
 }

@@ -1,6 +1,0 @@
-*~
-pkg
-src
-bin
-!vendor/src
-!bin/.gitignore

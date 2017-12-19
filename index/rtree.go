@@ -10,7 +10,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-pip/cache"
 	"github.com/whosonfirst/go-whosonfirst-pip/filter"
 	"github.com/whosonfirst/go-whosonfirst-spr"
-	// golog "log"		
+	// golog "log"
 	"sync"
 )
 

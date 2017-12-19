@@ -66,6 +66,9 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 			return nil, err
 		}
 
+		// see also:
+		// https://github.com/whosonfirst/go-whosonfirst-pip-v2/issues/19
+		
 		gt, err = tables.NewGeoJSONTableWithDatabase(db)
 
 		if err != nil {

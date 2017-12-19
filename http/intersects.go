@@ -207,6 +207,8 @@ func AppendExtras(js []byte, extras []string, places gjson.Result, db_path strin
 		// 2017/12/17 20:07:00 420561633 no such function: JSON_EXTRACT
 		// row := conn.QueryRow("SELECT JSON_EXTRACT(body, '$.properties') FROM geojson WHERE id=?", wofid)
 
+		// see also: https://github.com/whosonfirst/go-whosonfirst-pip-v2/issues/19
+		
 		row := conn.QueryRow("SELECT body FROM geojson WHERE id=?", wofid)
 
 		var body []byte

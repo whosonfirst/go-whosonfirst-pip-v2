@@ -50,6 +50,8 @@ do
 	    echo "failed to fetch remote source"
 	    exit 0
 	fi
+
+	ls -al /usr/local/data
 	
 	${BUNZIP2} ${LOCAL}.bz2
 

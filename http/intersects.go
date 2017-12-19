@@ -199,6 +199,9 @@ func AppendExtras(js []byte, extras []string, places gjson.Result, db_path strin
 		return js, err, false
 	}
 
+	// TO DO: loop over places.Array() concurrently and reconstruct js from scratch
+	// below, rather than trying to update it in place (20171219/thisisaaronland)	   
+	
 	for i, id := range places.Array() {
 
 		wofid := id.Int()
@@ -216,7 +219,9 @@ func AppendExtras(js []byte, extras []string, places gjson.Result, db_path strin
 
 		switch {
 		case err == sql.ErrNoRows:
-			return js, nil, false
+		     	// TO DO: determine if returning js, nil, false here is the cause of
+			// https://github.com/whosonfirst/go-whosonfirst-pip-v2/issues/16#issuecomment-352652505
+		     	continue
 		case err != nil:
 			return js, err, false
 		default:

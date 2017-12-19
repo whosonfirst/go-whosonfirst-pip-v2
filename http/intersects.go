@@ -3,6 +3,7 @@ package http
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -12,11 +13,11 @@ import (
 	pip_index "github.com/whosonfirst/go-whosonfirst-pip/index"
 	pip_utils "github.com/whosonfirst/go-whosonfirst-pip/utils"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
-	_ "log"
+	"log"
 	gohttp "net/http"
 	"strconv"
 	"strings"
-	_ "sync"
+	"sync"
 )
 
 type IntersectsHandlerOptions struct {
@@ -164,7 +165,24 @@ func IntersectsHandler(i pip_index.Index, idx *index.Indexer, opts *IntersectsHa
 
 				if places.Exists() {
 
-					js, err, _ = AppendExtras(js, extras, places, opts.ExtrasDB)
+					db, err := database.NewDB(opts.ExtrasDB)
+
+					if err != nil {
+						gohttp.Error(rsp, err.Error(), gohttp.StatusInternalServerError)
+						return
+
+					}
+
+					defer db.Close()
+
+					conn, err := db.Conn()
+
+					if err != nil {
+						gohttp.Error(rsp, err.Error(), gohttp.StatusInternalServerError)
+						return
+					}
+
+					js, err, _ = AppendExtras(js, extras, conn)
 
 					if err != nil {
 						gohttp.Error(rsp, err.Error(), gohttp.StatusInternalServerError)
@@ -184,153 +202,158 @@ func IntersectsHandler(i pip_index.Index, idx *index.Indexer, opts *IntersectsHa
 	return h, nil
 }
 
-func AppendExtras(js []byte, extras []string, places gjson.Result, db_path string) ([]byte, error, bool) {
+func AppendExtras(js []byte, extras []string, conn *sql.DB) ([]byte, error, bool) {
 
-	db, err := database.NewDB(db_path)
-
-	if err != nil {
-		return js, err, false
+	type update struct {
+		Index int
+		Body  []byte
 	}
 
-	defer db.Close()
+	done_ch := make(chan bool)
+	update_ch := make(chan update)
+	error_ch := make(chan error)
 
-	conn, err := db.Conn()
+	rsp := gjson.GetBytes(js, "places.#")
+	places := rsp.Array()
 
-	if err != nil {
-		return js, err, false
+	count := len(places)
+	log.Println("PLACES", count)
+	
+	for i, pl := range places {
+
+		go func(idx int, pl gjson.Result) {
+
+			defer func() {
+				done_ch <- true
+			}()
+
+			spr := []byte(pl.Raw)
+
+			log.Println("UPDATE RECORD %d", i)
+
+			updated, err := AppendExtrasToSPRBytes(spr, extras, conn)
+
+			if err != nil {
+				error_ch <- err
+				return
+			}
+
+			up := update{
+				Index: i,
+				Body:  updated,
+			}
+
+			update_ch <- up
+
+		}(i, pl)
 	}
 
-	// TO DO: loop over places.Array() concurrently and reconstruct js from scratch
-	// below, rather than trying to update it in place (20171219/thisisaaronland)
+	mu := new(sync.Mutex)
+	remaining := count
 
-	/*
-		debug := js
+	for remaining > 0 {
 
-		type update struct {
-			Index int
-			Body  []byte
-		}
+		select {
+		case <-done_ch:
+			log.Println("DONE", remaining)
+			remaining -= 1
+		case err := <-error_ch:
+			log.Println("ERROR", err, remaining)
+			remaining -= 1
+		case up := <-update_ch:
 
-		done_ch := make(chan bool)
-		update_ch := make(chan update)
+			mu.Lock()
+			set_path := fmt.Sprintf("places.%d", up.Index)
+			log.Println("UPDATE", set_path, up.Body)
 
-		rsp := gjson.GetBytes(debug, "places.#")
-		foo := rsp.Array()
-
-		count := len(foo)
-
-		for i, rsp := range foo {
-
-			go func(idx int, rsp gjson.Result) {
-
-				defer func() {
-					done_ch <- true
-				}()
-
-				pl := []byte(rsp.Raw)
-
-				// update pl here...
-
-				up := update{
-					Index: i,
-					Body:  pl,
-				}
-
-				update_ch <- up
-			}(i, rsp)
-
-			// update pl here
-
-		}
-
-		mu := new(sync.Mutex)
-		remaining := count
-
-		for remaining > 0 {
-
-			select {
-			case <-done_ch:
-				remaining -= 1
-			case up := <-update_ch:
-
-				mu.Lock()
-				set_path := fmt.Sprintf("places.%d", up.Index)
-				log.Println("UPDATE", set_path, up.Body)
-
-				debug, _ = sjson.SetBytes(debug, set_path, up.Body)
-				mu.Unlock()
-			}
-		}
-
-		log.Println(string(debug))
-	*/
-
-	for i, id := range places.Array() {
-
-		wofid := id.Int()
-
-		// apparently JSON_EXTRACT isn't available in go-sqlite yet?
-		// 2017/12/17 20:07:00 420561633 no such function: JSON_EXTRACT
-		// row := conn.QueryRow("SELECT JSON_EXTRACT(body, '$.properties') FROM geojson WHERE id=?", wofid)
-
-		// see also: https://github.com/whosonfirst/go-whosonfirst-pip-v2/issues/19
-
-		row := conn.QueryRow("SELECT body FROM geojson WHERE id=?", wofid)
-
-		var body []byte
-		err = row.Scan(&body)
-
-		switch {
-		case err == sql.ErrNoRows:
-			continue
-		case err != nil:
-			return js, err, false
-		default:
-			// pass
-		}
-
-		for _, e := range extras {
-
-			paths := make([]string, 0)
-
-			if strings.HasSuffix(e, "*") || strings.HasSuffix(e, ":") {
-
-				e = strings.Replace(e, "*", "", -1)
-
-				props := gjson.GetBytes(body, "properties")
-
-				for k, _ := range props.Map() {
-
-					if strings.HasPrefix(k, e) {
-						paths = append(paths, k)
-					}
-				}
-
-			} else {
-				paths = append(paths, e)
-			}
-
-			for _, p := range paths {
-
-				// see above inre absence of JSON_EXTRACT function
-
-				get_path := fmt.Sprintf("properties.%s", p)
-				set_path := fmt.Sprintf("places.%d.%s", i, p)
-
-				v := gjson.GetBytes(body, get_path)
-
-				if v.Exists() {
-					js, err = sjson.SetBytes(js, set_path, v.Value())
-				} else {
-					js, err = sjson.SetBytes(js, set_path, nil)
-				}
-
-				if err != nil {
-					return js, err, false
-				}
-			}
+			js, _ = sjson.SetBytes(js, set_path, up.Body)
+			mu.Unlock()
 		}
 	}
+
+	log.Println(string(js))
 
 	return js, nil, true
+}
+
+func AppendExtrasToSPRBytes(spr []byte, extras []string, conn *sql.DB) ([]byte, error) {
+
+	rsp := gjson.GetBytes(spr, "wof:id")
+
+	if !rsp.Exists() {
+		return nil, errors.New("Unable to determine wof:id")
+	}
+
+	wofid := rsp.Int()
+
+	log.Println("APPEND", wofid)
+
+	// apparently JSON_EXTRACT isn't available in go-sqlite yet?
+	// 2017/12/17 20:07:00 420561633 no such function: JSON_EXTRACT
+	// row := conn.QueryRow("SELECT JSON_EXTRACT(feature, '$.properties') FROM geojson WHERE id=?", wofid)
+
+	// see also: https://github.com/whosonfirst/go-whosonfirst-pip-v2/issues/19
+
+	row := conn.QueryRow("SELECT body FROM geojson WHERE id=?", wofid)
+
+	var body []byte
+	err := row.Scan(&body)
+
+	switch {
+	case err == sql.ErrNoRows:
+		return spr, err
+	case err != nil:
+		return spr, err
+	default:
+		// pass
+	}
+
+	for _, e := range extras {
+
+		paths := make([]string, 0)
+
+		if strings.HasSuffix(e, "*") || strings.HasSuffix(e, ":") {
+
+			e = strings.Replace(e, "*", "", -1)
+
+			props := gjson.GetBytes(body, "properties")
+
+			for k, _ := range props.Map() {
+
+				if strings.HasPrefix(k, e) {
+					paths = append(paths, k)
+				}
+			}
+
+		} else {
+			paths = append(paths, e)
+		}
+
+		log.Println("PATHS", paths)
+
+		for _, p := range paths {
+
+			// see above inre absence of JSON_EXTRACT function
+
+			get_path := fmt.Sprintf("properties.%s", p)
+			set_path := fmt.Sprintf("%s", p)
+
+			log.Println("GET", wofid, get_path)
+			log.Println("SET", wofid, set_path)
+
+			v := gjson.GetBytes(body, get_path)
+
+			if v.Exists() {
+				spr, err = sjson.SetBytes(spr, set_path, v.Value())
+			} else {
+				spr, err = sjson.SetBytes(spr, set_path, nil)
+			}
+
+			if err != nil {
+				return spr, err
+			}
+		}
+	}
+
+	return spr, nil
 }

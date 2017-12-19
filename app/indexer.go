@@ -60,6 +60,12 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 
 		defer db.Close()
 
+		err = db.LiveHardDieFast()	// otherwise indexing will be brutally slow with large datasets
+
+		if err != nil {
+			return nil, err
+		}
+
 		gt, err = tables.NewGeoJSONTableWithDatabase(db)
 
 		if err != nil {

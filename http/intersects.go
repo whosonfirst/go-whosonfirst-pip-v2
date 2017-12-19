@@ -157,37 +157,32 @@ func IntersectsHandler(i pip_index.Index, idx *index.Indexer, opts *IntersectsHa
 
 			if len(extras) > 0 {
 
+				db, err := database.NewDB(opts.ExtrasDB)
+
+				if err != nil {
+					gohttp.Error(rsp, err.Error(), gohttp.StatusInternalServerError)
+					return
+
+				}
+
+				defer db.Close()
+
+				conn, err := db.Conn()
+
+				if err != nil {
+					gohttp.Error(rsp, err.Error(), gohttp.StatusInternalServerError)
+					return
+				}
+
 				// currently (and maybe ever really) this is only supported for SPR
 				// responses - it probably wouldn't be that hard to make it work for
 				// geojson feature collection results (20171217/thisisaaronland)
 
-				places := gjson.GetBytes(js, "places.#.wof:id")
+				js, err = AppendExtras(js, extras, conn)
 
-				if places.Exists() {
-
-					db, err := database.NewDB(opts.ExtrasDB)
-
-					if err != nil {
-						gohttp.Error(rsp, err.Error(), gohttp.StatusInternalServerError)
-						return
-
-					}
-
-					defer db.Close()
-
-					conn, err := db.Conn()
-
-					if err != nil {
-						gohttp.Error(rsp, err.Error(), gohttp.StatusInternalServerError)
-						return
-					}
-
-					js, err, _ = AppendExtras(js, extras, conn)
-
-					if err != nil {
-						gohttp.Error(rsp, err.Error(), gohttp.StatusInternalServerError)
-						return
-					}
+				if err != nil {
+					gohttp.Error(rsp, err.Error(), gohttp.StatusInternalServerError)
+					return
 				}
 			}
 		}
@@ -202,23 +197,22 @@ func IntersectsHandler(i pip_index.Index, idx *index.Indexer, opts *IntersectsHa
 	return h, nil
 }
 
-func AppendExtras(js []byte, extras []string, conn *sql.DB) ([]byte, error, bool) {
+func AppendExtras(js []byte, extras []string, conn *sql.DB) ([]byte, error) {
 
 	type update struct {
 		Index int
-		Body  []byte
+		SPR   interface{}
 	}
 
 	done_ch := make(chan bool)
 	update_ch := make(chan update)
 	error_ch := make(chan error)
 
-	rsp := gjson.GetBytes(js, "places.#")
+	rsp := gjson.GetBytes(js, "places")
 	places := rsp.Array()
 
 	count := len(places)
-	log.Println("PLACES", count)
-	
+
 	for i, pl := range places {
 
 		go func(idx int, pl gjson.Result) {
@@ -227,11 +221,17 @@ func AppendExtras(js []byte, extras []string, conn *sql.DB) ([]byte, error, bool
 				done_ch <- true
 			}()
 
-			spr := []byte(pl.Raw)
+			raw := []byte(pl.Raw)
 
-			log.Println("UPDATE RECORD %d", i)
+			updated, err := AppendExtrasToSPRBytes(raw, extras, conn)
 
-			updated, err := AppendExtrasToSPRBytes(spr, extras, conn)
+			if err != nil {
+				error_ch <- err
+				return
+			}
+
+			var spr interface{}
+			err = json.Unmarshal(updated, &spr)
 
 			if err != nil {
 				error_ch <- err
@@ -239,8 +239,8 @@ func AppendExtras(js []byte, extras []string, conn *sql.DB) ([]byte, error, bool
 			}
 
 			up := update{
-				Index: i,
-				Body:  updated,
+				Index: idx,
+				SPR:   spr,
 			}
 
 			update_ch <- up
@@ -255,25 +255,28 @@ func AppendExtras(js []byte, extras []string, conn *sql.DB) ([]byte, error, bool
 
 		select {
 		case <-done_ch:
-			log.Println("DONE", remaining)
 			remaining -= 1
 		case err := <-error_ch:
-			log.Println("ERROR", err, remaining)
+			log.Println("ERROR", err)
 			remaining -= 1
 		case up := <-update_ch:
 
-			mu.Lock()
-			set_path := fmt.Sprintf("places.%d", up.Index)
-			log.Println("UPDATE", set_path, up.Body)
+			var err error
 
-			js, _ = sjson.SetBytes(js, set_path, up.Body)
+			mu.Lock()
+
+			set_path := fmt.Sprintf("places.%d", up.Index)
+			js, err = sjson.SetBytes(js, set_path, up.SPR)
+
 			mu.Unlock()
+
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	log.Println(string(js))
-
-	return js, nil, true
+	return js, nil
 }
 
 func AppendExtrasToSPRBytes(spr []byte, extras []string, conn *sql.DB) ([]byte, error) {
@@ -285,8 +288,6 @@ func AppendExtrasToSPRBytes(spr []byte, extras []string, conn *sql.DB) ([]byte, 
 	}
 
 	wofid := rsp.Int()
-
-	log.Println("APPEND", wofid)
 
 	// apparently JSON_EXTRACT isn't available in go-sqlite yet?
 	// 2017/12/17 20:07:00 420561633 no such function: JSON_EXTRACT
@@ -301,9 +302,9 @@ func AppendExtrasToSPRBytes(spr []byte, extras []string, conn *sql.DB) ([]byte, 
 
 	switch {
 	case err == sql.ErrNoRows:
-		return spr, err
+		return nil, err
 	case err != nil:
-		return spr, err
+		return nil, err
 	default:
 		// pass
 	}
@@ -329,8 +330,6 @@ func AppendExtrasToSPRBytes(spr []byte, extras []string, conn *sql.DB) ([]byte, 
 			paths = append(paths, e)
 		}
 
-		log.Println("PATHS", paths)
-
 		for _, p := range paths {
 
 			// see above inre absence of JSON_EXTRACT function
@@ -338,10 +337,13 @@ func AppendExtrasToSPRBytes(spr []byte, extras []string, conn *sql.DB) ([]byte, 
 			get_path := fmt.Sprintf("properties.%s", p)
 			set_path := fmt.Sprintf("%s", p)
 
-			log.Println("GET", wofid, get_path)
-			log.Println("SET", wofid, set_path)
-
 			v := gjson.GetBytes(body, get_path)
+
+			/*
+				log.Println("GET", wofid, get_path)
+				log.Println("SET", wofid, set_path)
+				log.Println("VALUE", v.Value())
+			*/
 
 			if v.Exists() {
 				spr, err = sjson.SetBytes(spr, set_path, v.Value())
@@ -350,7 +352,7 @@ func AppendExtrasToSPRBytes(spr []byte, extras []string, conn *sql.DB) ([]byte, 
 			}
 
 			if err != nil {
-				return spr, err
+				return nil, err
 			}
 		}
 	}

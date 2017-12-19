@@ -60,7 +60,7 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 
 		defer db.Close()
 
-		err = db.LiveHardDieFast()	// otherwise indexing will be brutally slow with large datasets
+		err = db.LiveHardDieFast() // otherwise indexing will be brutally slow with large datasets
 
 		if err != nil {
 			return nil, err
@@ -68,7 +68,7 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 
 		// see also:
 		// https://github.com/whosonfirst/go-whosonfirst-pip-v2/issues/19
-		
+
 		gt, err = tables.NewGeoJSONTableWithDatabase(db)
 
 		if err != nil {

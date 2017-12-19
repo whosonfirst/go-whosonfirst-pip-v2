@@ -12,11 +12,11 @@ import (
 	pip_index "github.com/whosonfirst/go-whosonfirst-pip/index"
 	pip_utils "github.com/whosonfirst/go-whosonfirst-pip/utils"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
-	"log"
+	_ "log"
 	gohttp "net/http"
 	"strconv"
 	"strings"
-	"sync"
+	_ "sync"
 )
 
 type IntersectsHandlerOptions struct {
@@ -203,63 +203,67 @@ func AppendExtras(js []byte, extras []string, places gjson.Result, db_path strin
 	// TO DO: loop over places.Array() concurrently and reconstruct js from scratch
 	// below, rather than trying to update it in place (20171219/thisisaaronland)
 
-	debug := js
+	/*
+		debug := js
 
-	type update struct {
-		Index int
-		Body  []byte
-	}
-
-	done_ch := make(chan bool)
-	update_ch := make(chan update)
-
-	rsp := gjson.GetBytes(debug, "places.#")
-	foo := rsp.Array()
-	
-	count := len(foo)
-
-	for i, rsp := range foo {
-
-		go func(idx int, rsp gjson.Result) {
-
-			defer func() {
-				done_ch <- true
-			}()
-
-			pl := []byte(rsp.Raw)
-
-			// update pl here...
-
-			up := update{
-				Index: i,
-				Body:  pl,
-			}
-
-			update_ch <- up
-		}(i, rsp)
-
-		// update pl here
-
-	}
-
-	mu := new(sync.Mutex)
-	remaining := count
-
-	for remaining > 0 {
-
-		select {
-		case <-done_ch:
-			remaining -= 1
-		case up := <-update_ch:
-
-			mu.Lock()
-			set_path := fmt.Sprintf("places.%d", up.Index)
-			debug, _ = sjson.SetBytes(debug, set_path, up.Body)
-			mu.Unlock()
+		type update struct {
+			Index int
+			Body  []byte
 		}
-	}
 
-	log.Println(string(debug))
+		done_ch := make(chan bool)
+		update_ch := make(chan update)
+
+		rsp := gjson.GetBytes(debug, "places.#")
+		foo := rsp.Array()
+
+		count := len(foo)
+
+		for i, rsp := range foo {
+
+			go func(idx int, rsp gjson.Result) {
+
+				defer func() {
+					done_ch <- true
+				}()
+
+				pl := []byte(rsp.Raw)
+
+				// update pl here...
+
+				up := update{
+					Index: i,
+					Body:  pl,
+				}
+
+				update_ch <- up
+			}(i, rsp)
+
+			// update pl here
+
+		}
+
+		mu := new(sync.Mutex)
+		remaining := count
+
+		for remaining > 0 {
+
+			select {
+			case <-done_ch:
+				remaining -= 1
+			case up := <-update_ch:
+
+				mu.Lock()
+				set_path := fmt.Sprintf("places.%d", up.Index)
+				log.Println("UPDATE", set_path, up.Body)
+
+				debug, _ = sjson.SetBytes(debug, set_path, up.Body)
+				mu.Unlock()
+			}
+		}
+
+		log.Println(string(debug))
+	*/
 
 	for i, id := range places.Array() {
 
@@ -278,8 +282,6 @@ func AppendExtras(js []byte, extras []string, places gjson.Result, db_path strin
 
 		switch {
 		case err == sql.ErrNoRows:
-			// TO DO: determine if returning js, nil, false here is the cause of
-			// https://github.com/whosonfirst/go-whosonfirst-pip-v2/issues/16#issuecomment-352652505
 			continue
 		case err != nil:
 			return js, err, false
@@ -328,8 +330,6 @@ func AppendExtras(js []byte, extras []string, places gjson.Result, db_path strin
 				}
 			}
 		}
-
-		break
 	}
 
 	return js, nil, true

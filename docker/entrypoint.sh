@@ -5,6 +5,8 @@
 PIP_SERVER="/go-whosonfirst-pip-v2/bin/wof-pip-server"
 ARGS=""
 
+DATA="/usr/local/data"
+
 CURL=`which curl`
 BUNZIP2=`which bunzip2`
 
@@ -15,7 +17,7 @@ fi
 
 if [ "${EXTRAS}" != "" ]
 then
-    ARGS="${ARGS} -extras"
+    ARGS="${ARGS} -allow-extras"
 fi
 
 if [ "${WWW}" != "" ]
@@ -26,45 +28,45 @@ then
     then
 	ARGS="${ARGS} -mapzen-apikey ${MAPZEN_APIKEY}"
     fi
-    
 fi
 
-if [ "${MODE}" != "" ]
+if [ "${MODE}" = "sqlite" ]
 then
+
     ARGS="${ARGS} -mode ${MODE}"
-fi
-
-for DB in $(echo ${SOURCES} | sed "s/,/ /g")
-do
-    REMOTE="https://whosonfirst.mapzen.com/sqlite/${DB}.db"
-    LOCAL="/usr/local/data/${DB}.db"
-
-    if [ ! -f ${LOCAL} ]
-    then
-	echo "fetch ${REMOTE}"
     
-	${CURL} -s -o ${LOCAL}.bz2 ${REMOTE}.bz2
-
-	if [ $? -ne 0 ]
-	then
-	    echo "failed to fetch remote source"
-	    exit 0
-	fi
-
-	ls -al /usr/local/data
+    for DB in $(echo ${SOURCES} | sed "s/,/ /g")
+    do
+	REMOTE="https://whosonfirst.mapzen.com/sqlite/${DB}.db"
+	LOCAL="${DATA}/${DB}.db"
 	
-	${BUNZIP2} ${LOCAL}.bz2
-
-	if [ $? -ne 0 ]
+	if [ ! -f ${LOCAL} ]
 	then
-	   echo "failed to uncompress local source"
-	   exit 0
+	    echo "fetch ${REMOTE}"
+	    
+	    ${CURL} -s -o ${LOCAL}.bz2 ${REMOTE}.bz2
+	    
+	    if [ $? -ne 0 ]
+	    then
+		echo "failed to fetch remote source"
+		exit 0
+	    fi
+	    
+	    ${BUNZIP2} ${LOCAL}.bz2
+	    
+	    if [ $? -ne 0 ]
+	    then
+		echo "failed to uncompress local source"
+		exit 0
+	    fi
+	    
 	fi
-	   
-    fi
-
-    ARGS="${ARGS} ${LOCAL}"    
-done
+	
+	ARGS="${ARGS} ${LOCAL}"    
+    done
+else
+    echo "only MODE=sqlite is supported right now"
+fi
 
 echo ${PIP_SERVER} ${ARGS}
 ${PIP_SERVER} ${ARGS}

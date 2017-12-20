@@ -262,7 +262,7 @@ curl 'http://localhost:5555/?latitude=54.793624&longitude=-79.948933&format=geoj
 ```
 docker build -t wof-pip-server .
 
-docker run -p 6161:8080 -e HOST='0.0.0.0' -e EXTRAS='y' -e MODE='sqlite' -e SOURCES='timezone-20171212' wof-pip-server
+docker run -p 6161:8080 -e HOST='0.0.0.0' -e EXTRAS='allow' -e MODE='sqlite' -e SOURCES='timezone-20171212' wof-pip-server
 fetch https://whosonfirst.mapzen.com/sqlite/timezone-20171212.db
 /go-whosonfirst-pip-v2/bin/wof-pip-server -host 0.0.0.0 -allow-extras -mode sqlite /usr/local/data/timezone-20171212.db
 00:08:41.764637 [wof-pip-server] STATUS create temporary extras database '/tmp/pip-extras738521352'

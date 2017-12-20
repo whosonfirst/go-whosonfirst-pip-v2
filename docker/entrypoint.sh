@@ -20,6 +20,11 @@ then
     ARGS="${ARGS} -allow-extras"
 fi
 
+if [ "${PROCESSES}" != "" ]
+then
+    ARGS="${ARGS} -processes ${PROCESSES}"
+fi
+
 if [ "${WWW}" != "" ]
 then
     ARGS="${ARGS} -www"
@@ -28,6 +33,11 @@ then
     then
 	ARGS="${ARGS} -mapzen-apikey ${MAPZEN_APIKEY}"
     fi
+fi
+    
+if [ "${SOURCES}" = "admin" ]
+then
+    SOURCES="borough-20171212,campus-20171212,continent-20171212,country-20171212,county-20171212,dependency-20171212,disputed-20171212,empire-20171212,localadmin-20171212,locality-20171212,macrocounty-20171212,macrohood-20171212,macroregion-20171212,marinearea-20171212,microhood-20171212,neighbourhood-20171212,region-20171212,timezone-20171212"
 fi
 
 if [ "${MODE}" = "sqlite" ]
@@ -48,8 +58,8 @@ then
 	    
 	    if [ $? -ne 0 ]
 	    then
-		echo "failed to fetch remote source"
-		exit 0
+		echo "failed to fetch remote source ${REMOTE}"
+		continue
 	    fi
 	    
 	    ${BUNZIP2} ${LOCAL}.bz2

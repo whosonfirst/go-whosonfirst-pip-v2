@@ -257,7 +257,7 @@ curl 'http://localhost:5555/?latitude=54.793624&longitude=-79.948933&format=geoj
 
 ## Docker
 
-[Yes](Dockerfile), although it's still early days and not terribly sophiticated yet (for example it only works with [SQLite](https://whosonfirst.mapzen.com/sqlite) databases right now).
+[Yes](Dockerfile), although it's still early days and not terribly sophisticated yet (for example it only works with [SQLite](https://whosonfirst.mapzen.com/sqlite) databases right now).
 
 ```
 docker build -t wof-pip-server .

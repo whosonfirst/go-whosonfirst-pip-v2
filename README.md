@@ -255,6 +255,56 @@ curl 'http://localhost:5555/?latitude=54.793624&longitude=-79.948933&format=geoj
 
 ![](docs/images/wof-pip-water-polygons.png)
 
+## Docker
+
+[Yes](Dockerfile), although it's still early days and not terribly sophiticated yet (for example it only works with [SQLite](https://whosonfirst.mapzen.com/sqlite) databases right now).
+
+```
+docker build -t wof-pip-server .
+
+docker run -p 6161:8080 -e HOST='0.0.0.0' -e EXTRAS='y' -e MODE='sqlite' -e SOURCES='timezone-20171212' wof-pip-server
+fetch https://whosonfirst.mapzen.com/sqlite/timezone-20171212.db
+/go-whosonfirst-pip-v2/bin/wof-pip-server -host 0.0.0.0 -allow-extras -mode sqlite /usr/local/data/timezone-20171212.db
+00:08:41.764637 [wof-pip-server] STATUS create temporary extras database '/tmp/pip-extras738521352'
+00:08:41.766112 [wof-pip-server] STATUS listening on 0.0.0.0:8080
+00:08:42.777847 [wof-pip-server] STATUS indexing 11 records indexed
+00:08:43.777756 [wof-pip-server] STATUS indexing 24 records indexed
+... time passes ...
+00:08:58.777526 [wof-pip-server] STATUS indexing 331 records indexed
+00:08:59.777888 [wof-pip-server] STATUS indexing 355 records indexed
+00:09:00.310773 [wof-pip-server] STATUS finished indexing
+
+curl -s 'http://localhost:6161/?latitude=37.794906&longitude=-122.395229' | python -mjson.tool
+{
+    "places": [
+        {
+            "mz:is_ceased": -1,
+            "mz:is_current": -1,
+            "mz:is_deprecated": 0,
+            "mz:is_superseded": 0,
+            "mz:is_superseding": 0,
+            "mz:latitude": 38.27008,
+            "mz:longitude": -118.219968,
+            "mz:max_latitude": 49.002892,
+            "mz:max_longitude": -114.039345,
+            "mz:min_latitude": 32.534622,
+            "mz:min_longitude": -124.733253,
+            "mz:uri": "https://whosonfirst.mapzen.com/data/102/047/421/102047421.geojson",
+            "wof:country": "",
+            "wof:id": 102047421,
+            "wof:lastmodified": 1466627377,
+            "wof:name": "America/Los_Angeles",
+            "wof:parent_id": 85633793,
+            "wof:path": "102/047/421/102047421.geojson",
+            "wof:placetype": "timezone",
+            "wof:repo": "whosonfirst-data",
+            "wof:superseded_by": [],
+            "wof:supersedes": []
+        }
+    ]
+}
+```
+
 ## Performance
 
 Proper performance and load-testing figures still need to be compiled but this is what happened when I ran `siege` with 200 concurrent clients reading from the [testdata/urls.txt](testdata) file and then forgot about it for a week:

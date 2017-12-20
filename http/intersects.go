@@ -258,7 +258,6 @@ func AppendExtras(js []byte, extras []string, conn *sql.DB) ([]byte, error) {
 			remaining -= 1
 		case err := <-error_ch:
 			log.Println("ERROR", err)
-			remaining -= 1
 		case up := <-update_ch:
 
 			var err error

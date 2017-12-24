@@ -135,6 +135,21 @@ And you should see something like this:
 
 ![](docs/images/wof-pip-sqlite.png)
 
+#### Options
+
+<dl>
+  <dt>-https</dt>
+     <dd>Enable https (TLS). The -cert-file and -key-file options are required. 
+     When you use curl to connect to a pip-server with a self signed certificate for test,
+     turn off curl's verification as "curl --insecure 'https://localhost:8080?....'" .</dd>
+  <dt>-cert-file cert_file.crt</dt>
+     <dd>A certificate file for https.</dd>
+  <dt>-key-file  key_file.key</dt>
+     <dd>A secret key file for https.</dd>
+  
+_Please write me._
+</dl>
+
 #### Fancy
 
 Indexing results and then fetching all the places that intersect a polyline:

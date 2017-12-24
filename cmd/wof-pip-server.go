@@ -12,6 +12,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-pip/http"
 	"io"
 	"io/ioutil"
+	"crypto/tls"
 	gohttp "net/http"
 	"os"
 	"os/signal"
@@ -27,6 +28,9 @@ func main() {
 
 	var host = flag.String("host", "localhost", "The hostname to listen for requests on")
 	var port = flag.Int("port", 8080, "The port number to listen for requests on")
+        var https = flag.Bool("https", false, "Enable https (TLS). The -cert-file and -key-file options are required")
+        var certFile = flag.String("cert-file", "", "Certificate file for https")
+        var keyFile = flag.String("key-file", "", "Key file for https")
 
 	var cache = flag.String("cache", "gocache", "...")
 	var cache_all = flag.Bool("cache-all", false, "")
@@ -269,8 +273,22 @@ func main() {
 		logger.Fatal("failed to create Ping handler because %s", err)
 	}
 
+        // set up http/https endpoint
+        
+	scheme := "http"
+	if *https {
+		scheme = "https"
+	        if *certFile == "" || *keyFile == "" {
+			logger.Fatal("-https requires -cert-file pem_file.crt -key-file file.key")
+		}
+        }
+        tls_cert, err := tls.LoadX509KeyPair(*certFile, *keyFile)
+	if err != nil {
+		logger.Fatal("error loading cert: %v", err)
+	}
+
 	endpoint := fmt.Sprintf("%s:%d", *host, *port)
-	logger.Status("listening on %s", endpoint)
+	logger.Status("listening on %s://%s", scheme, endpoint)
 
 	mux := gohttp.NewServeMux()
 
@@ -388,7 +406,13 @@ func main() {
 
 	// make it go
 
-	err = gracehttp.Serve(&gohttp.Server{Addr: endpoint, Handler: mux})
+	if *https {
+		err = gracehttp.Serve(&gohttp.Server{Addr: endpoint, Handler: mux,
+			TLSConfig: &tls.Config{ NextProtos:   []string{"http/1.1"},
+						Certificates: []tls.Certificate{tls_cert}}})
+	} else {
+		err = gracehttp.Serve(&gohttp.Server{Addr: endpoint, Handler: mux})
+	}
 
 	if err != nil {
 		logger.Fatal("failed to start server because %s", err)

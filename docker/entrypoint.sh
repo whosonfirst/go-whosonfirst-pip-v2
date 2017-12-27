@@ -54,7 +54,7 @@ then
 	    
 	    if [ $? -ne 0 ]
 	    then
-		echo "failed to fetch remote source ${REMOTE}"
+		echo "failed to fetch remote source ${REMOTE}.bz2"
 		continue
 	    fi
 	    

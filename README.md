@@ -18,9 +18,12 @@ All of this package's dependencies are bundled with the code in the `vendor` dir
 
 The documentation in this package is incomplete. Proper documentation is on the way but in the interim if you want to understand what's going on, in broad strokes, I'd suggest looking at [https://github.com/whosonfirst/go-whosonfirst-pip](https://github.com/whosonfirst/go-whosonfirst-pip).
 
-Pretty much everything under the hood has changed as have the public interfaces but _in broad stokes_ both packages have the same goal and do the same thing.
+Pretty much everything under the hood has changed as have the public interfaces but _in broad stokes_ both packages have the same goal and do the same thing. The main differences between the two packages are:
 
-The main differences between the two packages are decoupling of the indexing layers (to allow for alternatives to the default RTree implementation) and the caching layers, the ability to filter results by placetype or existential flags (is current, is deprecated, etc.) and the use of the [go-whosonfirst-geojson-v2](https://github.com/whosonfirst/go-whosonfirst-geojson-v2) package for working with Who's On First documents.
+* Decoupling of the indexing layers (to allow for alternatives to the default RTree implementation) and the caching layers and making proper interfaces for both
+* The ability to filter results by placetype or existential flags (is current, is deprecated, etc.)
+* The use of the [go-whosonfirst-geojson-v2](https://github.com/whosonfirst/go-whosonfirst-geojson-v2) package for working with Who's On First documents.
+* The use of the [go-whosonfirst-spr](https://github.com/whosonfirst/go-whosonfirst-spr) package (SPR is an acronym for "standard place response") for handling and generating responses. 
 
 ## Example
 
@@ -370,5 +373,6 @@ Shortest transaction:           0.00
 ## See also
 
 * https://github.com/whosonfirst/go-whosonfirst-geojson-v2
-* https://github.com/whosonfirst/go-whosonfirst-pip
 * https://github.com/whosonfirst/go-whosonfirst-spr
+* https://github.com/whosonfirst/go-whosonfirst-index
+* https://github.com/whosonfirst/go-whosonfirst-pip

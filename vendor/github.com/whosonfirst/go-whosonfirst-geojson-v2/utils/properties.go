@@ -26,13 +26,17 @@ func EnsurePropertiesAny(body []byte, properties []string) error {
 
 func EnsureProperties(body []byte, properties []string) error {
 
+	wof_id := int64(-1)
+
 	for _, path := range properties {
 
 		r := gjson.GetBytes(body, path)
 
 		if !r.Exists() {
-			msg := fmt.Sprintf("Feature is missing a %s property", path)
+			msg := fmt.Sprintf("Feature %d is missing a %s property", wof_id, path)
 			return errors.New(msg)
+		} else if path == "properties.wof:id" {
+			wof_id = r.Int()
 		}
 	}
 

@@ -281,11 +281,11 @@ func main() {
 	        if *certFile == "" || *keyFile == "" {
 			logger.Fatal("-https requires -cert-file pem_file.crt -key-file file.key")
 		}
+                tls_cert, err := tls.LoadX509KeyPair(*certFile, *keyFile)
+                if err != nil {
+                        logger.Fatal("error loading cert: %v", err)
+                }
         }
-        tls_cert, err := tls.LoadX509KeyPair(*certFile, *keyFile)
-	if err != nil {
-		logger.Fatal("error loading cert: %v", err)
-	}
 
 	endpoint := fmt.Sprintf("%s:%d", *host, *port)
 	logger.Status("listening on %s://%s", scheme, endpoint)

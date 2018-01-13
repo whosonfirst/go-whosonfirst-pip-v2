@@ -16,13 +16,69 @@ All of this package's dependencies are bundled with the code in the `vendor` dir
 
 ## Important
 
-The documentation in this package is incomplete where "incomplete" really means something like "we took the entire motorcyle apart and it's still spread out on the floor of the garage waiting to be reassembled". This is not a feature. It's an unfortunate by-product of the usual bad craziness around here.
+The documentation in this package is incomplete. Proper documentation is on the way but in the interim if you want to understand what's going on, in broad strokes, I'd suggest looking at [https://github.com/whosonfirst/go-whosonfirst-pip](https://github.com/whosonfirst/go-whosonfirst-pip).
 
-Proper documentation is quickly making itself a priority but in the interim if you want to understand what's going on, in broad strokes, I'd suggest looking at [https://github.com/whosonfirst/go-whosonfirst-pip](https://github.com/whosonfirst/go-whosonfirst-pip). Pretty much everything under the hood has changed as have the public interfaces but _in broad stokes_ both packages have the same goal and do the same thing.
+Pretty much everything under the hood has changed as have the public interfaces but _in broad stokes_ both packages have the same goal and do the same thing. The main differences between the two packages are:
+
+* Decoupling of the indexing layers (to allow for alternatives to the default RTree implementation) and the caching layers and making proper interfaces for both
+* The ability to filter results by placetype or existential flags (is current, is deprecated, etc.)
+* The use of the [go-whosonfirst-geojson-v2](https://github.com/whosonfirst/go-whosonfirst-geojson-v2) package for working with Who's On First documents.
+* The use of the [go-whosonfirst-spr](https://github.com/whosonfirst/go-whosonfirst-spr) package (SPR is an acronym for "standard place response") for handling and generating responses. 
 
 ## Example
 
-_Please write me._
+### wof-pip-server
+
+To run as an HTTP based point-in-polygon (PIP) server indexing Who's On First documents from a local disk, specify "-mode directory" and give the data directory as the first (non optional) argument.
+
+```
+./bin/wof-pip-server -mode directory /usr/local/data/whosonfirst-data/data
+12:25:55.267986 [wof-pip-server] STATUS listening on localhost:8080
+12:25:56.272296 [wof-pip-server] STATUS indexing 3023 records indexed
+12:25:57.271904 [wof-pip-server] STATUS indexing 6554 records indexed
+12:25:58.273400 [wof-pip-server] STATUS indexing 10200 records indexed
+12:25:59.276565 [wof-pip-server] STATUS indexing 13596 records indexed
+...
+12:34:37.980572 [wof-pip-server] STATUS finished indexing
+```
+
+_You can index any valid "mode" as defined by the [go-whosonfirst-index](https://github.com/whosonfirst/go-whosonfirst-index#modes) package._
+
+Your PIP server will now be answering requests on `localhost:8000`. For example:
+
+```
+curl -s 'http://localhost:8000/?latitude=37.794906&longitude=-122.395229&placetype=microhood' | python -mjson.tool
+{
+    "places": [
+        {
+            "mz:is_ceased": 1,
+            "mz:is_current": 0,
+            "mz:is_deprecated": 0,
+            "mz:is_superseded": 0,
+            "mz:is_superseding": 0,
+            "mz:latitude": 37.794906,
+            "mz:longitude": -122.395229,
+            "mz:max_latitude": 37.796684756991,
+            "mz:max_longitude": -122.39310801029,
+            "mz:min_latitude": 37.792339744389,
+            "mz:min_longitude": -122.39753901958,
+            "mz:uri": "https://whosonfirst.mapzen.com/data/420/561/633/420561633.geojson",
+            "wof:country": "US",
+            "wof:id": 420561633,
+            "wof:lastmodified": 1501284302,
+            "wof:name": "Super Bowl City",
+            "wof:parent_id": 85865899,
+            "wof:path": "420/561/633/420561633.geojson",
+            "wof:placetype": "microhood",
+            "wof:repo": "whosonfirst-data",
+            "wof:superseded_by": [],
+            "wof:supersedes": []
+        }
+    ]
+}
+```
+
+Detailed documentation for `wof-pip-server` is included below.
 
 ## Responses
 
@@ -395,5 +451,6 @@ Shortest transaction:           0.00
 ## See also
 
 * https://github.com/whosonfirst/go-whosonfirst-geojson-v2
-* https://github.com/whosonfirst/go-whosonfirst-pip
 * https://github.com/whosonfirst/go-whosonfirst-spr
+* https://github.com/whosonfirst/go-whosonfirst-index
+* https://github.com/whosonfirst/go-whosonfirst-pip

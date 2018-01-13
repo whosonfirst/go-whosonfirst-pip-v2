@@ -35,11 +35,6 @@ then
     fi
 fi
     
-if [ "${SOURCES}" = "admin" ]
-then
-    SOURCES="borough-20171212,campus-20171212,continent-20171212,country-20171212,county-20171212,dependency-20171212,disputed-20171212,empire-20171212,localadmin-20171212,locality-20171212,macrocounty-20171212,macrohood-20171212,macroregion-20171212,marinearea-20171212,microhood-20171212,neighbourhood-20171212,region-20171212,timezone-20171212"
-fi
-
 if [ "${MODE}" = "sqlite" ]
 then
 
@@ -47,18 +42,19 @@ then
     
     for DB in $(echo ${SOURCES} | sed "s/,/ /g")
     do
-	REMOTE="https://whosonfirst.mapzen.com/sqlite/${DB}.db"
-	LOCAL="${DATA}/${DB}.db"
+	
+	REMOTE="https://whosonfirst.mapzen.com/sqlite/${DB}"
+	LOCAL="${DATA}/${DB}"
 	
 	if [ ! -f ${LOCAL} ]
 	then
-	    echo "fetch ${REMOTE}"
+	    echo "fetch ${REMOTE}.bz2"
 	    
 	    ${CURL} -s -o ${LOCAL}.bz2 ${REMOTE}.bz2
 	    
 	    if [ $? -ne 0 ]
 	    then
-		echo "failed to fetch remote source ${REMOTE}"
+		echo "failed to fetch remote source ${REMOTE}.bz2"
 		continue
 	    fi
 	    

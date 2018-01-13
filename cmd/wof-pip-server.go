@@ -276,7 +276,7 @@ func main() {
         // set up http/https endpoint
         
 	scheme := "http"
-        tls_cert := nil
+	var tls_cert Certificate = nil
 	if *https {
 		scheme = "https"
 	        if *certFile == "" || *keyFile == "" {

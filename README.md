@@ -139,6 +139,84 @@ _Please write me._
 
 ### wof-pip-server
 
+#### Example
+
+To run as a pip-server, specify "-mode directory" and give the data directory as the first (non optional) argument.
+```
+./bin/wof-pip-server -mode directory -port 8080 /usr/local/data/whosonfirst-data/data
+12:25:55.267986 [wof-pip-server] STATUS listening on localhost:8080
+12:25:56.272296 [wof-pip-server] STATUS indexing 3023 records indexed
+12:25:57.271904 [wof-pip-server] STATUS indexing 6554 records indexed
+12:25:58.273400 [wof-pip-server] STATUS indexing 10200 records indexed
+12:25:59.276565 [wof-pip-server] STATUS indexing 13596 records indexed
+...
+12:34:37.980572 [wof-pip-server] STATUS finished indexing
+```
+
+#### Options
+
+```
+$> ./bin/wof-pip-server -help
+Usage of ./bin/wof-pip-server:
+  -allow-extras
+    	Allow users to pass an ?extras= query parameter and append those properties to the output. This feature is considered EXPERIMENTAL. It will add a non-zero amount of indexing time on start-up and not very-well understood amount of response time.
+  -allow-geojson
+    	Allow users to request GeoJSON FeatureCollection formatted responses. This flag will be replaced with a more generic -format flag in the future.
+  -cache string
+    	... (default "gocache")
+  -cache-all
+    	
+  -candidates
+    	
+  -cert-file string
+    	Certificate file for https
+  -exclude value
+    	Exclude (WOF) records based on their existential flags. Valid options are: ceased, deprecated, not-current, superseded.
+  -extras-db string
+    	The path to a SQLite database to use for storing extras-related information. If empty a temporary database will be created.
+  -failover-cache string
+    	... (default "lru")
+  -host string
+    	The hostname to listen for requests on (default "localhost")
+  -https
+    	Enable https (TLS). The -cert-file and -key-file options are required
+  -key-file string
+    	Key file for https
+  -lru-cache-size int
+    	... (default 1024)
+  -lru-cache-trigger int
+    	 (default 2000)
+  -mapzen-api-key string
+    	 (default "mapzen-xxxxxxx")
+  -mode string
+    	... (default "files")
+  -plain-old-geojson
+    	...
+  -polylines
+    	
+  -polylines-max-coords int
+    	 (default 100)
+  -port int
+    	The port number to listen for requests on (default 8080)
+  -ppa-api-key string
+    	PPA API key
+  -processes int
+    	... (default 8)
+  -source-cache-root string
+    	... (default "/usr/local/data")
+  -www
+    	
+  -www-local
+    	
+  -www-local-root string
+    	
+  -www-path string
+    	 (default "/debug/")
+$>
+```
+
+#### SQLite
+
 _Please write me._
 
 For example, to index [Who's On First data published as a SQLite database](https://whosonfirst.mapzen.com/sqlite) and spinning up a little web server for debugging things you might do something like:

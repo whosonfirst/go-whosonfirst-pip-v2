@@ -37,7 +37,7 @@ deps:
 	@GOPATH=$(GOPATH) go get -u "github.com/facebookgo/grace/gracehttp"
 	@GOPATH=$(GOPATH) go get -u "github.com/hashicorp/golang-lru"
 	@GOPATH=$(GOPATH) go get -u "github.com/jteeuwen/go-bindata/"
-	@GOPATH=$(GOPATH) go get -u "github.com/elazarl/go-bindata-assetfs/"
+	@GOPATH=$(GOPATH) go get -u "github.com/zendesk/go-bindata-assetfs/"
 	@GOPATH=$(GOPATH) go get -u "github.com/skelterjohn/geom"
 	@GOPATH=$(GOPATH) go get -u "github.com/patrickmn/go-cache"
 	@GOPATH=$(GOPATH) go get -u "github.com/tidwall/gjson"

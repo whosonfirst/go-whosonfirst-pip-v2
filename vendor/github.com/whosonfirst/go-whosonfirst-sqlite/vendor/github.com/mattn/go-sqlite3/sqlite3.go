@@ -1,3 +1,5 @@
+// +build cgo
+
 // Copyright (C) 2014 Yasuhiro Matsumoto <mattn.jp@gmail.com>.
 //
 // Use of this source code is governed by an MIT-style
@@ -7,7 +9,7 @@ package sqlite3
 
 /*
 #cgo CFLAGS: -std=gnu99
-#cgo CFLAGS: -DSQLITE_ENABLE_RTREE -DSQLITE_THREADSAFE=1
+#cgo CFLAGS: -DSQLITE_ENABLE_RTREE -DSQLITE_THREADSAFE=1 -DHAVE_USLEEP=1
 #cgo CFLAGS: -DSQLITE_ENABLE_FTS3 -DSQLITE_ENABLE_FTS3_PARENTHESIS -DSQLITE_ENABLE_FTS4_UNICODE61
 #cgo CFLAGS: -DSQLITE_TRACE_SIZE_LIMIT=15
 #cgo CFLAGS: -DSQLITE_DISABLE_INTRINSIC
@@ -136,6 +138,7 @@ static int _sqlite3_limit(sqlite3* db, int limitId, int newLimit) {
 */
 import "C"
 import (
+	"context"
 	"database/sql"
 	"database/sql/driver"
 	"errors"
@@ -149,8 +152,6 @@ import (
 	"sync"
 	"time"
 	"unsafe"
-
-	"golang.org/x/net/context"
 )
 
 // SQLiteTimestampFormats is timestamp formats understood by both this module

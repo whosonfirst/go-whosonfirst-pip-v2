@@ -16,6 +16,7 @@ import (
 	// golog "log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -48,7 +49,7 @@ func Modes() []string {
 		"meta",
 		"path",
 		"repo",
-		"sqlite",			
+		"sqlite",
 	}
 }
 
@@ -489,7 +490,23 @@ func (i *Indexer) IndexSQLiteDB(path string, args ...interface{}) error {
 		return err
 	}
 
+	// https://github.com/whosonfirst/go-whosonfirst-index/issues/5
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cpus := runtime.NumCPU() * 100	// configurable? (20171222/thisisaaronland)
+	throttle_ch := make(chan bool, cpus)
+
+	for i := 0; i < cpus; i++ {
+		throttle_ch <- true
+	}
+
+	error_ch := make(chan error)
+
 	for rows.Next() {
+
+		<-throttle_ch
 
 		var wofid int64
 		var body string
@@ -500,19 +517,43 @@ func (i *Indexer) IndexSQLiteDB(path string, args ...interface{}) error {
 			return err
 		}
 
-		// uri := fmt.Sprintf("sqlite://%s#geojson:%d", path, wofid)
+		go func(ctx context.Context, wofid int64, body string, throttle_ch chan bool, error_ch chan error) {
 
-		// see the way we're passing in STDIN and not uri as the path?
-		// that because we call ctx, err := ContextForPath(path) in the
-		// process() method and since uri won't be there nothing will
-		// get indexed - it's not ideal it's just what it is today...
-		// (20171213/thisisaaronland)
+			defer func() {
+				throttle_ch <- true
+			}()
 
-		fh := strings.NewReader(body)
-		err = i.process(fh, STDIN)
+			select {
+			case <-ctx.Done():
+				return
+			default:
 
-		if err != nil {
-			return err
+				// uri := fmt.Sprintf("sqlite://%s#geojson:%d", path, wofid)
+
+				// see the way we're passing in STDIN and not uri as the path?
+				// that because we call ctx, err := ContextForPath(path) in the
+				// process() method and since uri won't be there nothing will
+				// get indexed - it's not ideal it's just what it is today...
+				// (20171213/thisisaaronland)
+
+				fh := strings.NewReader(body)
+				err := i.process(fh, STDIN)
+
+				// need to to figure out how best to propogate theses..
+
+				if err != nil {
+					error_ch <- err
+				}
+			}
+
+		}(ctx, wofid, body, throttle_ch, error_ch)
+
+		select {
+		case e := <-error_ch:
+			cancel()
+			return e
+		default:
+			// pass
 		}
 	}
 

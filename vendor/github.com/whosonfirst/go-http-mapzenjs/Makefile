@@ -9,23 +9,11 @@ self:   prep rmdeps
 	mkdir src
 	cp -r vendor/* src/
 
-build:	maps assets
-
-assets:	self
-	if test ! -d bin; then mkdir bin; fi
-	@GOPATH=$(GOPATH) go build -o bin/go-bindata ./vendor/github.com/jteeuwen/go-bindata/go-bindata/
-	@GOPATH=$(GOPATH) go build -o bin/go-bindata-assetfs vendor/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs/main.go
-	rm -f www/*~ www/css/*~ www/javascript/*~ www/tangram/*~
-	@PATH=$(PATH):$(CWD)/bin bin/go-bindata-assetfs -pkg mapzenjs www www/javascript www/css www/tangram
-	mv bindata_assetfs.go mapzenjs_assets.go
-
 rmdeps:
 	if test -d src; then rm -rf src; fi 
 
-build:	fmt bin
-
 deps:
-	@GOPATH=$(GOPATH) go get -u "github.com/jteeuwen/go-bindata/"
+	@GOPATH=$(GOPATH) go get -u "github.com/zendesk/go-bindata/"
 	@GOPATH=$(GOPATH) go get -u "github.com/elazarl/go-bindata-assetfs/"
 	@GOPATH=$(GOPATH) go get -u "golang.org/x/net/html"
 
@@ -38,7 +26,23 @@ vendor-deps: rmdeps deps
 	find vendor -name '.git' -print -type d -exec rm -rf {} +
 	rm -rf src
 
-maps: wwwdirs mapzenjs tangram styles
+build:
+	@make maps
+	@make assets
+
+maps:
+	@make wwwdirs
+	@make mapzenjs
+	@make tangram
+	@make styles
+
+assets:	self
+	if test ! -d bin; then mkdir bin; fi
+	@GOPATH=$(GOPATH) go build -o bin/go-bindata ./vendor/github.com/jteeuwen/go-bindata/go-bindata/
+	@GOPATH=$(GOPATH) go build -o bin/go-bindata-assetfs vendor/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs/main.go
+	rm -f www/*~ www/css/*~ www/javascript/*~ www/tangram/*~
+	@PATH=$(PATH):$(CWD)/bin bin/go-bindata-assetfs -pkg mapzenjs www www/javascript www/css www/tangram
+	mv bindata_assetfs.go assets.go
 
 wwwdirs:
 	if test ! -d www/javascript; then mkdir www/javascript; fi

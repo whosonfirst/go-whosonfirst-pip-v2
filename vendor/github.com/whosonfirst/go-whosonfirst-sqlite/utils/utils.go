@@ -2,6 +2,7 @@ package utils
 
 import (
 	"github.com/whosonfirst/go-whosonfirst-sqlite"
+	_ "log"
 	"os"
 )
 

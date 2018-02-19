@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"runtime"
+	"sync/atomic"
 )
 
 func main() {
@@ -17,7 +18,9 @@ func main() {
 	flag.Parse()
 
 	runtime.GOMAXPROCS(*procs)
-	count := 0
+
+	var count int64
+	count = 0
 
 	f := func(fh io.Reader, ctx context.Context, args ...interface{}) error {
 
@@ -27,8 +30,9 @@ func main() {
 			return err
 		}
 
-		log.Println("PATH", path)
-		count += 1
+		i := atomic.AddInt64(&count, 1)
+
+		log.Println("PATH", path, i)
 		return nil
 	}
 

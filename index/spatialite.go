@@ -11,6 +11,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-pip/cache"
 	"github.com/whosonfirst/go-whosonfirst-pip/filter"
 	"github.com/whosonfirst/go-whosonfirst-spr"
+	"github.com/whosonfirst/go-whosonfirst-sqlite"
 	// golog "log"
 	"sync"
 )
@@ -22,6 +23,8 @@ type SpatialiteIndex struct {
 }
 
 func NewSpatialiteIndex(c cache.Cache) (Index, error) {
+
+	db, err := database.NewDBWithDriver(*driver, *dsn)
 
 	logger := log.SimpleWOFLogger("index")
 

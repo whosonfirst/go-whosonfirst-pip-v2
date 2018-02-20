@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/facebookgo/grace/gracehttp"
 	"github.com/whosonfirst/go-http-mapzenjs"
-	"github.com/whosonfirst/go-http-rewrite"
+	// "github.com/whosonfirst/go-http-rewrite"
 	"github.com/whosonfirst/go-whosonfirst-log"
 	"github.com/whosonfirst/go-whosonfirst-pip/app"
 	"github.com/whosonfirst/go-whosonfirst-pip/flags"
@@ -17,7 +17,7 @@ import (
 	"os/signal"
 	"runtime"
 	godebug "runtime/debug"
-	"strings"
+	// "strings"
 	// "sync"
 	// "syscall"
 	"time"
@@ -305,14 +305,7 @@ func main() {
 
 	if *www {
 
-		mapzenjs_handler, err := mapzenjs.MapzenJSHandler()
-
-		if err != nil {
-			logger.Fatal("failed to create mapzen.js handler because %s", err)
-		}
-
 		var www_handler gohttp.Handler
-		var www_fs gohttp.FileSystem
 
 		if *www_local {
 
@@ -329,7 +322,6 @@ func main() {
 			}
 
 			www_handler = local_handler
-			www_fs = local_fs
 
 		} else {
 
@@ -339,51 +331,64 @@ func main() {
 				logger.Fatal("failed to create (bundled) www handler because %s", err)
 			}
 
-			bundled_fs, err := http.BundledWWWFileSystem()
+			www_handler = bundled_handler
+		}
+
+		mapzenjs_opts := mapzenjs.DefaultMapzenJSOptions()
+		mapzenjs_opts.APIKey = *api_key
+
+		mapzenjs_handler, err := mapzenjs.MapzenJSHandler(www_handler, mapzenjs_opts)
+
+		if err != nil {
+			logger.Fatal("failed to create mapzen.js handler because %s", err)
+		}
+
+		/*
+			mzjs_opts := mapzenjs.DefaultMapzenJSOptions()
+			mzjs_opts.APIKey = *api_key
+
+			mzjs_handler, err := mapzenjs.MapzenJSHandler(www_handler, mzjs_opts)
 
 			if err != nil {
-				logger.Fatal("failed to create (bundled) file system because %s", err)
+				logger.Fatal("failed to create API key handler because %s", err)
 			}
 
-			www_handler = bundled_handler
-			www_fs = bundled_fs
-		}
+			opts := rewrite.DefaultRewriteRuleOptions()
 
-		apikey_handler, err := mapzenjs.MapzenAPIKeyHandler(www_handler, www_fs, *api_key)
+			rewrite_path := *www_path
 
-		if err != nil {
-			logger.Fatal("failed to create API key handler because %s", err)
-		}
+			if strings.HasSuffix(rewrite_path, "/") {
+				rewrite_path = strings.TrimRight(rewrite_path, "/")
+			}
 
-		opts := rewrite.DefaultRewriteRuleOptions()
+			rule := rewrite.RemovePrefixRewriteRule(rewrite_path, opts)
+			rules := []rewrite.RewriteRule{rule}
 
-		rewrite_path := *www_path
+			debug_handler, err := rewrite.RewriteHandler(rules, apikey_handler)
 
-		if strings.HasSuffix(rewrite_path, "/") {
-			rewrite_path = strings.TrimRight(rewrite_path, "/")
-		}
+			if err != nil {
+				logger.Fatal("failed to create www handler because %s", err)
+			}
+		*/
 
-		rule := rewrite.RemovePrefixRewriteRule(rewrite_path, opts)
-		rules := []rewrite.RewriteRule{rule}
-
-		debug_handler, err := rewrite.RewriteHandler(rules, apikey_handler)
+		mapzenjs_assets_handler, err := mapzenjs.MapzenJSAssetsHandler()
 
 		if err != nil {
-			logger.Fatal("failed to create www handler because %s", err)
+			logger.Fatal("failed to create mapzenjs_assets handler because %s", err)
 		}
 
-		mux.Handle("/javascript/mapzen.min.js", mapzenjs_handler)
-		mux.Handle("/javascript/tangram.min.js", mapzenjs_handler)
-		mux.Handle("/javascript/mapzen.js", mapzenjs_handler)
-		mux.Handle("/javascript/tangram.js", mapzenjs_handler)
-		mux.Handle("/css/mapzen.js.css", mapzenjs_handler)
-		mux.Handle("/tangram/refill-style.zip", mapzenjs_handler)
+		mux.Handle("/javascript/mapzen.min.js", mapzenjs_assets_handler)
+		mux.Handle("/javascript/tangram.min.js", mapzenjs_assets_handler)
+		mux.Handle("/javascript/mapzen.js", mapzenjs_assets_handler)
+		mux.Handle("/javascript/tangram.js", mapzenjs_assets_handler)
+		mux.Handle("/css/mapzen.js.css", mapzenjs_assets_handler)
+		mux.Handle("/tangram/refill-style.zip", mapzenjs_assets_handler)
 
 		mux.Handle("/javascript/mapzen.whosonfirst.pip.js", www_handler)
 		mux.Handle("/javascript/slippymap.crosshairs.js", www_handler)
 		mux.Handle("/css/mapzen.whosonfirst.pip.css", www_handler)
 
-		mux.Handle(*www_path, debug_handler)
+		mux.Handle(*www_path, mapzenjs_handler)
 	}
 
 	// make it go

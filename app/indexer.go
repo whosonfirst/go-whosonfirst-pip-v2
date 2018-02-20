@@ -10,8 +10,8 @@ import (
 	pip "github.com/whosonfirst/go-whosonfirst-pip/index"
 	pip_utils "github.com/whosonfirst/go-whosonfirst-pip/utils"
 	"github.com/whosonfirst/go-whosonfirst-sqlite"
+	"github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
-	"github.com/whosonfirst/go-whosonfirst-sqlite/tables"
 	"io"
 	"log"
 	"sync"
@@ -203,7 +203,7 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 
 				mu.Lock()
 
-				err = gt.IndexFeature(db, f)
+				err = gt.IndexRecord(db, f)
 
 				mu.Unlock()
 

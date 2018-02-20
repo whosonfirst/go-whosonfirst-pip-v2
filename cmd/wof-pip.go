@@ -10,6 +10,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/utils"
 	"github.com/whosonfirst/go-whosonfirst-log"
 	"github.com/whosonfirst/go-whosonfirst-pip/app"
+	"github.com/whosonfirst/go-whosonfirst-pip/cache"
 	"github.com/whosonfirst/go-whosonfirst-pip/filter"
 	pip "github.com/whosonfirst/go-whosonfirst-pip/index"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
@@ -69,14 +70,16 @@ func main() {
 	var mode = flag.String("mode", "files", "")
 	var procs = flag.Int("processes", runtime.NumCPU()*2, "")
 
-	var source_cache_enable = flag.Bool("source-cache", false, "")
-	var source_cache_root = flag.String("source-cache-data-root", "/usr/local/data", "")
+	/*
+		var source_cache_enable = flag.Bool("source-cache", false, "")
+		var source_cache_root = flag.String("source-cache-data-root", "/usr/local/data", "")
 
-	var lru_cache_enable = flag.Bool("lru-cache", false, "")
-	var lru_cache_size = flag.Int("lru-cache-size", 0, "")
-	var lru_cache_trigger = flag.Int("lru-cache-trigger", 0, "")
+		var lru_cache_enable = flag.Bool("lru-cache", false, "")
+		var lru_cache_size = flag.Int("lru-cache-size", 0, "")
+		var lru_cache_trigger = flag.Int("lru-cache-trigger", 0, "")
 
-	var failover_cache_enable = flag.Bool("failover-cache", false, "")
+		var failover_cache_enable = flag.Bool("failover-cache", false, "")
+	*/
 
 	flag.Parse()
 
@@ -124,25 +127,33 @@ func main() {
 		db = d
 	}
 
-	appcache_opts, err := app.DefaultApplicationCacheOptions()
+	/*
+		appcache_opts, err := app.DefaultApplicationCacheOptions()
 
-	if err != nil {
-		logger.Fatal("Failed to creation application cache options, because %s", err)
-	}
+		if err != nil {
+			logger.Fatal("Failed to creation application cache options, because %s", err)
+		}
 
-	appcache_opts.IndexMode = *mode
-	appcache_opts.IndexPaths = flag.Args()
+		appcache_opts.IndexMode = *mode
+		appcache_opts.IndexPaths = flag.Args()
 
-	appcache_opts.FailoverCache = *failover_cache_enable
+		appcache_opts.FailoverCache = *failover_cache_enable
 
-	appcache_opts.LRUCache = *lru_cache_enable
-	appcache_opts.LRUCacheSize = *lru_cache_size
-	appcache_opts.LRUCacheTriggerSize = *lru_cache_trigger
+		appcache_opts.LRUCache = *lru_cache_enable
+		appcache_opts.LRUCacheSize = *lru_cache_size
+		appcache_opts.LRUCacheTriggerSize = *lru_cache_trigger
 
-	appcache_opts.SourceCache = *source_cache_enable
-	appcache_opts.SourceCacheRoot = *source_cache_root
+		appcache_opts.SourceCache = *source_cache_enable
+		appcache_opts.SourceCacheRoot = *source_cache_root
 
-	appcache, err := app.ApplicationCache(appcache_opts)
+		appcache, err := app.ApplicationCache(appcache_opts)
+	*/
+
+	golog.Println("DB", db)
+
+	opts, _ := cache.DefaultSpatialiteCacheOptions()
+
+	appcache, err := cache.NewSpatialiteCache(db, opts)
 
 	if err != nil {
 		logger.Fatal("Failed to creation application cache, because %s", err)

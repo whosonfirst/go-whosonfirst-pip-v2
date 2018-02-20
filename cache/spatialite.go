@@ -4,12 +4,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	// "fmt"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/feature"
 	"github.com/whosonfirst/go-whosonfirst-log"
 	"github.com/whosonfirst/go-whosonfirst-pip"
 	"github.com/whosonfirst/go-whosonfirst-spr"
-	"github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
+	// "github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/utils"
 	"sync/atomic"
@@ -19,49 +18,30 @@ type SpatialiteCache struct {
 	Cache
 	Logger    *log.WOFLogger
 	Options   *SpatialiteCacheOptions
+	database  *database.SQLiteDatabase
 	hits      int64
 	misses    int64
 	evictions int64
 }
 
 type SpatialiteCacheOptions struct {
-	DB  *database.SQLiteDatabase
 	Set bool // PLEASE RENAME ME
 }
 
 func DefaultSpatialiteCacheOptions() (*SpatialiteCacheOptions, error) {
 
-	db, err := database.NewDBWithDriver("spatialite", ":memory:")
-
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = tables.NewSPRTableWithDatabase(db)
-
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = tables.NewGeometriesTableWithDatabase(db)
-
-	if err != nil {
-		return nil, err
-	}
-
 	opts := SpatialiteCacheOptions{
-		DB:  db,
 		Set: true,
 	}
 
 	return &opts, nil
 }
 
-func NewSpatialiteCache(opts *SpatialiteCacheOptions) (Cache, error) {
+func NewSpatialiteCache(db *database.SQLiteDatabase, opts *SpatialiteCacheOptions) (Cache, error) {
 
 	logger := log.SimpleWOFLogger("spatialite")
 
-	ok_geojson, err := utils.HasTable(opts.DB, "geojson")
+	ok_geojson, err := utils.HasTable(db, "geojson")
 
 	if err != nil {
 		return nil, err
@@ -74,6 +54,7 @@ func NewSpatialiteCache(opts *SpatialiteCacheOptions) (Cache, error) {
 	lc := SpatialiteCache{
 		Logger:    logger,
 		Options:   opts,
+		database:  db,
 		hits:      int64(0),
 		misses:    int64(0),
 		evictions: int64(0),
@@ -86,7 +67,7 @@ func (c *SpatialiteCache) Get(key string) (CacheItem, error) {
 
 	c.Logger.Info("GET %s", key)
 
-	db := c.Options.DB
+	db := c.database
 
 	conn, err := db.Conn()
 
@@ -135,7 +116,7 @@ func (c *SpatialiteCache) Set(key string, item CacheItem) error {
 	// PLEASE RECONCILE THIS CODE WITH
 	// go-whosonfirst-sqlite-features/tables/geojson.go
 
-	db := c.Options.DB
+	db := c.database
 
 	conn, err := db.Conn()
 
@@ -194,7 +175,7 @@ func (c *SpatialiteCache) Set(key string, item CacheItem) error {
 
 func (c *SpatialiteCache) Size() int64 {
 
-	db := c.Options.DB
+	db := c.database
 
 	conn, err := db.Conn()
 

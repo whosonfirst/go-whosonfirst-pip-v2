@@ -1,9 +1,14 @@
 package cache
 
 import (
+	"database/sql"
+	"encoding/json"
 	"errors"
-	_ "fmt"
+	// "fmt"
+	"github.com/whosonfirst/go-whosonfirst-geojson-v2/feature"
 	"github.com/whosonfirst/go-whosonfirst-log"
+	"github.com/whosonfirst/go-whosonfirst-pip"
+	"github.com/whosonfirst/go-whosonfirst-spr"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/utils"
@@ -17,12 +22,11 @@ type SpatialiteCache struct {
 	hits      int64
 	misses    int64
 	evictions int64
-	keys      int64
-	size      int64
 }
 
 type SpatialiteCacheOptions struct {
-	DB *database.SQLiteDatabase
+	DB  *database.SQLiteDatabase
+	Set bool // PLEASE RENAME ME
 }
 
 func DefaultSpatialiteCacheOptions() (*SpatialiteCacheOptions, error) {
@@ -46,7 +50,8 @@ func DefaultSpatialiteCacheOptions() (*SpatialiteCacheOptions, error) {
 	}
 
 	opts := SpatialiteCacheOptions{
-		DB: db,
+		DB:  db,
+		Set: true,
 	}
 
 	return &opts, nil
@@ -56,24 +61,14 @@ func NewSpatialiteCache(opts *SpatialiteCacheOptions) (Cache, error) {
 
 	logger := log.SimpleWOFLogger("spatialite")
 
-	ok_spr, err := utils.HasTable(opts.DB, "spr")
+	ok_geojson, err := utils.HasTable(opts.DB, "geojson")
 
 	if err != nil {
 		return nil, err
 	}
 
-	if !ok_spr {
-		return nil, errors.New("Missing 'spr' table")
-	}
-
-	ok_geom, err := utils.HasTable(opts.DB, "geometries")
-
-	if err != nil {
-		return nil, err
-	}
-
-	if !ok_geom {
-		return nil, errors.New("Missing 'geometries' table")
+	if !ok_geojson {
+		return nil, errors.New("Missing 'geojson' table")
 	}
 
 	lc := SpatialiteCache{
@@ -82,8 +77,6 @@ func NewSpatialiteCache(opts *SpatialiteCacheOptions) (Cache, error) {
 		hits:      int64(0),
 		misses:    int64(0),
 		evictions: int64(0),
-		keys:      0,
-		size:      0,
 	}
 
 	return &lc, nil
@@ -91,45 +84,136 @@ func NewSpatialiteCache(opts *SpatialiteCacheOptions) (Cache, error) {
 
 func (c *SpatialiteCache) Get(key string) (CacheItem, error) {
 
-	// to do: timings that don't slow everything down the way
-	// go-whosonfirst-timer does now (20170915/thisisaaronland)
-
 	c.Logger.Info("GET %s", key)
 
-	return nil, errors.New("PLEASE FINISH ME")
+	db := c.Options.DB
 
-	/*
-		db := c.Options.db
+	conn, err := db.Conn()
 
-		conn, err := db.Conn()
+	if err != nil {
+		return nil, err
+	}
 
-		if err != nil {
-			return err
-		}
+	q := "SELECT body FROM geojson WHERE id = ?"
+	row := conn.QueryRow(q, key)
 
-		sql := fmt.Sprintf("SELECT * FROM spr WHERE id = ?"
+	var body string
+	err = row.Scan(&body)
 
+	if err != nil {
 
-		if !ok {
+		if err == sql.ErrNoRows {
 			atomic.AddInt64(&c.misses, 1)
 			return nil, errors.New("CACHE MISS")
 		}
 
-		atomic.AddInt64(&c.hits, 1)
+		return nil, err
+	}
 
-		fc := cache.(CacheItem)
-		return fc, nil
-	*/
+	f, err := feature.LoadFeature([]byte(body))
+
+	if err != nil {
+		return nil, err
+	}
+
+	fc, err := NewFeatureCache(f)
+
+	if err != nil {
+		return nil, err
+	}
+
+	atomic.AddInt64(&c.hits, 1)
+	return fc, nil
 }
 
 func (c *SpatialiteCache) Set(key string, item CacheItem) error {
 
-	return nil
+	if !c.Options.Set {
+		return nil
+	}
+
+	// PLEASE RECONCILE THIS CODE WITH
+	// go-whosonfirst-sqlite-features/tables/geojson.go
+
+	db := c.Options.DB
+
+	conn, err := db.Conn()
+
+	if err != nil {
+		return err
+	}
+
+	s := item.SPR()
+	g := item.Geometry()
+
+	str_id := s.Id()
+	lastmod := s.LastModified()
+
+	type Feature struct {
+		Geometry   pip.GeoJSONGeometry      `json:"geometry"`
+		Properties spr.StandardPlacesResult `json:"properties"`
+	}
+
+	f := Feature{
+		Geometry:   g,
+		Properties: s,
+	}
+
+	body, err := json.Marshal(f)
+
+	if err != nil {
+		return nil
+	}
+
+	tx, err := conn.Begin()
+
+	if err != nil {
+		return err
+	}
+
+	q := "INSERT OR REPLACE INTO geojson (id, body, lastmodified) VALUES (?, ?, ?)"
+
+	stmt, err := tx.Prepare(q)
+
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+
+	str_body := string(body)
+
+	_, err = stmt.Exec(str_id, str_body, lastmod)
+
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (c *SpatialiteCache) Size() int64 {
-	return c.size
-	// return atomic.LoadInt64(&c.keys)
+
+	db := c.Options.DB
+
+	conn, err := db.Conn()
+
+	if err != nil {
+		return -1
+	}
+
+	q := "SELECT COUNT(id) FROM geojson"
+	row := conn.QueryRow(q)
+
+	var count int64
+	err = row.Scan(&count)
+
+	if err != nil {
+
+		return -1
+	}
+
+	return count
 }
 
 func (c *SpatialiteCache) Hits() int64 {

@@ -14,6 +14,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-pip/filter"
 	pip "github.com/whosonfirst/go-whosonfirst-pip/index"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
+	golog "log"
 	"os"
 	"runtime"
 	"strconv"

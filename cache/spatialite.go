@@ -4,9 +4,9 @@ import (
 	"errors"
 	_ "fmt"
 	"github.com/whosonfirst/go-whosonfirst-log"
+	"github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/utils"
-	"github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
 	"sync/atomic"
 )
 
@@ -22,7 +22,7 @@ type SpatialiteCache struct {
 }
 
 type SpatialiteCacheOptions struct {
-     DB *database.SQLiteDatabase
+	DB *database.SQLiteDatabase
 }
 
 func DefaultSpatialiteCacheOptions() (*SpatialiteCacheOptions, error) {
@@ -75,7 +75,7 @@ func NewSpatialiteCache(opts *SpatialiteCacheOptions) (Cache, error) {
 	if !ok_geom {
 		return nil, errors.New("Missing 'geometries' table")
 	}
-	
+
 	lc := SpatialiteCache{
 		Logger:    logger,
 		Options:   opts,
@@ -99,32 +99,32 @@ func (c *SpatialiteCache) Get(key string) (CacheItem, error) {
 	return nil, errors.New("PLEASE FINISH ME")
 
 	/*
-	db := c.Options.db
+		db := c.Options.db
 
-	conn, err := db.Conn()
+		conn, err := db.Conn()
 
-	if err != nil {
-		return err
-	}
+		if err != nil {
+			return err
+		}
 
-	sql := fmt.Sprintf("SELECT * FROM spr WHERE id = ?"
+		sql := fmt.Sprintf("SELECT * FROM spr WHERE id = ?"
 
 
-	if !ok {
-		atomic.AddInt64(&c.misses, 1)
-		return nil, errors.New("CACHE MISS")
-	}
+		if !ok {
+			atomic.AddInt64(&c.misses, 1)
+			return nil, errors.New("CACHE MISS")
+		}
 
-	atomic.AddInt64(&c.hits, 1)
+		atomic.AddInt64(&c.hits, 1)
 
-	fc := cache.(CacheItem)
-	return fc, nil
+		fc := cache.(CacheItem)
+		return fc, nil
 	*/
 }
 
 func (c *SpatialiteCache) Set(key string, item CacheItem) error {
 
-     return nil
+	return nil
 }
 
 func (c *SpatialiteCache) Size() int64 {

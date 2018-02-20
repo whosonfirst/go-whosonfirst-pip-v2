@@ -150,9 +150,7 @@ func main() {
 		appcache, err := app.ApplicationCache(appcache_opts)
 	*/
 
-	opts, _ := cache.DefaultSpatialiteCacheOptions()
-
-	appcache, err := cache.NewSpatialiteCache(db, opts)
+	appcache, err := cache.NewSpatialiteCache(db)
 
 	if err != nil {
 		logger.Fatal("Failed to creation application cache, because %s", err)

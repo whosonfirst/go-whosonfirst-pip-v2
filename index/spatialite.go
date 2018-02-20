@@ -66,15 +66,7 @@ func (i *SpatialiteIndex) Cache() cache.Cache {
 
 func (i *SpatialiteIndex) IndexFeature(f geojson.Feature) error {
 
-	skip := true // PLEASE MAKE ME A FLAG SOMEWHERE
-
-	if skip {
-		return nil
-	}
-
 	db := i.database
-
-	// PLEASE MOVE THIS IN TO THE CONSTRUCTOR IF NOT skip...
 
 	t, err := tables.NewGeometriesTableWithDatabase(db)
 
@@ -97,8 +89,6 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 
 	lat := coord.Y
 	lon := coord.X
-
-	// PLEASE ADD FILTERING, KTHXBYE...
 
 	places := make([]spr.StandardPlacesResult, 0)
 
@@ -135,8 +125,16 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 			return nil, err
 		}
 
-		places = append(places, fc.SPR())
+		s := fc.SPR()
 
+		err = filter.FilterSPR(f, s)
+
+		if err != nil {
+			i.Logger.Debug("SKIP %s because filter error %s", str_id, err)
+			continue
+		}
+
+		places = append(places, fc.SPR())
 	}
 
 	err = rows.Err()

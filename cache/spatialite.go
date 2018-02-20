@@ -17,27 +17,13 @@ import (
 type SpatialiteCache struct {
 	Cache
 	Logger    *log.WOFLogger
-	Options   *SpatialiteCacheOptions
 	database  *database.SQLiteDatabase
 	hits      int64
 	misses    int64
 	evictions int64
 }
 
-type SpatialiteCacheOptions struct {
-	Set bool // PLEASE RENAME ME
-}
-
-func DefaultSpatialiteCacheOptions() (*SpatialiteCacheOptions, error) {
-
-	opts := SpatialiteCacheOptions{
-		Set: true,
-	}
-
-	return &opts, nil
-}
-
-func NewSpatialiteCache(db *database.SQLiteDatabase, opts *SpatialiteCacheOptions) (Cache, error) {
+func NewSpatialiteCache(db *database.SQLiteDatabase) (Cache, error) {
 
 	logger := log.SimpleWOFLogger("spatialite")
 
@@ -53,7 +39,6 @@ func NewSpatialiteCache(db *database.SQLiteDatabase, opts *SpatialiteCacheOption
 
 	lc := SpatialiteCache{
 		Logger:    logger,
-		Options:   opts,
 		database:  db,
 		hits:      int64(0),
 		misses:    int64(0),
@@ -108,10 +93,6 @@ func (c *SpatialiteCache) Get(key string) (CacheItem, error) {
 }
 
 func (c *SpatialiteCache) Set(key string, item CacheItem) error {
-
-	if !c.Options.Set {
-		return nil
-	}
 
 	// PLEASE RECONCILE THIS CODE WITH
 	// go-whosonfirst-sqlite-features/tables/geojson.go

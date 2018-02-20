@@ -22,7 +22,7 @@ build:	fmt bin
 deps:
 	@GOPATH=$(GOPATH) go get -u "github.com/mattn/go-sqlite3"
 	@GOPATH=$(GOPATH) go install "github.com/mattn/go-sqlite3"
-	@GOPATH=$(GOPATH) go get -u "github.com/shaxbee/go-spatialite"
+	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-spatialite"
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-flags"
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-index"
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-log"

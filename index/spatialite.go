@@ -117,11 +117,11 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 	// this returns segfaults because... ????
 
 	/*
-	q := "SELECT id FROM geometries WHERE ST_Within(GeomFromText('POINT(-85.808631 37.926546)'), geom) AND rowid IN (SELECT pkid FROM idx_geometries_geom WHERE xmin < -85.808631 AND xmax > -85.808631 AND ymin < 37.926546 AND ymax > 37.926546)"
+		q := "SELECT id FROM geometries WHERE ST_Within(GeomFromText('POINT(-85.808631 37.926546)'), geom) AND rowid IN (SELECT pkid FROM idx_geometries_geom WHERE xmin < -85.808631 AND xmax > -85.808631 AND ymin < 37.926546 AND ymax > 37.926546)"
 
-	golog.Println(q, lon, lat)
+		golog.Println(q, lon, lat)
 
-	rows, err := conn.Query(q)
+		rows, err := conn.Query(q)
 	*/
 
 	if err != nil {
@@ -142,13 +142,13 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 		golog.Println("ID", str_id)
 
 		/*
-		fc, err := i.cache.Get(str_id)
+			fc, err := i.cache.Get(str_id)
 
-		if err != nil {
-			return nil, err
-		}
+			if err != nil {
+				return nil, err
+			}
 
-		places = append(places, fc.SPR())
+			places = append(places, fc.SPR())
 		*/
 	}
 

@@ -3,7 +3,7 @@ package database
 import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
-	_ "github.com/shaxbee/go-spatialite"
+	_ "github.com/whosonfirst/go-spatialite"
 	_ "log"
 	"sync"
 )

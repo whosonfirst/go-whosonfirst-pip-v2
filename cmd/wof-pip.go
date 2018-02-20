@@ -14,7 +14,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-pip/filter"
 	pip "github.com/whosonfirst/go-whosonfirst-pip/index"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
-	golog "log"
+	// golog "log"
 	"os"
 	"runtime"
 	"strconv"
@@ -150,8 +150,6 @@ func main() {
 		appcache, err := app.ApplicationCache(appcache_opts)
 	*/
 
-	golog.Println("DB", db)
-
 	opts, _ := cache.DefaultSpatialiteCacheOptions()
 
 	appcache, err := cache.NewSpatialiteCache(db, opts)
@@ -184,20 +182,22 @@ func main() {
 		}
 	*/
 
-	indexer_opts, err := app.DefaultApplicationIndexerOptions()
+	if *mode != "spatialite" {
+		indexer_opts, err := app.DefaultApplicationIndexerOptions()
 
-	if err != nil {
-		logger.Fatal("failed to create indexer options because %s", err)
-	}
+		if err != nil {
+			logger.Fatal("failed to create indexer options because %s", err)
+		}
 
-	indexer_opts.IndexMode = *mode
+		indexer_opts.IndexMode = *mode
 
-	indexer, err := app.NewApplicationIndexer(appindex, indexer_opts)
+		indexer, err := app.NewApplicationIndexer(appindex, indexer_opts)
 
-	err = indexer.IndexPaths(flag.Args())
+		err = indexer.IndexPaths(flag.Args())
 
-	if err != nil {
-		logger.Fatal("failed to index paths because %s", err)
+		if err != nil {
+			logger.Fatal("failed to index paths because %s", err)
+		}
 	}
 
 	logger.Status("cache size: %d evictions: %d", appcache.Size(), appcache.Evictions())

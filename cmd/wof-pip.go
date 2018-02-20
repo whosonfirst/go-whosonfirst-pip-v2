@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/skelterjohn/geom"
@@ -11,6 +12,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-pip/app"
 	"github.com/whosonfirst/go-whosonfirst-pip/filter"
 	pip "github.com/whosonfirst/go-whosonfirst-pip/index"
+	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"os"
 	"runtime"
 	"strconv"
@@ -56,6 +58,9 @@ func PIP(i pip.Index, c geom.Coord, f filter.Filter, logger *log.WOFLogger) erro
 func main() {
 
 	var interactive = flag.Bool("interactive", false, "")
+
+	var engine = flag.String("engine", "rtree", "")
+	var dsn = flag.String("dsn", ":memory:", "")
 
 	var lat = flag.Float64("latitude", 0.0, "")
 	var lon = flag.Float64("longitude", 0.0, "")
@@ -106,6 +111,19 @@ func main() {
 		*lon = fl_lon
 	}
 
+	var db *database.SQLiteDatabase
+
+	if *engine == "spatialite" {
+
+		d, err := database.NewDBWithDriver(*engine, *dsn)
+
+		if err != nil {
+			logger.Fatal("Failed to create spatialite database, because %s", err)
+		}
+
+		db = d
+	}
+
 	appcache_opts, err := app.DefaultApplicationCacheOptions()
 
 	if err != nil {
@@ -130,11 +148,29 @@ func main() {
 		logger.Fatal("Failed to creation application cache, because %s", err)
 	}
 
-	appindex, err := app.ApplicationIndex(appcache)
+	var appindex pip.Index
+	var appindex_err error
 
-	if err != nil {
-		logger.Fatal("failed to create index because %s", err)
+	switch *engine {
+	case "rtree":
+		appindex, appindex_err = pip.NewRTreeIndex(appcache)
+	case "spatialite":
+		appindex, appindex_err = pip.NewSpatialiteIndex(db, appcache)
+	default:
+		appindex_err = errors.New("Invalid engine")
 	}
+
+	if appindex_err != nil {
+		logger.Fatal("failed to create index because %s", appindex_err)
+	}
+
+	/*
+		appindex, err := app.ApplicationIndex(appcache)
+
+		if err != nil {
+			logger.Fatal("failed to create index because %s", err)
+		}
+	*/
 
 	indexer_opts, err := app.DefaultApplicationIndexerOptions()
 

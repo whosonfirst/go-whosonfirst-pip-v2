@@ -17,5 +17,7 @@ func DefaultApplicationIndexOptions() (ApplicationIndexOptions, error) {
 
 func ApplicationIndex(c cache.Cache) (index.Index, error) {
 
+	// return index.NewSpatialiteIndex(db, c)
+
 	return index.NewRTreeIndex(c)
 }

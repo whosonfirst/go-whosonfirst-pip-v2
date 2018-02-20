@@ -110,7 +110,7 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 	q := `SELECT id FROM geometries WHERE ST_Within(GeomFromText('POINT(? ?)'), geom) AND rowid IN
 	      (SELECT pkid FROM idx_geometries_geom WHERE xmin < ? AND xmax > ? AND ymin < ? AND ymax > ?)`
 
-	// golog.Println("CMD", q, lon, lat)
+	golog.Println("CMD", q, lon, lat)
 
 	rows, err := conn.Query(q, lon, lat, lon, lon, lat, lat)
 
@@ -174,6 +174,8 @@ func (i *SpatialiteIndex) GetCandidatesByCoord(coord geom.Coord) (*pip.GeoJSONFe
 	if err != nil {
 		return nil, err
 	}
+
+	defer conn.Close()
 
 	lat := coord.Y
 	lon := coord.X

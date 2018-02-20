@@ -75,6 +75,8 @@ func (c *SpatialiteCache) Get(key string) (CacheItem, error) {
 		return nil, err
 	}
 
+	defer conn.Close()
+
 	q := "SELECT body FROM geojson WHERE id = ?"
 	row := conn.QueryRow(q, key)
 
@@ -123,6 +125,8 @@ func (c *SpatialiteCache) Set(key string, item CacheItem) error {
 	if err != nil {
 		return err
 	}
+
+	defer conn.Close()
 
 	s := item.SPR()
 	g := item.Geometry()
@@ -182,6 +186,8 @@ func (c *SpatialiteCache) Size() int64 {
 	if err != nil {
 		return -1
 	}
+
+	defer conn.Close()
 
 	q := "SELECT COUNT(id) FROM geojson"
 	row := conn.QueryRow(q)

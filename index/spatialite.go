@@ -7,6 +7,7 @@ package index
 
 import (
 	"errors"
+	"fmt"
 	"github.com/skelterjohn/geom"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	"github.com/whosonfirst/go-whosonfirst-log"
@@ -17,7 +18,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/utils"
-	golog "log"
+	// golog "log"
 )
 
 type SpatialiteIndex struct {
@@ -94,8 +95,6 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 		return nil, err
 	}
 
-	defer conn.Close()
-
 	lat := coord.Y
 	lon := coord.X
 
@@ -103,26 +102,17 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 
 	places := make([]spr.StandardPlacesResult, 0)
 
-	// ORDER BY... ?
+	// for reasons I don't understand this returns empty - I am guessing it has something
+	// to do with internal escaping... (20180220/thisisaaronland)
+	// q := `SELECT id FROM geometries WHERE ST_Within(GeomFromText('POINT(? ?)'), geom) AND rowid IN (SELECT pkid FROM idx_geometries_geom WHERE xmin < ? AND xmax > ? AND ymin < ? AND ymax > ?)`
+	// rows, err := conn.Query(q, lon, lat, lon, lon, lat, lat)
 
-	// this returns empty because... ????
+	q := fmt.Sprintf(`SELECT id FROM geometries WHERE ST_Within(GeomFromText('POINT(%0.6f %0.6f)'), geom)
+		          AND rowid IN (
+			    SELECT pkid FROM idx_geometries_geom WHERE xmin < %0.6f AND xmax > %0.6f AND ymin < %0.6f AND ymax > %0.6f
+                          )`, lon, lat, lon, lon, lat, lat)
 
-	q := `SELECT id FROM geometries WHERE ST_Within(GeomFromText('POINT(? ?)'), geom) AND rowid IN
-	      (SELECT pkid FROM idx_geometries_geom WHERE xmin < ? AND xmax > ? AND ymin < ? AND ymax > ?)`
-
-	golog.Println("CMD", q, lon, lat)
-
-	rows, err := conn.Query(q, lon, lat, lon, lon, lat, lat)
-
-	// this returns segfaults because... ????
-
-	/*
-		q := "SELECT id FROM geometries WHERE ST_Within(GeomFromText('POINT(-85.808631 37.926546)'), geom) AND rowid IN (SELECT pkid FROM idx_geometries_geom WHERE xmin < -85.808631 AND xmax > -85.808631 AND ymin < 37.926546 AND ymax > 37.926546)"
-
-		golog.Println(q, lon, lat)
-
-		rows, err := conn.Query(q)
-	*/
+	rows, err := conn.Query(q)
 
 	if err != nil {
 		return nil, err
@@ -139,17 +129,14 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 			return nil, err
 		}
 
-		golog.Println("ID", str_id)
+		fc, err := i.cache.Get(str_id)
 
-		/*
-			fc, err := i.cache.Get(str_id)
+		if err != nil {
+			return nil, err
+		}
 
-			if err != nil {
-				return nil, err
-			}
+		places = append(places, fc.SPR())
 
-			places = append(places, fc.SPR())
-		*/
 	}
 
 	err = rows.Err()
@@ -174,8 +161,6 @@ func (i *SpatialiteIndex) GetCandidatesByCoord(coord geom.Coord) (*pip.GeoJSONFe
 	if err != nil {
 		return nil, err
 	}
-
-	defer conn.Close()
 
 	lat := coord.Y
 	lon := coord.X

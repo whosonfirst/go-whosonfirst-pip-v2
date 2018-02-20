@@ -3,11 +3,12 @@ package index
 // https://gist.github.com/simonw/91a1157d1f45ab305c6f48c4ca344de8
 // http://www.gaia-gis.it/gaia-sins/spatialite-sql-4.3.0.html
 
+// ./bin/wof-sqlite-index-features -driver spatialite -dsn test-pip.db -geojson -geometries -live-hard-die-fast -timings -mode repo /usr/local/data/whosonfirst-data-constituency-us
+
 import (
 	"errors"
 	"github.com/skelterjohn/geom"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
-	// "github.com/whosonfirst/go-whosonfirst-geojson-v2/geometry"
 	"github.com/whosonfirst/go-whosonfirst-log"
 	"github.com/whosonfirst/go-whosonfirst-pip"
 	"github.com/whosonfirst/go-whosonfirst-pip/cache"
@@ -97,10 +98,16 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 	lat := coord.Y
 	lon := coord.X
 
+	// PLEASE ADD FILTERING, KTHXBYE...
+
+	places := make([]spr.StandardPlacesResult, 0)
+
 	// ORDER BY... ?
 
 	q := `SELECT id FROM geometries WHERE ST_Within(GeomFromText('POINT(? ?)'), geom) AND rowid IN
-	      (SELECT pkid FROM idx_whosonfirst_geom WHERE xmin < ? AND xmax > ? AND ymin < ? AND ymax > ?)`
+	      (SELECT pkid FROM idx_geometries_geom WHERE xmin < ? AND xmax > ? AND ymin < ? AND ymax > ?)`
+
+	// golog.Println("CMD", q, lon, lat)
 
 	rows, err := conn.Query(q, lon, lat, lon, lon, lat, lat)
 
@@ -108,14 +115,11 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 		return nil, err
 	}
 
-	// PLEASE ADD FILTERING, KTHXBYE...
-
-	places := make([]spr.StandardPlacesResult, 0)
+	defer rows.Close()
 
 	for rows.Next() {
 
 		var str_id string
-
 		err = rows.Scan(&str_id)
 
 		if err != nil {

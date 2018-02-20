@@ -17,8 +17,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/utils"
-	// golog "log"
-	// "sync"
+	golog "log"
 )
 
 type SpatialiteIndex struct {
@@ -95,6 +94,8 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 		return nil, err
 	}
 
+	defer conn.Close()
+
 	lat := coord.Y
 	lon := coord.X
 
@@ -104,12 +105,24 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 
 	// ORDER BY... ?
 
+	// this returns empty because... ????
+
 	q := `SELECT id FROM geometries WHERE ST_Within(GeomFromText('POINT(? ?)'), geom) AND rowid IN
 	      (SELECT pkid FROM idx_geometries_geom WHERE xmin < ? AND xmax > ? AND ymin < ? AND ymax > ?)`
 
 	// golog.Println("CMD", q, lon, lat)
 
 	rows, err := conn.Query(q, lon, lat, lon, lon, lat, lat)
+
+	// this returns segfaults because... ????
+
+	/*
+	q := "SELECT id FROM geometries WHERE ST_Within(GeomFromText('POINT(-85.808631 37.926546)'), geom) AND rowid IN (SELECT pkid FROM idx_geometries_geom WHERE xmin < -85.808631 AND xmax > -85.808631 AND ymin < 37.926546 AND ymax > 37.926546)"
+
+	golog.Println(q, lon, lat)
+
+	rows, err := conn.Query(q)
+	*/
 
 	if err != nil {
 		return nil, err
@@ -126,6 +139,9 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 			return nil, err
 		}
 
+		golog.Println("ID", str_id)
+
+		/*
 		fc, err := i.cache.Get(str_id)
 
 		if err != nil {
@@ -133,6 +149,7 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 		}
 
 		places = append(places, fc.SPR())
+		*/
 	}
 
 	err = rows.Err()

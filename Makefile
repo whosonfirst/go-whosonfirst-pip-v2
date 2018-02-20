@@ -36,7 +36,7 @@ deps:
 	@GOPATH=$(GOPATH) go get -u "github.com/dhconnelly/rtreego"
 	@GOPATH=$(GOPATH) go get -u "github.com/facebookgo/grace/gracehttp"
 	@GOPATH=$(GOPATH) go get -u "github.com/hashicorp/golang-lru"
-	@GOPATH=$(GOPATH) go get -u "github.com/jteeuwen/go-bindata/"
+	@GOPATH=$(GOPATH) go get -u "github.com/zendesk/go-bindata/"
 	@GOPATH=$(GOPATH) go get -u "github.com/elazarl/go-bindata-assetfs/"
 	@GOPATH=$(GOPATH) go get -u "github.com/skelterjohn/geom"
 	@GOPATH=$(GOPATH) go get -u "github.com/patrickmn/go-cache"
@@ -57,7 +57,7 @@ deps:
 	rm -rf src/github.com/whosonfirst/go-whosonfirst-geojson-v2/vendor/github.com/skelterjohn/geom
 	rm -rf src/github.com/whosonfirst/go-whosonfirst-index/vendor/github.com/whosonfirst/go-whosonfirst-sqlite
 	rm -rf src/github.com/whosonfirst/go-whosonfirst-sqlite/vendor/github.com/whosonfirst/go-whosonfirst-geojson-v2
-	rm -rf src/github.com/jteeuwen/go-bindata/testdata
+	rm -rf src/github.com/zendesk/go-bindata/testdata
 
 vendor-deps: rmdeps deps
 	if test ! -d vendor; then mkdir vendor; fi

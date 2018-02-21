@@ -8,9 +8,10 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-log"
 	"github.com/whosonfirst/go-whosonfirst-pip"
 	"github.com/whosonfirst/go-whosonfirst-spr"
-	// "github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
+	"github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
-	"github.com/whosonfirst/go-whosonfirst-sqlite/utils"
+	"io"
+	"os"
 	"sync/atomic"
 )
 
@@ -27,14 +28,13 @@ func NewSpatialiteCache(db *database.SQLiteDatabase) (Cache, error) {
 
 	logger := log.SimpleWOFLogger("spatialite")
 
-	ok_geojson, err := utils.HasTable(db, "geojson")
+	stdout := io.Writer(os.Stdout)
+	logger.AddLogger(stdout, "info")
+
+	_, err := tables.NewGeoJSONTableWithDatabase(db)
 
 	if err != nil {
 		return nil, err
-	}
-
-	if !ok_geojson {
-		return nil, errors.New("Missing 'geojson' table")
 	}
 
 	lc := SpatialiteCache{
@@ -93,6 +93,8 @@ func (c *SpatialiteCache) Get(key string) (CacheItem, error) {
 }
 
 func (c *SpatialiteCache) Set(key string, item CacheItem) error {
+
+	c.Logger.Info("SET %s", key)
 
 	// PLEASE RECONCILE THIS CODE WITH
 	// go-whosonfirst-sqlite-features/tables/geojson.go

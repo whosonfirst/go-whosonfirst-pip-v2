@@ -181,6 +181,7 @@ func main() {
 	*/
 
 	if *mode != "spatialite" {
+
 		indexer_opts, err := app.DefaultApplicationIndexerOptions()
 
 		if err != nil {

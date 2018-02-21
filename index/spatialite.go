@@ -17,8 +17,8 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-spr"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
-	"github.com/whosonfirst/go-whosonfirst-sqlite/utils"
-	// golog "log"
+	"io"
+	"os"
 )
 
 type SpatialiteIndex struct {
@@ -41,14 +41,13 @@ func NewSpatialiteIndex(db *database.SQLiteDatabase, c cache.Cache) (Index, erro
 
 	logger := log.SimpleWOFLogger("index")
 
-	ok_geom, err := utils.HasTable(db, "geometries")
+	stdout := io.Writer(os.Stdout)
+	logger.AddLogger(stdout, "info")
+
+	_, err := tables.NewGeometriesTableWithDatabase(db)
 
 	if err != nil {
 		return nil, err
-	}
-
-	if !ok_geom {
-		return nil, errors.New("Missing 'geometries' table")
 	}
 
 	i := SpatialiteIndex{
@@ -68,13 +67,13 @@ func (i *SpatialiteIndex) IndexFeature(f geojson.Feature) error {
 
 	db := i.database
 
-	t, err := tables.NewGeometriesTableWithDatabase(db)
+	t, err := tables.NewGeometriesTable()
 
 	if err != nil {
 		return err
 	}
 
-	return t.IndexRecord(i.database, f)
+	return t.IndexRecord(db, f)
 }
 
 func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter) (spr.StandardPlacesResults, error) {

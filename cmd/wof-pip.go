@@ -125,6 +125,12 @@ func main() {
 			logger.Fatal("Failed to create spatialite database, because %s", err)
 		}
 
+		err = d.LiveHardDieFast()
+
+		if err != nil {
+			logger.Fatal("Failed to create spatialite database, because %s", err)
+		}
+
 		db = d
 	}
 

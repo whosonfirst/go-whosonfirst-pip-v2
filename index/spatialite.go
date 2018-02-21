@@ -19,6 +19,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"io"
 	"os"
+	"sync"
 )
 
 type SpatialiteIndex struct {
@@ -26,6 +27,8 @@ type SpatialiteIndex struct {
 	Logger   *log.WOFLogger
 	database *database.SQLiteDatabase
 	cache    cache.Cache
+	mu       *sync.RWMutex
+	throttle chan bool
 }
 
 type SpatialiteResults struct {
@@ -50,10 +53,24 @@ func NewSpatialiteIndex(db *database.SQLiteDatabase, c cache.Cache) (Index, erro
 		return nil, err
 	}
 
+	mu := new(sync.RWMutex)
+
+	// PLEASE TO ADD CONNECTION POOLS TO
+	// SQLITE THINGY (20180221/thisisaaronland)
+
+	maxconns := 32
+	throttle := make(chan bool, maxconns)
+
+	for i := 0; i < maxconns; i++ {
+		throttle <- true
+	}
+
 	i := SpatialiteIndex{
 		database: db,
 		cache:    c,
 		Logger:   logger,
+		mu:       mu,
+		throttle: throttle,
 	}
 
 	return &i, nil
@@ -65,9 +82,20 @@ func (i *SpatialiteIndex) Cache() cache.Cache {
 
 func (i *SpatialiteIndex) IndexFeature(f geojson.Feature) error {
 
+	// SEE ABOVE
+
+	<-i.throttle
+
+	defer func() {
+		i.throttle <- true
+	}()
+
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
 	db := i.database
 
-	t, err := tables.NewGeometriesTable()
+	t, err := tables.NewGeometriesTableWithDatabase(db)
 
 	if err != nil {
 		return err

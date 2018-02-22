@@ -98,6 +98,7 @@ func (i *SpatialiteIndex) IndexFeature(f geojson.Feature) error {
 	t, err := tables.NewGeometriesTableWithDatabase(db)
 
 	if err != nil {
+		i.Logger.Status("OH NO, %s", err)
 		return err
 	}
 

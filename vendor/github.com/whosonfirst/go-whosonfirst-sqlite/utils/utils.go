@@ -55,19 +55,14 @@ func CreateTableIfNecessary(db sqlite.Database, t sqlite.Table) error {
 
 	create := false
 
-	if db.DSN() == ":memory:" {
+	has_table, err := HasTable(db, t.Name())
+
+	if err != nil {
+		return err
+	}
+
+	if !has_table {
 		create = true
-	} else {
-
-		has_table, err := HasTable(db, t.Name())
-
-		if err != nil {
-			return err
-		}
-
-		if !has_table {
-			create = true
-		}
 	}
 
 	if create {

@@ -8,13 +8,24 @@ import (
 
 func HasTable(db sqlite.Database, table string) (bool, error) {
 
+	// PLEASE MEMOIZE ME... (20180221/thisisaaronland)
+
+	check_tables := true
 	has_table := false
 
-	_, err := os.Stat(db.DSN())
+	dsn := db.DSN()
 
-	if os.IsNotExist(err) {
-		has_table = false
-	} else {
+	if dsn != ":memory:" {
+
+		_, err := os.Stat(dsn)
+
+		if os.IsNotExist(err) {
+			check_tables = false
+			has_table = false
+		}
+	}
+
+	if check_tables {
 
 		conn, err := db.Conn()
 

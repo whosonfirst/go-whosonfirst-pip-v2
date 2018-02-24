@@ -181,7 +181,7 @@ func (f *WOFFeature) SPR() (spr.StandardPlacesResult, error) {
 		return nil, err
 	}
 
-	uri, err := uri.Id2AbsPath("https://whosonfirst.mapzen.com/data", id)
+	uri, err := uri.Id2AbsPath("https://data.whosonfirst.org", id)
 
 	if err != nil {
 		return nil, err

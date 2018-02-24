@@ -58,7 +58,7 @@ func NewSpatialiteIndex(db *database.SQLiteDatabase, c cache.Cache) (Index, erro
 	// PLEASE TO ADD CONNECTION POOLS TO
 	// SQLITE THINGY (20180221/thisisaaronland)
 
-	maxconns := 32
+	maxconns := 64
 	throttle := make(chan bool, maxconns)
 
 	for i := 0; i < maxconns; i++ {
@@ -143,8 +143,6 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 			    SELECT pkid FROM idx_geometries_geom WHERE xmin < %0.6f AND xmax > %0.6f AND ymin < %0.6f AND ymax > %0.6f
                           )`, lon, lat, lon, lon, lat, lat)
 
-	i.Logger.Info("QUERY %s", q)
-
 	rows, err := conn.Query(q)
 
 	if err != nil {
@@ -165,7 +163,6 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 		fc, err := i.cache.Get(str_id)
 
 		if err != nil {
-			i.Logger.Info("SAD")
 			return nil, err
 		}
 
@@ -191,7 +188,6 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 		Places: places,
 	}
 
-	i.Logger.Info("RETURN")
 	return &r, nil
 }
 

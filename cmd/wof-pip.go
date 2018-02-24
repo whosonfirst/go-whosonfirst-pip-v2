@@ -62,12 +62,7 @@ func main() {
 	var interactive = flag.Bool("interactive", false, "")
 
 	var engine = flag.String("engine", "rtree", "")
-
-	// because this and this:
-	// https://github.com/mattn/go-sqlite3#faq
-	// https://github.com/mattn/go-sqlite3/issues/204
-
-	var dsn = flag.String("dsn", "file::memory:?mode=memory&cache=shared", "")
+	var dsn = flag.String("dsn", ":memory:", "")
 
 	var lat = flag.Float64("latitude", 0.0, "")
 	var lon = flag.Float64("longitude", 0.0, "")
@@ -92,6 +87,15 @@ func main() {
 	runtime.GOMAXPROCS(*procs)
 
 	logger := log.SimpleWOFLogger()
+
+	if (*engine == "spatialite" || *engine == "sqlite") && *dsn == ":memory:" {
+
+		// because this and this:
+		// https://github.com/mattn/go-sqlite3#faq
+		// https://github.com/mattn/go-sqlite3/issues/204
+
+		*dsn = "file::memory:?mode=memory&cache=shared"
+	}
 
 	if *point != "" {
 

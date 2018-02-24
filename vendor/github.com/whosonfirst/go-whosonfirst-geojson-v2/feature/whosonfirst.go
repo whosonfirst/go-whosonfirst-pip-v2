@@ -54,9 +54,9 @@ func EnsureWOFFeature(body []byte) error {
 		"properties.wof:name",
 		"properties.wof:repo",
 		"properties.wof:placetype",
-		"properties.geom:latitude",
-		"properties.geom:longitude",
-		"properties.geom:bbox",
+		//"properties.geom:latitude",
+		//"properties.geom:longitude",
+		//"properties.geom:bbox",
 	}
 
 	err := utils.EnsureProperties(body, required)

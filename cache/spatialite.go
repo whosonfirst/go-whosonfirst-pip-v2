@@ -50,8 +50,6 @@ func NewSpatialiteCache(db *database.SQLiteDatabase) (Cache, error) {
 
 func (c *SpatialiteCache) Get(key string) (CacheItem, error) {
 
-	c.Logger.Info("GET %s", key)
-
 	db := c.database
 
 	conn, err := db.Conn()
@@ -76,6 +74,8 @@ func (c *SpatialiteCache) Get(key string) (CacheItem, error) {
 		return nil, err
 	}
 
+	// FAILING HERE... (20180222/thisisaaronland)
+
 	f, err := feature.LoadFeature([]byte(body))
 
 	if err != nil {
@@ -93,8 +93,6 @@ func (c *SpatialiteCache) Get(key string) (CacheItem, error) {
 }
 
 func (c *SpatialiteCache) Set(key string, item CacheItem) error {
-
-	c.Logger.Info("SET %s", key)
 
 	// PLEASE RECONCILE THIS CODE WITH
 	// go-whosonfirst-sqlite-features/tables/geojson.go

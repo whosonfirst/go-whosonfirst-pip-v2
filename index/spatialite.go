@@ -95,10 +95,23 @@ func (i *SpatialiteIndex) IndexFeature(f geojson.Feature) error {
 
 	db := i.database
 
-	t, err := tables.NewGeometriesTableWithDatabase(db)
+	t, err := tables.NewGeometriesTable()
 
 	if err != nil {
-		i.Logger.Status("OH NO, %s", err)
+		return err
+	}
+
+	fc, err := cache.NewFeatureCache(f)
+
+	if err != nil {
+		return err
+	}
+
+	str_id := f.Id()
+
+	err = i.cache.Set(str_id, fc)
+
+	if err != nil {
 		return err
 	}
 
@@ -130,6 +143,8 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 			    SELECT pkid FROM idx_geometries_geom WHERE xmin < %0.6f AND xmax > %0.6f AND ymin < %0.6f AND ymax > %0.6f
                           )`, lon, lat, lon, lon, lat, lat)
 
+	i.Logger.Info("QUERY %s", q)
+
 	rows, err := conn.Query(q)
 
 	if err != nil {
@@ -150,6 +165,7 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 		fc, err := i.cache.Get(str_id)
 
 		if err != nil {
+			i.Logger.Info("SAD")
 			return nil, err
 		}
 
@@ -175,6 +191,7 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 		Places: places,
 	}
 
+	i.Logger.Info("RETURN")
 	return &r, nil
 }
 

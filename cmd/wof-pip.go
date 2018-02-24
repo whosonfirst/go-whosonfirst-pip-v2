@@ -62,7 +62,12 @@ func main() {
 	var interactive = flag.Bool("interactive", false, "")
 
 	var engine = flag.String("engine", "rtree", "")
-	var dsn = flag.String("dsn", ":memory:", "")
+
+	// because this and this:
+	// https://github.com/mattn/go-sqlite3#faq
+	// https://github.com/mattn/go-sqlite3/issues/204
+
+	var dsn = flag.String("dsn", "file::memory:?mode=memory&cache=shared", "")
 
 	var lat = flag.Float64("latitude", 0.0, "")
 	var lon = flag.Float64("longitude", 0.0, "")

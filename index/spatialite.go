@@ -171,7 +171,6 @@ func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter
 		err = filter.FilterSPR(f, s)
 
 		if err != nil {
-			i.Logger.Debug("SKIP %s because filter error %s", str_id, err)
 			continue
 		}
 

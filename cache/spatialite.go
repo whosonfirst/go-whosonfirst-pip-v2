@@ -95,6 +95,12 @@ func (c *SpatialiteCache) Set(key string, item CacheItem) error {
 	// PLEASE RECONCILE THIS CODE WITH
 	// go-whosonfirst-sqlite-features/tables/geojson.go
 
+	// what that means in practical terms is we need to write
+	// something that takes a cache item and implements all of
+	// the geojson.Feature interface and write now we're just
+	// making something that sort of looks like it...
+	// (20180224/thisisaaronland)
+
 	db := c.database
 
 	conn, err := db.Conn()

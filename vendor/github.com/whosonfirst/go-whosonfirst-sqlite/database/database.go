@@ -2,9 +2,11 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	_ "github.com/whosonfirst/go-spatialite"
 	_ "log"
+	"strings"
 	"sync"
 )
 
@@ -20,12 +22,23 @@ func NewDB(dsn string) (*SQLiteDatabase, error) {
 
 func NewDBWithDriver(driver string, dsn string) (*SQLiteDatabase, error) {
 
-	if dsn == ":memory:" {
+	if !strings.HasPrefix(dsn, "file:") {
 
 		// because this and this:
-		// https://github.com/mattn/go-sqlite3#faq
-		// https://github.com/mattn/go-sqlite3/issues/204
-		dsn = "file::memory:?mode=memory&cache=shared"
+
+		if dsn == ":memory:" {
+
+			// https://github.com/mattn/go-sqlite3#faq
+			// https://github.com/mattn/go-sqlite3/issues/204
+
+			dsn = "file::memory:?mode=memory&cache=shared"
+
+		} else {
+
+			// https://github.com/mattn/go-sqlite3/issues/39
+
+			dsn = fmt.Sprintf("file:%s?cache=shared&mode=rwc", dsn)
+		}
 	}
 
 	conn, err := sql.Open(driver, dsn)

@@ -49,6 +49,20 @@ _If you're looking for all the tables related to Who's On First documents they'v
 
 Sure. You just need to write a per-table package that implements the `Table` interface, described below. For examples, consult the `tables` directories in the [go-whosonfirst-sqlite-features](https://github.com/whosonfirst/go-whosonfirst-sqlite-features) or [go-whosonfirst-sqlite-brands](https://github.com/whosonfirst/go-whosonfirst-sqlite-brands) packages.
 
+## DSN strings
+
+### :memory:
+
+To account for [this issue](https://github.com/mattn/go-sqlite3/issues/204) DSN strings that are `:memory:` will be rewritten as:
+
+`file::memory:?mode=memory&cache=shared`
+
+### things that don't start with `file:`
+
+To account for [this issue](https://github.com/mattn/go-sqlite3/issues/39) DSN strings that are _not_ `:memory:` and _don't_ start with `:file:` will be rewritten as:
+
+`file:{DSN}?cache=shared&mode=rwc`
+
 ## Interfaces
 
 ### Database

@@ -74,10 +74,6 @@ func (c *SpatialiteCache) Get(key string) (CacheItem, error) {
 		return nil, err
 	}
 
-	// this currently requires a locally monkey-patched copy of
-	// go-whosonfirst-geojson-v2 that doesn't fail if geom: properties
-	// are missing (20180223/thisisaaronland)
-
 	f, err := feature.LoadFeature([]byte(body))
 
 	if err != nil {

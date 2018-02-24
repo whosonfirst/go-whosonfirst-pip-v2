@@ -20,6 +20,14 @@ func NewDB(dsn string) (*SQLiteDatabase, error) {
 
 func NewDBWithDriver(driver string, dsn string) (*SQLiteDatabase, error) {
 
+	if dsn == ":memory:" {
+
+		// because this and this:
+		// https://github.com/mattn/go-sqlite3#faq
+		// https://github.com/mattn/go-sqlite3/issues/204
+		dsn = "file::memory:?mode=memory&cache=shared"
+	}
+
 	conn, err := sql.Open(driver, dsn)
 
 	if err != nil {

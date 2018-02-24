@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/feature"
 	wof_index "github.com/whosonfirst/go-whosonfirst-index"
-	wof_utils "github.com/whosonfirst/go-whosonfirst-index/utils"
+ 	wof_utils "github.com/whosonfirst/go-whosonfirst-index/utils"
 	"github.com/whosonfirst/go-whosonfirst-sqlite"
 	sql_index "github.com/whosonfirst/go-whosonfirst-sqlite/index"
 	"io"

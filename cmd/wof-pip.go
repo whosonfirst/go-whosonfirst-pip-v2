@@ -35,29 +35,36 @@ func PIPLatLon(i pip.Index, lat float64, lon float64, f filter.Filter, logger *l
 
 func PIP(i pip.Index, c geom.Coord, f filter.Filter, logger *log.WOFLogger) error {
 
+	/*
+		t1 := time.Now()
+
+		r, err := i.GetIntersectsByCoord(c, f)
+
+		t2 := time.Since(t1)
+
+		if err != nil {
+			return err
+		}
+
+		logger.Status("time to count %d records: %v\n", len(r.Results()), t2)
+
+		body, err := json.Marshal(r)
+
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(string(body))
+	*/
+
 	t1 := time.Now()
-
-	r, err := i.GetIntersectsByCoord(c, f)
-
-	t2 := time.Since(t1)
-
-	if err != nil {
-		return err
-	}
-
-	logger.Status("time to count %d records: %v\n", len(r.Results()), t2)
-
-	body, err := json.Marshal(r)
-
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(string(body))
 
 	cd, err := i.GetCandidatesByCoord(c)
 
 	cd_body, err := json.Marshal(cd)
+
+	t2 := time.Since(t1)
+	logger.Status("time to fetch candidates: %v\n", t2)
 
 	if err != nil {
 		return err
@@ -227,7 +234,7 @@ func main() {
 	}
 
 	if *interactive {
-	
+
 		fmt.Println("ready to query")
 
 		scanner := bufio.NewScanner(os.Stdin)

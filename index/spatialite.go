@@ -3,12 +3,11 @@ package index
 // https://gist.github.com/simonw/91a1157d1f45ab305c6f48c4ca344de8
 // http://www.gaia-gis.it/gaia-sins/spatialite-sql-4.3.0.html
 
-// ./bin/wof-sqlite-index-features -driver spatialite -dsn test-pip.db -geojson -geometries -live-hard-die-fast -timings -mode repo /usr/local/data/whosonfirst-data-constituency-us
-
 import (
 	"errors"
 	"fmt"
 	"github.com/skelterjohn/geom"
+	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	"github.com/whosonfirst/go-whosonfirst-log"
 	"github.com/whosonfirst/go-whosonfirst-pip"
@@ -205,24 +204,71 @@ func (i *SpatialiteIndex) GetCandidatesByCoord(coord geom.Coord) (*pip.GeoJSONFe
 
 	q := fmt.Sprintf(`SELECT id, AsGeoJSON(ST_Envelope(geom)) AS geom FROM geometries WHERE ST_Within(GeomFromText('POINT(%0.6f %0.6f)'), ST_Envelope(geom))`, lon, lat)
 
+	// i.Logger.Status(q)
+
 	rows, err := conn.Query(q)
 
 	if err != nil {
 		return nil, err
 	}
 
+	features := make([]pip.GeoJSONFeature, 0)
+
 	for rows.Next() {
 
 		var str_id string
 		var str_geom string
 
-		err = rows.Scan(&str_id, str_geom)
+		err = rows.Scan(&str_id, &str_geom)
 
 		if err != nil {
 			return nil, err
 		}
 
-		i.Logger.Status("PLEASE WRITE ME %s %s", str_id, str_geom)
+		props := map[string]interface{}{
+			"id": str_id,
+		}
+
+		// this should be easier than this... but it's not
+		// (20180225/thisisaaronland)
+
+		coords := gjson.GetBytes([]byte(str_geom), "coordinates")
+
+		if !coords.Exists() {
+			return nil, errors.New("Invalid coordinates")
+		}
+
+		ring := make([]pip.GeoJSONPoint, 0)
+
+		for _, r := range coords.Array() {
+
+			for _, p := range r.Array() {
+
+				lonlat := p.Array()
+
+				lon := lonlat[0].Float()
+				lat := lonlat[1].Float()
+
+				pt := pip.GeoJSONPoint{lon, lat}
+				ring = append(ring, pt)
+			}
+		}
+
+		poly := pip.GeoJSONPolygon{ring}
+		multi := pip.GeoJSONMultiPolygon{poly}
+
+		geom := pip.GeoJSONGeometry{
+			Type:        "MultiPolygon",
+			Coordinates: multi,
+		}
+
+		feature := pip.GeoJSONFeature{
+			Type:       "Feature",
+			Properties: props,
+			Geometry:   geom,
+		}
+
+		features = append(features, feature)
 	}
 
 	err = rows.Err()
@@ -231,7 +277,12 @@ func (i *SpatialiteIndex) GetCandidatesByCoord(coord geom.Coord) (*pip.GeoJSONFe
 		return nil, err
 	}
 
-	return nil, errors.New("PLEASE WRITE ME")
+	fc := pip.GeoJSONFeatureCollection{
+		Type:     "FeatureCollection",
+		Features: features,
+	}
+
+	return &fc, nil
 }
 
 func (i *SpatialiteIndex) GetIntersectsByPath(path geom.Path, f filter.Filter) ([]spr.StandardPlacesResults, error) {

@@ -203,11 +203,9 @@ func (i *SpatialiteIndex) GetCandidatesByCoord(coord geom.Coord) (*pip.GeoJSONFe
 	lat := coord.Y
 	lon := coord.X
 
-	// ORDER BY... ?
+	q := fmt.Sprintf(`SELECT id, AsGeoJSON(ST_Envelope(geom)) AS geom FROM geometries WHERE ST_Within(GeomFromText('POINT(%0.6f %0.6f)'), ST_Envelope(geom))`, lon, lat)
 
-	q := `SELECT id, AsGeoJSON(ST_Envelope(geom)) AS geom FROM geometries WHERE ST_Within(GeomFromText('POINT(? ?)'), ST_Envelope(geom))`
-
-	rows, err := conn.Query(q, lon, lat)
+	rows, err := conn.Query(q)
 
 	if err != nil {
 		return nil, err

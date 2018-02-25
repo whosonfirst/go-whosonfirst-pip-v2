@@ -1,23 +1,53 @@
 package utils
 
 import (
+	"fmt"
 	"github.com/whosonfirst/go-whosonfirst-sqlite"
 	_ "log"
 	"os"
+	"regexp"
 )
+
+var re_mem *regexp.Regexp
+var re_file *regexp.Regexp
+var lookup_table map[string]bool
+
+func init() {
+	re_mem = regexp.MustCompile(`^(file\:)?\:memory\:.*`)
+	re_file = regexp.MustCompile(`^file\:([^\?]+)(?:\?.*)?$`)
+
+	lookup_table = make(map[string]bool)
+}
 
 func HasTable(db sqlite.Database, table string) (bool, error) {
 
-	// PLEASE MEMOIZE ME... (20180221/thisisaaronland)
-
-	check_tables := true
-	has_table := false
-
 	dsn := db.DSN()
 
-	if dsn != ":memory:" {
+	lookup_key := fmt.Sprintf("%s#%s", dsn, table)
 
-		_, err := os.Stat(dsn)
+	has_table, ok := lookup_table[lookup_key]
+
+	if ok {
+		return has_table, nil
+	}
+
+	check_tables := true
+	has_table = false
+
+	if !re_mem.MatchString(dsn) {
+
+		test := dsn
+
+		if re_file.MatchString(test) {
+
+			s := re_file.FindAllStringSubmatch(dsn, -1)
+
+			if len(s) == 1 && len(s[0]) == 2 {
+				test = s[0][1]
+			}
+		}
+
+		_, err := os.Stat(test)
 
 		if os.IsNotExist(err) {
 			check_tables = false
@@ -58,6 +88,8 @@ func HasTable(db sqlite.Database, table string) (bool, error) {
 			}
 		}
 	}
+
+	lookup_table[lookup_key] = has_table
 
 	return has_table, nil
 }

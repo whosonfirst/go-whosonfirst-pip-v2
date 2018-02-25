@@ -54,6 +54,17 @@ func PIP(i pip.Index, c geom.Coord, f filter.Filter, logger *log.WOFLogger) erro
 	}
 
 	fmt.Println(string(body))
+
+	cd, err := i.GetCandidatesByCoord(c)
+
+	cd_body, err := json.Marshal(cd)
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(cd_body))
+
 	return nil
 }
 
@@ -216,6 +227,8 @@ func main() {
 	}
 
 	if *interactive {
+	
+		fmt.Println("ready to query")
 
 		scanner := bufio.NewScanner(os.Stdin)
 

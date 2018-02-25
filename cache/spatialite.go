@@ -10,8 +10,8 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-spr"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
-	"io"
-	"os"
+	// "io"
+	// "os"
 	"sync/atomic"
 )
 
@@ -28,8 +28,8 @@ func NewSpatialiteCache(db *database.SQLiteDatabase) (Cache, error) {
 
 	logger := log.SimpleWOFLogger("spatialite")
 
-	stdout := io.Writer(os.Stdout)
-	logger.AddLogger(stdout, "info")
+	// stdout := io.Writer(os.Stdout)
+	// logger.AddLogger(stdout, "info")
 
 	_, err := tables.NewGeoJSONTableWithDatabase(db)
 

@@ -18,6 +18,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"io"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -286,5 +287,72 @@ func (i *SpatialiteIndex) GetCandidatesByCoord(coord geom.Coord) (*pip.GeoJSONFe
 }
 
 func (i *SpatialiteIndex) GetIntersectsByPath(path geom.Path, f filter.Filter) ([]spr.StandardPlacesResults, error) {
-	return nil, errors.New("PLEASE WRITE ME")
+
+	pending := path.Length()
+	points := make([]string, pending)
+
+	for i, c := range path.Vertices() {
+		points[i] = fmt.Sprintf("%0.6f %06.f", c.X, c.Y)
+	}
+
+	wkt := fmt.Sprintf("LINESTRING(%s)", strings.Join(points, ","))
+
+	// ST_Crosses instead?
+
+	q := fmt.Sprintf("SELECT id FROM geometries WHERE ST_Intersects(GeomFromText(%s), geom)", wkt)
+
+	i.Logger.Status("LINESTRING %s", wkt)
+	i.Logger.Status("Q %s", q)
+
+	return nil, errors.New("Please write me")
+
+	// results := make([]spr.StandardPlacesResults, pending)
+
+	/*
+		rows, err := conn.Query(q)
+
+		if err != nil {
+			return nil, err
+		}
+
+		defer rows.Close()
+
+		for rows.Next() {
+
+			var str_id string
+			err = rows.Scan(&str_id)
+
+			if err != nil {
+				return nil, err
+			}
+
+			fc, err := i.cache.Get(str_id)
+
+			if err != nil {
+				return nil, err
+			}
+
+			s := fc.SPR()
+
+			err = filter.FilterSPR(f, s)
+
+			if err != nil {
+				continue
+			}
+
+			places = append(places, fc.SPR())
+		}
+
+		err = rows.Err()
+
+		if err != nil {
+			return nil, err
+		}
+
+		r := SpatialiteResults{
+			Places: places,
+		}
+
+		return &r, nil
+	*/
 }

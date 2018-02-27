@@ -288,71 +288,71 @@ func (i *SpatialiteIndex) GetCandidatesByCoord(coord geom.Coord) (*pip.GeoJSONFe
 
 func (i *SpatialiteIndex) GetIntersectsByPath(path geom.Path, f filter.Filter) ([]spr.StandardPlacesResults, error) {
 
+	db := i.database
+
+	conn, err := db.Conn()
+
+	if err != nil {
+		return nil, err
+	}
+
 	pending := path.Length()
 	points := make([]string, pending)
 
 	for i, c := range path.Vertices() {
-		points[i] = fmt.Sprintf("%0.6f %06.f", c.X, c.Y)
+		points[i] = fmt.Sprintf("%0.6f %0.6f", c.X, c.Y)
 	}
 
 	wkt := fmt.Sprintf("LINESTRING(%s)", strings.Join(points, ","))
 
-	// ST_Crosses instead?
+	q := fmt.Sprintf("SELECT id FROM geometries WHERE ST_Intersects(GeomFromText('%s'), geom)", wkt)
 
-	q := fmt.Sprintf("SELECT id FROM geometries WHERE ST_Intersects(GeomFromText(%s), geom)", wkt)
+	rows, err := conn.Query(q)
 
-	i.Logger.Status("LINESTRING %s", wkt)
-	i.Logger.Status("Q %s", q)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, errors.New("Please write me")
+	defer rows.Close()
 
-	// results := make([]spr.StandardPlacesResults, pending)
+	places := make([]spr.StandardPlacesResult, 0)
 
-	/*
-		rows, err := conn.Query(q)
+	for rows.Next() {
 
-		if err != nil {
-			return nil, err
-		}
-
-		defer rows.Close()
-
-		for rows.Next() {
-
-			var str_id string
-			err = rows.Scan(&str_id)
-
-			if err != nil {
-				return nil, err
-			}
-
-			fc, err := i.cache.Get(str_id)
-
-			if err != nil {
-				return nil, err
-			}
-
-			s := fc.SPR()
-
-			err = filter.FilterSPR(f, s)
-
-			if err != nil {
-				continue
-			}
-
-			places = append(places, fc.SPR())
-		}
-
-		err = rows.Err()
+		var str_id string
+		err = rows.Scan(&str_id)
 
 		if err != nil {
 			return nil, err
 		}
 
-		r := SpatialiteResults{
-			Places: places,
+		fc, err := i.cache.Get(str_id)
+
+		if err != nil {
+			return nil, err
 		}
 
-		return &r, nil
-	*/
+		s := fc.SPR()
+
+		err = filter.FilterSPR(f, s)
+
+		if err != nil {
+			continue
+		}
+
+		places = append(places, fc.SPR())
+	}
+
+	err = rows.Err()
+
+	if err != nil {
+		return nil, err
+	}
+
+	r := SpatialiteResults{
+		Places: places,
+	}
+
+	results := []spr.StandardPlacesResults{&r}
+	return results, nil
 }

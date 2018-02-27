@@ -187,15 +187,16 @@ func main() {
 		case "polyline":
 			command = parts[0]
 		default:
-			command = "pip"
+			logger.Warning("Invalid command")
+			continue
 		}
 
 		var results interface{}
 
 		if command == "pip" || command == "candidates" {
 
-			str_lat := strings.Trim(parts[0], " ")
-			str_lon := strings.Trim(parts[1], " ")
+			str_lat := strings.Trim(parts[1], " ")
+			str_lon := strings.Trim(parts[2], " ")
 
 			lat, err := strconv.ParseFloat(str_lat, 64)
 

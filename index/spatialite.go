@@ -16,8 +16,6 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-spr"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
-	"io"
-	"os"
 	"strings"
 	"sync"
 )
@@ -43,9 +41,6 @@ func (r *SpatialiteResults) Results() []spr.StandardPlacesResult {
 func NewSpatialiteIndex(db *database.SQLiteDatabase, c cache.Cache) (Index, error) {
 
 	logger := log.SimpleWOFLogger("index")
-
-	stdout := io.Writer(os.Stdout)
-	logger.AddLogger(stdout, "info")
 
 	_, err := tables.NewGeometriesTableWithDatabase(db)
 
@@ -204,8 +199,6 @@ func (i *SpatialiteIndex) GetCandidatesByCoord(coord geom.Coord) (*pip.GeoJSONFe
 	lon := coord.X
 
 	q := fmt.Sprintf(`SELECT id, AsGeoJSON(ST_Envelope(geom)) AS geom FROM geometries WHERE ST_Within(GeomFromText('POINT(%0.6f %0.6f)'), ST_Envelope(geom))`, lon, lat)
-
-	// i.Logger.Status(q)
 
 	rows, err := conn.Query(q)
 

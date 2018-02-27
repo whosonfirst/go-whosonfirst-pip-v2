@@ -35,7 +35,7 @@ func main() {
 	flag.Var(&fs_args, "fs-cache", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to the fs cache")
 
 	var spatialite_args flags.KeyValueArgs
-	flag.Var(&spatialite_args, "spatialite-index", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to the spatialite database")
+	flag.Var(&spatialite_args, "spatialite", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to the spatialite database")
 
 	var verbose = flag.Bool("verbose", false, "")
 
@@ -274,7 +274,6 @@ func main() {
 				continue
 			}
 
-			logger.Info("intersects %v", intersects)
 			results = intersects
 
 		} else {

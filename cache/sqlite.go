@@ -10,12 +10,10 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-spr"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
-	// "io"
-	// "os"
 	"sync/atomic"
 )
 
-type SpatialiteCache struct {
+type SQLiteCache struct {
 	Cache
 	Logger    *log.WOFLogger
 	database  *database.SQLiteDatabase
@@ -24,12 +22,9 @@ type SpatialiteCache struct {
 	evictions int64
 }
 
-func NewSpatialiteCache(db *database.SQLiteDatabase) (Cache, error) {
+func NewSQLiteCache(db *database.SQLiteDatabase) (Cache, error) {
 
-	logger := log.SimpleWOFLogger("spatialite")
-
-	// stdout := io.Writer(os.Stdout)
-	// logger.AddLogger(stdout, "info")
+	logger := log.SimpleWOFLogger("sqlite")
 
 	_, err := tables.NewGeoJSONTableWithDatabase(db)
 
@@ -37,7 +32,7 @@ func NewSpatialiteCache(db *database.SQLiteDatabase) (Cache, error) {
 		return nil, err
 	}
 
-	lc := SpatialiteCache{
+	lc := SQLiteCache{
 		Logger:    logger,
 		database:  db,
 		hits:      int64(0),
@@ -48,7 +43,7 @@ func NewSpatialiteCache(db *database.SQLiteDatabase) (Cache, error) {
 	return &lc, nil
 }
 
-func (c *SpatialiteCache) Get(key string) (CacheItem, error) {
+func (c *SQLiteCache) Get(key string) (CacheItem, error) {
 
 	db := c.database
 
@@ -90,7 +85,7 @@ func (c *SpatialiteCache) Get(key string) (CacheItem, error) {
 	return fc, nil
 }
 
-func (c *SpatialiteCache) Set(key string, item CacheItem) error {
+func (c *SQLiteCache) Set(key string, item CacheItem) error {
 
 	// PLEASE RECONCILE THIS CODE WITH
 	// go-whosonfirst-sqlite-features/tables/geojson.go
@@ -158,7 +153,7 @@ func (c *SpatialiteCache) Set(key string, item CacheItem) error {
 	return tx.Commit()
 }
 
-func (c *SpatialiteCache) Size() int64 {
+func (c *SQLiteCache) Size() int64 {
 
 	db := c.database
 
@@ -182,14 +177,14 @@ func (c *SpatialiteCache) Size() int64 {
 	return count
 }
 
-func (c *SpatialiteCache) Hits() int64 {
+func (c *SQLiteCache) Hits() int64 {
 	return atomic.LoadInt64(&c.hits)
 }
 
-func (c *SpatialiteCache) Misses() int64 {
+func (c *SQLiteCache) Misses() int64 {
 	return atomic.LoadInt64(&c.misses)
 }
 
-func (c *SpatialiteCache) Evictions() int64 {
+func (c *SQLiteCache) Evictions() int64 {
 	return atomic.LoadInt64(&c.evictions)
 }

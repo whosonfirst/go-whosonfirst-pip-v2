@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 )
 
-type SourceCache struct {
+type FSCache struct {
 	Cache
 	Logger     *log.WOFLogger
 	data_root  string
@@ -25,7 +25,7 @@ type SourceCache struct {
 	keys       int64
 }
 
-func NewSourceCache(data_root string) (Cache, error) {
+func NewFSCache(data_root string) (Cache, error) {
 
 	_, err := os.Stat(data_root)
 
@@ -40,7 +40,7 @@ func NewSourceCache(data_root string) (Cache, error) {
 
 	mu := new(sync.RWMutex)
 
-	c := SourceCache{
+	c := FSCache{
 		Logger:     logger,
 		data_root:  data_root,
 		repo_map:   m,
@@ -55,7 +55,7 @@ func NewSourceCache(data_root string) (Cache, error) {
 	return &c, nil
 }
 
-func (c *SourceCache) Get(key string) (CacheItem, error) {
+func (c *FSCache) Get(key string) (CacheItem, error) {
 
 	// to do: timings that don't slow everything down the way
 	// go-whosonfirst-timer does now (20170915/thisisaaronland)
@@ -96,7 +96,7 @@ func (c *SourceCache) Get(key string) (CacheItem, error) {
 	return fc, nil
 }
 
-func (c *SourceCache) Set(key string, i CacheItem) error {
+func (c *FSCache) Set(key string, i CacheItem) error {
 
 	c.Logger.Info("SET %s", key)
 
@@ -136,23 +136,23 @@ func (c *SourceCache) Set(key string, i CacheItem) error {
 	return nil
 }
 
-func (c *SourceCache) Size() int64 {
+func (c *FSCache) Size() int64 {
 	return atomic.LoadInt64(&c.keys)
 }
 
-func (c *SourceCache) Hits() int64 {
+func (c *FSCache) Hits() int64 {
 	return atomic.LoadInt64(&c.hits)
 }
 
-func (c *SourceCache) Misses() int64 {
+func (c *FSCache) Misses() int64 {
 	return atomic.LoadInt64(&c.misses)
 }
 
-func (c *SourceCache) Evictions() int64 {
+func (c *FSCache) Evictions() int64 {
 	return atomic.LoadInt64(&c.evictions)
 }
 
-func (c *SourceCache) str_id2abspath(key string, repo string) (string, error) {
+func (c *FSCache) str_id2abspath(key string, repo string) (string, error) {
 
 	repo_path := filepath.Join(c.data_root, repo)
 

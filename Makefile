@@ -7,7 +7,6 @@ prep:
 self:   prep rmdeps
 	if test -d src/github.com/whosonfirst/go-whosonfirst-pip; then rm -rf src/github.com/whosonfirst/go-whosonfirst-pip; fi
 	mkdir -p src/github.com/whosonfirst/go-whosonfirst-pip
-	mkdir -p src/github.com/whosonfirst/go-whosonfirst-pip/app
 	mkdir -p src/github.com/whosonfirst/go-whosonfirst-pip/cache
 	mkdir -p src/github.com/whosonfirst/go-whosonfirst-pip/filter
 	mkdir -p src/github.com/whosonfirst/go-whosonfirst-pip/http
@@ -35,7 +34,6 @@ build:	fmt bin
 deps:
 	@GOPATH=$(GOPATH) go get -u "github.com/dhconnelly/rtreego"
 	@GOPATH=$(GOPATH) go get -u "github.com/facebookgo/grace/gracehttp"
-	@GOPATH=$(GOPATH) go get -u "github.com/hashicorp/golang-lru"
 	@GOPATH=$(GOPATH) go get -u "github.com/zendesk/go-bindata/"
 	@GOPATH=$(GOPATH) go get -u "github.com/elazarl/go-bindata-assetfs/"
 	@GOPATH=$(GOPATH) go get -u "github.com/skelterjohn/geom"
@@ -80,7 +78,7 @@ fmt:
 
 bin: 	self
 	@GOPATH=$(GOPATH) go build -o bin/wof-pip cmd/wof-pip.go
-	@GOPATH=$(GOPATH) go build -o bin/wof-pip-server cmd/wof-pip-server.go
+	# @GOPATH=$(GOPATH) go build -o bin/wof-pip-server cmd/wof-pip-server.go
 
 assets:	self
 	@GOPATH=$(GOPATH) go build -o bin/go-bindata ./vendor/github.com/jteeuwen/go-bindata/go-bindata/

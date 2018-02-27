@@ -12,9 +12,11 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-pip/app"
 	"github.com/whosonfirst/go-whosonfirst-pip/cache"
 	"github.com/whosonfirst/go-whosonfirst-pip/filter"
-	pip "github.com/whosonfirst/go-whosonfirst-pip/index"
+	"github.com/whosonfirst/go-whosonfirst-pip/flags"
+	"github.com/whosonfirst/go-whosonfirst-pip/index"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	// golog "log"
+	"io"
 	"os"
 	"runtime"
 	"strconv"
@@ -22,7 +24,7 @@ import (
 	"time"
 )
 
-func PIPLatLon(i pip.Index, lat float64, lon float64, f filter.Filter, logger *log.WOFLogger) error {
+func PIPLatLon(i index.Index, lat float64, lon float64, f filter.Filter, logger *log.WOFLogger) error {
 
 	c, err := utils.NewCoordinateFromLatLons(lat, lon)
 
@@ -33,72 +35,63 @@ func PIPLatLon(i pip.Index, lat float64, lon float64, f filter.Filter, logger *l
 	return PIP(i, c, f, logger)
 }
 
-func PIP(i pip.Index, c geom.Coord, f filter.Filter, logger *log.WOFLogger) error {
-
-	/*
-		t1 := time.Now()
-
-		r, err := i.GetIntersectsByCoord(c, f)
-
-		t2 := time.Since(t1)
-
-		if err != nil {
-			return err
-		}
-
-		logger.Status("time to count %d records: %v\n", len(r.Results()), t2)
-
-		body, err := json.Marshal(r)
-
-		if err != nil {
-			return err
-		}
-
-		fmt.Println(string(body))
-	*/
+func PIP(i index.Index, c geom.Coord, f filter.Filter, logger *log.WOFLogger) error {
 
 	t1 := time.Now()
 
-	cd, err := i.GetCandidatesByCoord(c)
-
-	cd_body, err := json.Marshal(cd)
+	r, err := i.GetIntersectsByCoord(c, f)
 
 	t2 := time.Since(t1)
-	logger.Status("time to fetch candidates: %v\n", t2)
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(string(cd_body))
+	logger.Status("time to count %d records: %v\n", len(r.Results()), t2)
+
+	body, err := json.Marshal(r)
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(body))
+
+	/*
+		t1 := time.Now()
+
+		cd, err := i.GetCandidatesByCoord(c)
+
+		cd_body, err := json.Marshal(cd)
+
+		t2 := time.Since(t1)
+		logger.Status("time to fetch candidates: %v\n", t2)
+
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(string(cd_body))
+	*/
 
 	return nil
 }
 
 func main() {
 
-	var interactive = flag.Bool("interactive", false, "")
-
-	var engine = flag.String("engine", "rtree", "")
-	var dsn = flag.String("dsn", ":memory:", "")
-
-	var lat = flag.Float64("latitude", 0.0, "")
-	var lon = flag.Float64("longitude", 0.0, "")
-	var point = flag.String("point", "", "")
+	var pip_index = flag.String("index", "rtree", "Valid options are: rtree, spatialite")
+	var pip_cache = flag.String("cache", "gocache", "Valid options are: gocache, fs, spatialite")
 
 	var mode = flag.String("mode", "files", "")
 	var procs = flag.Int("processes", runtime.NumCPU()*2, "")
 
-	/*
-		var source_cache_enable = flag.Bool("source-cache", false, "")
-		var source_cache_root = flag.String("source-cache-data-root", "/usr/local/data", "")
+	var fs_args flags.KeyValueArgs
+	flag.Var(&fs_args, "fs-cache", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to the fs cache")
 
-		var lru_cache_enable = flag.Bool("lru-cache", false, "")
-		var lru_cache_size = flag.Int("lru-cache-size", 0, "")
-		var lru_cache_trigger = flag.Int("lru-cache-trigger", 0, "")
+	var spatialite_args flags.KeyValueArgs
+	flag.Var(&spatialite_args, "spatialite-index", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to the spatialite database")
 
-		var failover_cache_enable = flag.Bool("failover-cache", false, "")
-	*/
+	var verbose = flag.Bool("verbose", false, "")
 
 	flag.Parse()
 
@@ -106,38 +99,31 @@ func main() {
 
 	logger := log.SimpleWOFLogger()
 
-	if *point != "" {
-
-		parts := strings.Split(*point, ",")
-
-		if len(parts) != 2 {
-			logger.Fatal("Can not parse point")
-		}
-
-		str_lat := strings.Trim(parts[0], " ")
-		str_lon := strings.Trim(parts[1], " ")
-
-		fl_lat, err := strconv.ParseFloat(str_lat, 64)
-
-		if err != nil {
-			logger.Fatal("Can not parse point because %s", err)
-		}
-
-		fl_lon, err := strconv.ParseFloat(str_lon, 64)
-
-		if err != nil {
-			logger.Fatal("Can not parse point because %s", err)
-		}
-
-		*lat = fl_lat
-		*lon = fl_lon
+	if *verbose {
+		stdout := io.Writer(os.Stdout)
+		logger.AddLogger(stdout, "info")
 	}
 
 	var db *database.SQLiteDatabase
 
-	if *engine == "spatialite" {
+	var appindex index.Index
+	var appindex_err error
 
-		d, err := database.NewDBWithDriver(*engine, *dsn)
+	var appcache cache.Cache
+	var appcache_err error
+
+	logger.Info("index is %s cache is %s", *pip_index, *pip_cache)
+
+	if *pip_index == "spatialite" {
+
+		args := spatialite_args.ToMap()
+		dsn, ok := args["dsn"]
+
+		if !ok {
+			dsn = ":memory:"
+		}
+
+		d, err := database.NewDBWithDriver(*pip_index, dsn)
 
 		if err != nil {
 			logger.Fatal("Failed to create spatialite database, because %s", err)
@@ -152,42 +138,46 @@ func main() {
 		db = d
 	}
 
-	/*
-		appcache_opts, err := app.DefaultApplicationCacheOptions()
+	switch *pip_cache {
+
+	case "gocache":
+
+		opts, err := cache.DefaultGoCacheOptions()
 
 		if err != nil {
-			logger.Fatal("Failed to creation application cache options, because %s", err)
+			appcache_err = err
+		} else {
+			appcache, appcache_err = cache.NewGoCache(opts)
 		}
 
-		appcache_opts.IndexMode = *mode
-		appcache_opts.IndexPaths = flag.Args()
+	case "fs":
 
-		appcache_opts.FailoverCache = *failover_cache_enable
+		args := fs_args.ToMap()
+		root, ok := args["root"]
 
-		appcache_opts.LRUCache = *lru_cache_enable
-		appcache_opts.LRUCacheSize = *lru_cache_size
-		appcache_opts.LRUCacheTriggerSize = *lru_cache_trigger
+		if ok {
+			appindex, appindex_err = index.NewFSCache(root)
+		} else {
+			appindex_err = errors.New("Missing FS cache root")
+		}
 
-		appcache_opts.SourceCache = *source_cache_enable
-		appcache_opts.SourceCacheRoot = *source_cache_root
-
-		appcache, err := app.ApplicationCache(appcache_opts)
-	*/
-
-	appcache, err := cache.NewSpatialiteCache(db)
-
-	if err != nil {
-		logger.Fatal("Failed to creation application cache, because %s", err)
+	case "sqlite":
+		appindex, appindex_err = index.NewSQLiteCache(db)
+	case "spatialite":
+		appcache, appcache_err = cache.NewSQLiteCache(db)
+	default:
+		appcache_err = errors.New("Invalid cache layer")
 	}
 
-	var appindex pip.Index
-	var appindex_err error
+	if appcache_err != nil {
+		logger.Fatal("Failed to create caching layer because %s", appcache_err)
+	}
 
-	switch *engine {
+	switch *pip_index {
 	case "rtree":
-		appindex, appindex_err = pip.NewRTreeIndex(appcache)
+		appindex, appindex_err = index.NewRTreeIndex(appcache)
 	case "spatialite":
-		appindex, appindex_err = pip.NewSpatialiteIndex(db, appcache)
+		appindex, appindex_err = index.NewSpatialiteIndex(db, appcache)
 	default:
 		appindex_err = errors.New("Invalid engine")
 	}
@@ -195,14 +185,6 @@ func main() {
 	if appindex_err != nil {
 		logger.Fatal("failed to create index because %s", appindex_err)
 	}
-
-	/*
-		appindex, err := app.ApplicationIndex(appcache)
-
-		if err != nil {
-			logger.Fatal("failed to create index because %s", err)
-		}
-	*/
 
 	// note: this is "-mode spatialite" not "-engine spatialite"
 
@@ -233,55 +215,44 @@ func main() {
 		logger.Fatal("failed to create filter because %s", err)
 	}
 
-	if *interactive {
+	fmt.Println("ready to query")
 
-		fmt.Println("ready to query")
+	scanner := bufio.NewScanner(os.Stdin)
 
-		scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
 
-		for scanner.Scan() {
+		input := scanner.Text()
+		logger.Status(input)
 
-			input := scanner.Text()
-			logger.Status(input)
+		parts := strings.Split(input, ",")
 
-			parts := strings.Split(input, ",")
-
-			if len(parts) != 2 {
-				logger.Warning("Invalid input")
-				continue
-			}
-
-			str_lat := strings.Trim(parts[0], " ")
-			str_lon := strings.Trim(parts[1], " ")
-
-			lat, err := strconv.ParseFloat(str_lat, 64)
-
-			if err != nil {
-				logger.Warning("Invalid latitude, %s", err)
-				continue
-			}
-
-			lon, err := strconv.ParseFloat(str_lon, 64)
-
-			if err != nil {
-				logger.Warning("Invalid longitude, %s", err)
-				continue
-			}
-
-			err = PIPLatLon(appindex, lat, lon, f, logger)
-
-			if err != nil {
-				logger.Warning("Failed to PIP, %s", err)
-				continue
-			}
+		if len(parts) != 2 {
+			logger.Warning("Invalid input")
+			continue
 		}
 
-	} else {
+		str_lat := strings.Trim(parts[0], " ")
+		str_lon := strings.Trim(parts[1], " ")
 
-		err = PIPLatLon(appindex, *lat, *lon, f, logger)
+		lat, err := strconv.ParseFloat(str_lat, 64)
 
 		if err != nil {
-			logger.Fatal("Failed to PIP, %s", err)
+			logger.Warning("Invalid latitude, %s", err)
+			continue
+		}
+
+		lon, err := strconv.ParseFloat(str_lon, 64)
+
+		if err != nil {
+			logger.Warning("Invalid longitude, %s", err)
+			continue
+		}
+
+		err = PIPLatLon(appindex, lat, lon, f, logger)
+
+		if err != nil {
+			logger.Warning("Failed to PIP, %s", err)
+			continue
 		}
 	}
 

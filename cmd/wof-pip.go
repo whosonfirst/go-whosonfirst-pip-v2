@@ -6,7 +6,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/skelterjohn/geom"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/utils"
 	"github.com/whosonfirst/go-whosonfirst-log"
 	"github.com/whosonfirst/go-whosonfirst-pip/app"
@@ -21,61 +20,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
 )
-
-func PIPLatLon(i index.Index, lat float64, lon float64, f filter.Filter, logger *log.WOFLogger) error {
-
-	c, err := utils.NewCoordinateFromLatLons(lat, lon)
-
-	if err != nil {
-		return err
-	}
-
-	return PIP(i, c, f, logger)
-}
-
-func PIP(i index.Index, c geom.Coord, f filter.Filter, logger *log.WOFLogger) error {
-
-	t1 := time.Now()
-
-	r, err := i.GetIntersectsByCoord(c, f)
-
-	t2 := time.Since(t1)
-
-	if err != nil {
-		return err
-	}
-
-	logger.Status("time to count %d records: %v\n", len(r.Results()), t2)
-
-	body, err := json.Marshal(r)
-
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(string(body))
-
-	/*
-		t1 := time.Now()
-
-		cd, err := i.GetCandidatesByCoord(c)
-
-		cd_body, err := json.Marshal(cd)
-
-		t2 := time.Since(t1)
-		logger.Status("time to fetch candidates: %v\n", t2)
-
-		if err != nil {
-			return err
-		}
-
-		fmt.Println(string(cd_body))
-	*/
-
-	return nil
-}
 
 func main() {
 
@@ -156,13 +101,13 @@ func main() {
 		root, ok := args["root"]
 
 		if ok {
-			appindex, appindex_err = index.NewFSCache(root)
+			appcache, appindex_err = cache.NewFSCache(root)
 		} else {
-			appindex_err = errors.New("Missing FS cache root")
+			appcache_err = errors.New("Missing FS cache root")
 		}
 
 	case "sqlite":
-		appindex, appindex_err = index.NewSQLiteCache(db)
+		appcache, appcache_err = cache.NewSQLiteCache(db)
 	case "spatialite":
 		appcache, appcache_err = cache.NewSQLiteCache(db)
 	default:
@@ -224,36 +169,107 @@ func main() {
 		input := scanner.Text()
 		logger.Status(input)
 
-		parts := strings.Split(input, ",")
+		parts := strings.Split(input, " ")
 
-		if len(parts) != 2 {
+		if len(parts) == 0 {
 			logger.Warning("Invalid input")
 			continue
 		}
 
-		str_lat := strings.Trim(parts[0], " ")
-		str_lon := strings.Trim(parts[1], " ")
+		var command string
 
-		lat, err := strconv.ParseFloat(str_lat, 64)
+		switch parts[0] {
+
+		case "candidates":
+			command = parts[0]
+		case "pip":
+			command = parts[0]
+		case "polyline":
+			command = parts[0]
+		default:
+			command = "pip"
+		}
+
+		var results interface{}
+
+		if command == "pip" || command == "candidates" {
+
+			str_lat := strings.Trim(parts[0], " ")
+			str_lon := strings.Trim(parts[1], " ")
+
+			lat, err := strconv.ParseFloat(str_lat, 64)
+
+			if err != nil {
+				logger.Warning("Invalid latitude, %s", err)
+				continue
+			}
+
+			lon, err := strconv.ParseFloat(str_lon, 64)
+
+			if err != nil {
+				logger.Warning("Invalid longitude, %s", err)
+				continue
+			}
+
+			c, err := utils.NewCoordinateFromLatLons(lat, lon)
+
+			if err != nil {
+				logger.Warning("Invalid latitude, longitude, %s", err)
+				continue
+			}
+
+			if command == "pip" {
+
+				intersects, err := appindex.GetIntersectsByCoord(c, f)
+
+				if err != nil {
+					logger.Warning("Unable to get intersects, because %s", err)
+					continue
+				}
+
+				results = intersects
+
+			} else if command == "candidates" {
+
+				candidates, err := appindex.GetCandidatesByCoord(c)
+
+				if err != nil {
+					logger.Warning("Unable to get candidates, because %s", err)
+					continue
+				}
+
+				results = candidates
+
+			} else if command == "polyline" {
+
+				logger.Warning("PLEASE WRITE ME")
+				continue
+
+				/*
+				candidates, err := appindex.GetIntersectsByPath(parts[1], f)
+
+				if err != nil {
+					logger.Warning("Unable to get candidates, because %s", err)
+					continue
+				}
+
+				results = candidates
+				*/
+
+			} else {
+				logger.Warning("Invalid command")
+				continue
+			}
+		}
+
+		body, err := json.Marshal(results)
 
 		if err != nil {
-			logger.Warning("Invalid latitude, %s", err)
+			logger.Warning("Failed to marshal results, because %s", err)
 			continue
 		}
 
-		lon, err := strconv.ParseFloat(str_lon, 64)
-
-		if err != nil {
-			logger.Warning("Invalid longitude, %s", err)
-			continue
-		}
-
-		err = PIPLatLon(appindex, lat, lon, f, logger)
-
-		if err != nil {
-			logger.Warning("Failed to PIP, %s", err)
-			continue
-		}
+		fmt.Println(string(body))
 	}
 
 	os.Exit(0)

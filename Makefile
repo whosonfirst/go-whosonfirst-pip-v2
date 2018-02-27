@@ -7,6 +7,7 @@ prep:
 self:   prep rmdeps
 	if test -d src/github.com/whosonfirst/go-whosonfirst-pip; then rm -rf src/github.com/whosonfirst/go-whosonfirst-pip; fi
 	mkdir -p src/github.com/whosonfirst/go-whosonfirst-pip
+	mkdir -p src/github.com/whosonfirst/go-whosonfirst-pip/app
 	mkdir -p src/github.com/whosonfirst/go-whosonfirst-pip/cache
 	mkdir -p src/github.com/whosonfirst/go-whosonfirst-pip/filter
 	mkdir -p src/github.com/whosonfirst/go-whosonfirst-pip/http
@@ -66,6 +67,7 @@ vendor-deps: rmdeps deps
 	rm -rf src
 
 fmt:
+	go fmt app/*.go
 	go fmt cache/*.go
 	go fmt cmd/*.go
 	go fmt filter/*.go

@@ -66,7 +66,6 @@ vendor-deps: rmdeps deps
 	rm -rf src
 
 fmt:
-	go fmt app/*.go
 	go fmt cache/*.go
 	go fmt cmd/*.go
 	go fmt filter/*.go

@@ -6,13 +6,14 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/whosonfirst/go-whosonfirst-geojson-v2/utils"
+	geojson_utils "github.com/whosonfirst/go-whosonfirst-geojson-v2/utils"
 	"github.com/whosonfirst/go-whosonfirst-log"
 	"github.com/whosonfirst/go-whosonfirst-pip/app"
 	"github.com/whosonfirst/go-whosonfirst-pip/cache"
 	"github.com/whosonfirst/go-whosonfirst-pip/filter"
 	"github.com/whosonfirst/go-whosonfirst-pip/flags"
 	"github.com/whosonfirst/go-whosonfirst-pip/index"
+	"github.com/whosonfirst/go-whosonfirst-pip/utils"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	// golog "log"
 	"io"
@@ -167,7 +168,7 @@ func main() {
 	for scanner.Scan() {
 
 		input := scanner.Text()
-		logger.Status(input)
+		logger.Status("# %s", input)
 
 		parts := strings.Split(input, " ")
 
@@ -212,7 +213,7 @@ func main() {
 				continue
 			}
 
-			c, err := utils.NewCoordinateFromLatLons(lat, lon)
+			c, err := geojson_utils.NewCoordinateFromLatLons(lat, lon)
 
 			if err != nil {
 				logger.Warning("Invalid latitude, longitude, %s", err)
@@ -230,7 +231,7 @@ func main() {
 
 				results = intersects
 
-			} else if command == "candidates" {
+			} else {
 
 				candidates, err := appindex.GetCandidatesByCoord(c)
 
@@ -240,27 +241,45 @@ func main() {
 				}
 
 				results = candidates
+			}
 
-			} else if command == "polyline" {
+		} else if command == "polyline" {
 
-				logger.Warning("PLEASE WRITE ME")
-				continue
+			poly := parts[1]
+			factor := 1.0e5
 
-				/*
-				candidates, err := appindex.GetIntersectsByPath(parts[1], f)
+			if len(parts) > 2 {
+
+				f, err := utils.StringPrecisionToFactor(parts[2])
 
 				if err != nil {
-					logger.Warning("Unable to get candidates, because %s", err)
+					logger.Warning("Unable to parse precision because %s", err)
 					continue
 				}
 
-				results = candidates
-				*/
+				factor = f
+			}
 
-			} else {
-				logger.Warning("Invalid command")
+			path, err := utils.DecodePolyline(poly, factor)
+
+			if err != nil {
+				logger.Warning("Unable to decode polyline because %s", err)
 				continue
 			}
+
+			intersects, err := appindex.GetIntersectsByPath(*path, f)
+
+			if err != nil {
+				logger.Warning("Unable to get candidates, because %s", err)
+				continue
+			}
+
+			logger.Info("intersects %v", intersects)
+			results = intersects
+
+		} else {
+			logger.Warning("Invalid command")
+			continue
 		}
 
 		body, err := json.Marshal(results)

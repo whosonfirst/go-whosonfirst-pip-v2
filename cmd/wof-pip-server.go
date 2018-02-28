@@ -11,7 +11,6 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-pip/flags"
 	"github.com/whosonfirst/go-whosonfirst-pip/http"
 	"github.com/whosonfirst/go-whosonfirst-pip/index"
-	// "github.com/whosonfirst/go-whosonfirst-pip/utils"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"io"
 	"io/ioutil"
@@ -20,6 +19,7 @@ import (
 	"os/signal"
 	"runtime"
 	godebug "runtime/debug"
+	"strconv"
 	"time"
 )
 
@@ -40,14 +40,6 @@ func main() {
 	var spatialite_args flags.KeyValueArgs
 	flag.Var(&spatialite_args, "spatialite", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to the spatialite database")
 
-	var nextzen_args flags.KeyValueArgs
-	flag.Var(&nextzen_args, "nextzen", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to ... nextzen")
-
-	var enable_www = flag.Bool("enable-www", false, "")
-
-	var www_args flags.KeyValueArgs
-	flag.Var(&www_args, "polylines", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to ... www")
-
 	var exclude flags.Exclude
 	flag.Var(&exclude, "exclude", "Exclude (WOF) records based on their existential flags. Valid options are: ceased, deprecated, not-current, superseded.")
 
@@ -60,19 +52,20 @@ func main() {
 	// (20170927/thisisaaronland)
 
 	var allow_geojson = flag.Bool("allow-geojson", false, "Allow users to request GeoJSON FeatureCollection formatted responses. This flag will be replaced with a more generic -format flag in the future.")
-	var allow_extras = flag.Bool("allow-extras", false, "Allow users to pass an ?extras= query parameter and append those properties to the output. This feature is considered EXPERIMENTAL. It will add a non-zero amount of indexing time on start-up and not very-well understood amount of response time.")
 
 	var enable_extras = flag.Bool("enable-extras", false, "")
+	var enable_candidates = flag.Bool("enable-candidates", false, "")
+	var enable_polylines = flag.Bool("enable-polylines", false, "")
+	var enable_www = flag.Bool("enable-www", false, "")
 
 	var extras_args flags.KeyValueArgs
-	flag.Var(&extras_args, "polylines", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to ... extras")
-
-	var enable_candidates = flag.Bool("enable-candidates", false, "")
-
-	var enable_polylines = flag.Bool("enable-polylines", false, "")
+	flag.Var(&extras_args, "extras", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to ... extras")
 
 	var polylines_args flags.KeyValueArgs
 	flag.Var(&polylines_args, "polylines", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to ... polylines")
+
+	var www_args flags.KeyValueArgs
+	flag.Var(&www_args, "www", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to ... www")
 
 	var verbose = flag.Bool("verbose", false, "")
 
@@ -328,7 +321,9 @@ func main() {
 	intersects_opts := http.NewDefaultIntersectsHandlerOptions()
 	intersects_opts.AllowGeoJSON = *allow_geojson
 	intersects_opts.AllowExtras = *allow_extras
-	intersects_opts.ExtrasDB = *extras_db
+
+	// FIX ME...
+	// intersects_opts.ExtrasDB = *extras_db
 
 	intersects_handler, err := http.IntersectsHandler(appindex, indexer, intersects_opts)
 
@@ -363,9 +358,9 @@ func main() {
 
 	if *enable_polylines {
 
-		coords = 100
+		coords := 100
 
-		args := polyline_args.ToMap()
+		args := polylines_args.ToMap()
 
 		str_coords, ok := args["max-coords"]
 
@@ -392,7 +387,9 @@ func main() {
 		mux.Handle("/polyline", poly_handler)
 	}
 
-	if *www {
+	if *enable_www {
+
+		www_map := www_args.ToMap()
 
 		var www_handler gohttp.Handler
 
@@ -404,8 +401,7 @@ func main() {
 
 		www_handler = bundled_handler
 
-		args := nextzen_args.ToMap()
-		apikey, ok := args["api-key"]
+		api_key, ok := www_map["nextzen-api-key"]
 
 		if !ok {
 			logger.Fatal("failed to create (bundled) mapzen.js handler because missing API key")
@@ -465,17 +461,16 @@ func main() {
 		mux.Handle("/javascript/slippymap.crosshairs.js", www_handler)
 		mux.Handle("/css/mapzen.whosonfirst.pip.css", www_handler)
 
-		www_map := www_args.ToMap()
-		path, ok := www_map["path"]
+		www_path, ok_path := www_map["path"]
 
-		if !ok {
-			path = "/debug"
+		if !ok_path {
+			www_path = "/debug"
 		}
 
-		mux.Handle(path, mapzenjs_handler)
+		mux.Handle(www_path, mapzenjs_handler)
 	}
 
-	err = gohttp.ListenAndServe(address, mux)
+	err = gohttp.ListenAndServe(endpoint, mux)
 
 	if err != nil {
 		logger.Fatal("failed to start server because %s", err)

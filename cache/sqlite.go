@@ -96,6 +96,10 @@ func (c *SQLiteCache) Set(key string, item CacheItem) error {
 	// making something that sort of looks like it...
 	// (20180224/thisisaaronland)
 
+	// this is more complicated that it seems (or should be) so
+	// see notes in cmd/wof-pip-server.go in the 'if *enable_extras'
+	// section (20180228/thisisaaronland)
+
 	db := c.database
 
 	conn, err := db.Conn()

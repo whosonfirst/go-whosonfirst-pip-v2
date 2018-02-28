@@ -338,11 +338,9 @@ func AppendExtrasToSPRBytes(spr []byte, extras []string, conn *sql.DB) ([]byte, 
 
 			v := gjson.GetBytes(body, get_path)
 
-			/*
-				log.Println("GET", wofid, get_path)
-				log.Println("SET", wofid, set_path)
-				log.Println("VALUE", v.Value())
-			*/
+			log.Println("GET", wofid, get_path)
+			log.Println("SET", wofid, set_path)
+			log.Println("VALUE", v.Value())
 
 			if v.Exists() {
 				spr, err = sjson.SetBytes(spr, set_path, v.Value())

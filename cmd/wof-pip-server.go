@@ -185,6 +185,10 @@ func main() {
 		logger.Fatal("failed to create indexer options, because %s", err)
 	}
 
+	indexer_opts.IndexMode = *mode
+
+	// extras...
+
 	var extras_dsn string
 
 	if *enable_extras {
@@ -197,15 +201,50 @@ func main() {
 		// been vetted above and that the spatialite DB in fact has a geojson
 		// table (20180228/thisisaaronland)
 
+		// the problem with this approach is that we might be using a SQLite
+		// database derived that was *generated* by the cache/sqlite.go code
+		// whose Set() method only knows about cache.CacheItem thingies which
+		// don't have a properties hash so things like '?extras=geom:longitude'
+		// will always fail... (20180228/thisisaaronland)
+
+		// for example, this:
+		// ./bin/wof-pip-server -index spatialite -cache spatialite -spatialite dsn=test3.db -enable-extras
+		//
+		// where test3.db has previously been created by doing (something like) this:
+		// ./bin/wof-pip -index spatialite -cache spatialite -spatialite dsn=test3.db -mode repo /usr/local/data/whosonfirst-data
+		//
+		// which will have populated the 'geojson' table in 'test3.db' using the cache.Set()
+		// method described above, and which will be lacking a full (WOF) properties
+		// dictionary
+		//
+		// possible solutions include:
+		//
+		// 1. testing for and using a '-extras dsn=foo.db' flag which has the perverse
+		//    side-effect of requiring *two* SQLite databases
+		// 2. testing the '-spatialite dsn=foo.db' database for a record that contains
+		//    something we know will be in the WOF properties hash but is _not_ part of
+		//    the SPR interface (geom:latitude for example) and throwing an error if it
+		//    is missing
+		// 3. changing the name of the table that the sqlite.Cache Get() method uses and
+		//    adding a flag (flags) to query the correct table and... I am having trouble
+		//    keeping track of it as I write these words
+		//
+		// (2) plus proper documentation is probably the easiest thing going forward under
+		// the assumption that almost no one is going to be creating *fresh* databases and
+		// instead just using the databases that WOF itself produces (20180228/thisisaaronland)
+
 		if *pip_cache == "spatialite" || *pip_cache == "sqlite" {
 
 			spatialite_map := spatialite_args.ToMap()
-			dsn, _ := spatialite_map["dsn"]
+			dsn, ok := spatialite_map["dsn"]
 
-			index_extras = false
-			extras_dsn = dsn
+			if ok {
+				index_extras = false
+				extras_dsn = dsn
+			}
+		}
 
-		} else {
+		if index_extras {
 
 			extras_map := extras_args.ToMap()
 			dsn, ok := extras_map["dsn"]
@@ -255,8 +294,6 @@ func main() {
 		indexer_opts.IndexExtras = index_extras
 		indexer_opts.ExtrasDB = extras_dsn
 	}
-
-	indexer_opts.IndexMode = *mode
 
 	if *plain_old_geojson {
 		indexer_opts.IsWOF = false // if true we skip the WOF specific "is valid record" checks

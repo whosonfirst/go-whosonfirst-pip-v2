@@ -23,6 +23,17 @@ func (e *KeyValueArgs) String() string {
 
 	return strings.Join(pairs, " ")
 }
+ 
+func (e *KeyValueArgs) ToFlags() []string {
+
+     flags := make([]string, len(*e))
+
+     for i, kv := range *e {
+	flags[i] = fmt.Sprintf("%s %v", kv.Key, kv.Value)
+	}
+
+	return flags
+}
 
 func (e *KeyValueArgs) Set(value string) error {
 
@@ -41,6 +52,8 @@ func (e *KeyValueArgs) Set(value string) error {
 	*e = append(*e, &a)
 	return nil
 }
+
+// DEPRECATED BUT STILL NECESSARY...
 
 func (e *KeyValueArgs) ToMap() map[string]string {
 

@@ -21,11 +21,44 @@ import (
 	"os/signal"
 	"runtime"
 	godebug "runtime/debug"
-	"strconv"
 	"time"
 )
 
 func main() {
+
+     	// not at all convinced this (multiple flags sets) is a good way
+	// to do this yet but I am still just trying to figure out flags
+	// in general so it will do for now... (20180228/thisisaaronland)
+
+	spatialite_flags := flag.NewFlagSet("spatialite", flag.PanicOnError)
+	var spatialite_dsn = spatialite_flags.String("dsn", ":memory:", "...")
+
+	polylines_flags := flag.NewFlagSet("polylines", flag.PanicOnError)
+	var polylines_coords = polylines_flags.Int("coords", 100, "...")
+
+	www_flags := flag.NewFlagSet("www", flag.PanicOnError)
+	var www_path = www_flags.String("path", "/debug", "...")
+	// var www_apikey = www_flags.String("api-key", "nextzen-xxxxxx", "...")
+
+	fs_flags := flag.NewFlagSet("fs", flag.PanicOnError)
+	var fs_path = fs_flags.String("path", "...", "...")
+
+	var fs_args flags.KeyValueArgs
+	flag.Var(&fs_args, "fs", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to the fs cache")
+
+	var spatialite_args flags.KeyValueArgs
+	flag.Var(&spatialite_args, "spatialite", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to the spatialite database")
+
+	var exclude flags.Exclude
+	flag.Var(&exclude, "exclude", "Exclude (WOF) records based on their existential flags. Valid options are: ceased, deprecated, not-current, superseded.")
+
+	var polylines_args flags.KeyValueArgs
+	flag.Var(&polylines_args, "polylines", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to ... polylines")
+
+	var www_args flags.KeyValueArgs
+	flag.Var(&www_args, "www", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to ... www")
+
+	// normal flags
 
 	var host = flag.String("host", "localhost", "The hostname to listen for requests on")
 	var port = flag.Int("port", 8080, "The port number to listen for requests on")
@@ -36,40 +69,20 @@ func main() {
 	var mode = flag.String("mode", "files", "...")
 	var procs = flag.Int("processes", runtime.NumCPU()*2, "...")
 
-	var fs_args flags.KeyValueArgs
-	flag.Var(&fs_args, "fs-cache", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to the fs cache")
-
-	var spatialite_args flags.KeyValueArgs
-	flag.Var(&spatialite_args, "spatialite", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to the spatialite database")
-
-	var exclude flags.Exclude
-	flag.Var(&exclude, "exclude", "Exclude (WOF) records based on their existential flags. Valid options are: ceased, deprecated, not-current, superseded.")
-
 	// please replace this with something like an "-input" flag
 	// (20180227/thisisaaronland)
 
 	var plain_old_geojson = flag.Bool("plain-old-geojson", false, "...")
 
-	var enable_geojson = flag.Bool("enable-geojson", false, "Allow users to request GeoJSON FeatureCollection formatted responses. This flag will be replaced with a more generic -format flag in the future.")
+	var enable_geojson = flag.Bool("enable-geojson", false, "Allow users to request GeoJSON FeatureCollection formatted responses.")
 	var enable_extras = flag.Bool("enable-extras", false, "")
 	var enable_candidates = flag.Bool("enable-candidates", false, "")
 	var enable_polylines = flag.Bool("enable-polylines", false, "")
 	var enable_www = flag.Bool("enable-www", false, "")
 
-	var extras_args flags.KeyValueArgs
-	flag.Var(&extras_args, "extras", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to ... extras")
-
-	var polylines_args flags.KeyValueArgs
-	flag.Var(&polylines_args, "polylines", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to ... polylines")
-
-	var www_args flags.KeyValueArgs
-	flag.Var(&www_args, "www", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to ... www")
-
 	var verbose = flag.Bool("verbose", false, "")
 
 	flag.Parse()
-
-	runtime.GOMAXPROCS(*procs)
 
 	logger := log.SimpleWOFLogger()
 	level := "status"
@@ -80,6 +93,15 @@ func main() {
 
 	stdout := io.Writer(os.Stdout)
 	logger.AddLogger(stdout, level)
+
+	// see above
+
+	spatialite_flags.Parse(spatialite_args.ToFlags())
+	polylines_flags.Parse(spatialite_args.ToFlags())
+	www_flags.Parse(www_args.ToFlags())
+	fs_flags.Parse(fs_args.ToFlags())
+
+	runtime.GOMAXPROCS(*procs)
 
 	if *enable_www {
 		logger.Status("-www flag is true causing the following flags to also be true: -enable-geojson -enable-candidates")
@@ -102,17 +124,9 @@ func main() {
 	if *pip_index == "spatialite" {
 
 		logger.Debug("setting up spatialite database")
+		logger.Debug("spatialite driver is %s and dsn is %s", *pip_index, *spatialite_dsn)
 
-		args := spatialite_args.ToMap()
-		dsn, ok := args["dsn"]
-
-		if !ok {
-			dsn = ":memory:"
-		}
-
-		logger.Debug("spatialite driver is %s and dsn is %s", *pip_index, dsn)
-
-		d, err := database.NewDBWithDriver(*pip_index, dsn)
+		d, err := database.NewDBWithDriver(*pip_index, *spatialite_dsn)
 
 		if err != nil {
 			logger.Fatal("Failed to create spatialite database, because %s", err)
@@ -142,16 +156,7 @@ func main() {
 		}
 
 	case "fs":
-
-		args := fs_args.ToMap()
-		root, ok := args["root"]
-
-		if ok {
-			appcache, appindex_err = cache.NewFSCache(root)
-		} else {
-			appcache_err = errors.New("Missing FS cache root")
-		}
-
+		appcache, appcache_err = cache.NewFSCache(*fs_path)
 	case "sqlite":
 		appcache, appcache_err = cache.NewSQLiteCache(db)
 	case "spatialite":
@@ -237,15 +242,14 @@ func main() {
 
 		if *pip_cache == "spatialite" || *pip_cache == "sqlite" {
 
-			spatialite_map := spatialite_args.ToMap()
-			dsn, ok := spatialite_map["dsn"]
+			dsn := *spatialite_dsn
 
 			// see above - this is solution (2) which is pretty WOF-specific in that it
 			// tests for a geom:latitude property which will probably break things if
 			// someone is indexing not-WOF documents but we'll just file that as a
 			// known-known for now (20180228/thisisaaronland)
 
-			if ok {
+			if dsn != ":memory:" {
 
 				db_test, err := database.NewDB(dsn)
 
@@ -290,10 +294,11 @@ func main() {
 
 		if index_extras {
 
-			extras_map := extras_args.ToMap()
-			dsn, ok := extras_map["dsn"]
+			dsn := *spatialite_dsn
 
-			if !ok {
+			// MAYBE REVISIT THIS DECISION? (20180228/thisisaaronland)
+
+			if dsn == ":memory:" {
 
 				tmpfile, err := ioutil.TempFile("", "pip-extras")
 
@@ -455,24 +460,8 @@ func main() {
 
 		logger.Debug("setting up polylines handler")
 
-		coords := 100
-
-		args := polylines_args.ToMap()
-
-		str_coords, ok := args["max-coords"]
-
-		if ok {
-			c, err := strconv.Atoi(str_coords)
-
-			if err != nil {
-				logger.Fatal("failed to create polylines handler because %s", err)
-			}
-
-			coords = c
-		}
-
 		poly_opts := http.NewDefaultPolylineHandlerOptions()
-		poly_opts.MaxCoords = coords
+		poly_opts.MaxCoords = *polylines_coords
 		poly_opts.EnableGeoJSON = *enable_geojson
 
 		poly_handler, err := http.PolylineHandler(appindex, indexer, poly_opts)
@@ -488,14 +477,6 @@ func main() {
 
 		logger.Debug("setting up www handler")
 
-		www_map := www_args.ToMap()
-
-		www_path, ok_path := www_map["path"]
-
-		if !ok_path {
-			www_path = "/debug"
-		}
-
 		var www_handler gohttp.Handler
 
 		bundled_handler, err := http.BundledWWWHandler()
@@ -508,14 +489,8 @@ func main() {
 
 		/*
 
-			api_key, ok := www_map["nextzen-api-key"]
-
-			if !ok {
-				logger.Fatal("failed to create (bundled) mapzen.js handler because missing API key")
-			}
-
 			mapzenjs_opts := mapzenjs.DefaultMapzenJSOptions()
-			mapzenjs_opts.APIKey = api_key
+			mapzenjs_opts.APIKey = *www_apikey
 
 			mapzenjs_handler, err := mapzenjs.MapzenJSHandler(www_handler, mapzenjs_opts)
 
@@ -567,7 +542,7 @@ func main() {
 		mux.Handle("/javascript/slippymap.crosshairs.js", www_handler)
 		mux.Handle("/css/mapzen.whosonfirst.pip.css", www_handler)
 
-		mux.Handle(www_path, www_handler)
+		mux.Handle(*www_path, www_handler)
 	}
 
 	endpoint := fmt.Sprintf("%s:%d", *host, *port)

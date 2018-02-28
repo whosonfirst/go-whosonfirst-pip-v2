@@ -202,9 +202,9 @@ func main() {
 		// table (20180228/thisisaaronland)
 
 		// the problem with this approach is that we might be using a SQLite
-		// database derived that was *generated* by the cache/sqlite.go code
-		// whose Set() method only knows about cache.CacheItem thingies which
-		// don't have a properties hash so things like '?extras=geom:longitude'
+		// database that was *generated* by the cache/sqlite.go code whose Set()
+		// method only knows about cache.CacheItem thingies which don't have a
+		// full WOF properties hash so things like '?extras=geom:longitude'
 		// will always fail... (20180228/thisisaaronland)
 
 		// for example, this:

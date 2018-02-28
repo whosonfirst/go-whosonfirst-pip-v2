@@ -1,15 +1,18 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
-	"github.com/facebookgo/grace/gracehttp"
 	"github.com/whosonfirst/go-http-mapzenjs"
-	// "github.com/whosonfirst/go-http-rewrite"
 	"github.com/whosonfirst/go-whosonfirst-log"
 	"github.com/whosonfirst/go-whosonfirst-pip/app"
+	"github.com/whosonfirst/go-whosonfirst-pip/cache"
 	"github.com/whosonfirst/go-whosonfirst-pip/flags"
 	"github.com/whosonfirst/go-whosonfirst-pip/http"
+	"github.com/whosonfirst/go-whosonfirst-pip/index"
+	// "github.com/whosonfirst/go-whosonfirst-pip/utils"
+	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"io"
 	"io/ioutil"
 	gohttp "net/http"
@@ -17,9 +20,6 @@ import (
 	"os/signal"
 	"runtime"
 	godebug "runtime/debug"
-	// "strings"
-	// "sync"
-	// "syscall"
 	"time"
 )
 
@@ -28,28 +28,33 @@ func main() {
 	var host = flag.String("host", "localhost", "The hostname to listen for requests on")
 	var port = flag.Int("port", 8080, "The port number to listen for requests on")
 
-	var cache = flag.String("cache", "gocache", "...")
-	var cache_all = flag.Bool("cache-all", false, "")
-
-	var failover_cache = flag.String("failover-cache", "lru", "...")
-
-	var lru_cache_size = flag.Int("lru-cache-size", 1024, "...")
-	var lru_cache_trigger = flag.Int("lru-cache-trigger", 2000, "")
-
-	var source_cache_root = flag.String("source-cache-root", "/usr/local/data", "...")
+	var pip_index = flag.String("index", "rtree", "Valid options are: rtree, spatialite")
+	var pip_cache = flag.String("cache", "gocache", "Valid options are: gocache, fs, spatialite")
 
 	var mode = flag.String("mode", "files", "...")
 	var procs = flag.Int("processes", runtime.NumCPU()*2, "...")
 
-	var plain_old_geojson = flag.Bool("plain-old-geojson", false, "...")
+	var fs_args flags.KeyValueArgs
+	flag.Var(&fs_args, "fs-cache", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to the fs cache")
 
-	var www = flag.Bool("www", false, "")
-	var www_path = flag.String("www-path", "/debug/", "")
-	var www_local = flag.Bool("www-local", false, "")
-	var www_local_root = flag.String("www-local-root", "", "")
+	var spatialite_args flags.KeyValueArgs
+	flag.Var(&spatialite_args, "spatialite", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to the spatialite database")
+
+	var nextzen_args flags.KeyValueArgs
+	flag.Var(&nextzen_args, "nextzen", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to ... nextzen")
+
+	var enable_www = flag.Bool("enable-www", false, "")
+
+	var www_args flags.KeyValueArgs
+	flag.Var(&www_args, "polylines", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to ... www")
 
 	var exclude flags.Exclude
 	flag.Var(&exclude, "exclude", "Exclude (WOF) records based on their existential flags. Valid options are: ceased, deprecated, not-current, superseded.")
+
+	// please replace this with something like an "-input" flag
+	// (20180227/thisisaaronland)
+
+	var plain_old_geojson = flag.Bool("plain-old-geojson", false, "...")
 
 	// please replace with a more extinsible -format flag
 	// (20170927/thisisaaronland)
@@ -57,14 +62,19 @@ func main() {
 	var allow_geojson = flag.Bool("allow-geojson", false, "Allow users to request GeoJSON FeatureCollection formatted responses. This flag will be replaced with a more generic -format flag in the future.")
 	var allow_extras = flag.Bool("allow-extras", false, "Allow users to pass an ?extras= query parameter and append those properties to the output. This feature is considered EXPERIMENTAL. It will add a non-zero amount of indexing time on start-up and not very-well understood amount of response time.")
 
-	var extras_db = flag.String("extras-db", "", "The path to a SQLite database to use for storing extras-related information. If empty a temporary database will be created.")
+	var enable_extras = flag.Bool("enable-extras", false, "")
 
-	var api_key = flag.String("mapzen-api-key", "mapzen-xxxxxxx", "")
+	var extras_args flags.KeyValueArgs
+	flag.Var(&extras_args, "polylines", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to ... extras")
 
-	var candidates = flag.Bool("candidates", false, "")
+	var enable_candidates = flag.Bool("enable-candidates", false, "")
 
-	var polylines = flag.Bool("polylines", false, "")
-	var polylines_coords = flag.Int("polylines-max-coords", 100, "")
+	var enable_polylines = flag.Bool("enable-polylines", false, "")
+
+	var polylines_args flags.KeyValueArgs
+	flag.Var(&polylines_args, "polylines", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to ... polylines")
+
+	var verbose = flag.Bool("verbose", false, "")
 
 	flag.Parse()
 
@@ -72,72 +82,130 @@ func main() {
 
 	logger := log.SimpleWOFLogger()
 
-	stdout := io.Writer(os.Stdout)
-	logger.AddLogger(stdout, "status")
-
-	// set up the caching layer for the point-in-poly index
-
-	appcache_opts, err := app.DefaultApplicationCacheOptions()
-
-	if err != nil {
-		logger.Fatal("Failed to creation application cache options, because %s", err)
+	if *verbose {
+		stdout := io.Writer(os.Stdout)
+		logger.AddLogger(stdout, "status")
 	}
 
-	appcache_opts.IndexMode = *mode
-	appcache_opts.IndexPaths = flag.Args()
+	// cloned from wof-pip.go
 
-	switch *cache {
-	case "lru":
-		appcache_opts.LRUCache = true
-	case "failover":
-		appcache_opts.FailoverCache = true
-		appcache_opts.FailoverCacheEngine = *failover_cache
+	var db *database.SQLiteDatabase
+
+	var appindex index.Index
+	var appindex_err error
+
+	var appcache cache.Cache
+	var appcache_err error
+
+	logger.Info("index is %s cache is %s", *pip_index, *pip_cache)
+
+	if *pip_index == "spatialite" {
+
+		args := spatialite_args.ToMap()
+		dsn, ok := args["dsn"]
+
+		if !ok {
+			dsn = ":memory:"
+		}
+
+		d, err := database.NewDBWithDriver(*pip_index, dsn)
+
+		if err != nil {
+			logger.Fatal("Failed to create spatialite database, because %s", err)
+		}
+
+		err = d.LiveHardDieFast()
+
+		if err != nil {
+			logger.Fatal("Failed to create spatialite database, because %s", err)
+		}
+
+		db = d
+	}
+
+	switch *pip_cache {
+
 	case "gocache":
-		appcache_opts.GoCache = true
-	case "source":
-		appcache_opts.SourceCache = true
+
+		opts, err := cache.DefaultGoCacheOptions()
+
+		if err != nil {
+			appcache_err = err
+		} else {
+			appcache, appcache_err = cache.NewGoCache(opts)
+		}
+
+	case "fs":
+
+		args := fs_args.ToMap()
+		root, ok := args["root"]
+
+		if ok {
+			appcache, appindex_err = cache.NewFSCache(root)
+		} else {
+			appcache_err = errors.New("Missing FS cache root")
+		}
+
+	case "sqlite":
+		appcache, appcache_err = cache.NewSQLiteCache(db)
+	case "spatialite":
+		appcache, appcache_err = cache.NewSQLiteCache(db)
 	default:
-		logger.Fatal("Invalid cache layer %s", *cache)
+		appcache_err = errors.New("Invalid cache layer")
 	}
 
-	appcache_opts.LRUCacheSize = *lru_cache_size
-	appcache_opts.LRUCacheTriggerSize = *lru_cache_trigger
-	appcache_opts.SourceCacheRoot = *source_cache_root
-
-	if *cache_all {
-		appcache_opts.LRUCacheSize = 0
-		appcache_opts.LRUCacheTriggerSize = 0
+	if appcache_err != nil {
+		logger.Fatal("Failed to create caching layer because %s", appcache_err)
 	}
 
-	if *plain_old_geojson {
-		appcache_opts.IsWOF = false
+	switch *pip_index {
+	case "rtree":
+		appindex, appindex_err = index.NewRTreeIndex(appcache)
+	case "spatialite":
+		appindex, appindex_err = index.NewSpatialiteIndex(db, appcache)
+	default:
+		appindex_err = errors.New("Invalid engine")
 	}
 
-	appcache, err := app.ApplicationCache(appcache_opts)
-
-	if err != nil {
-		logger.Fatal("Failed to creation application cache, because %s", err)
+	if appindex_err != nil {
+		logger.Fatal("failed to create index because %s", appindex_err)
 	}
 
-	// set up the actual point-in-poly index
+	// note: this is "-mode spatialite" not "-engine spatialite"
 
-	appindex, err := app.ApplicationIndex(appcache)
+	if *mode != "spatialite" {
 
-	if err != nil {
-		logger.Fatal("failed to create index because %s", err)
+		indexer_opts, err := app.DefaultApplicationIndexerOptions()
+
+		if err != nil {
+			logger.Fatal("failed to create indexer options because %s", err)
+		}
+
+		indexer_opts.IndexMode = *mode
+
+		indexer, err := app.NewApplicationIndexer(appindex, indexer_opts)
+
+		err = indexer.IndexPaths(flag.Args())
+
+		if err != nil {
+			logger.Fatal("failed to index paths because %s", err)
+		}
 	}
 
-	// set up the index (all these records) thingy
+	// end of cloned from...
 
 	indexer_opts, err := app.DefaultApplicationIndexerOptions()
 
 	if err != nil {
-		logger.Fatal("failed to create indexer options because %s", err)
+		logger.Fatal("failed to create indexer options, because %s", err)
 	}
 
-	if *allow_extras {
+	if *enable_extras {
 
-		if *extras_db == "" {
+		extras_map := extras_args.ToMap()
+		extras_dsn, ok := extras_map["dsn"]
+
+		if !ok {
 
 			tmpfile, err := ioutil.TempFile("", "pip-extras")
 
@@ -149,7 +217,7 @@ func main() {
 			tmpnam := tmpfile.Name()
 
 			logger.Status("create temporary extras database '%s'", tmpnam)
-			*extras_db = tmpnam
+			extras_dsn = tmpnam
 
 			cleanup := func() {
 
@@ -173,8 +241,8 @@ func main() {
 			}()
 		}
 
-		indexer_opts.IndexExtras = *allow_extras
-		indexer_opts.ExtrasDB = *extras_db
+		indexer_opts.IndexExtras = *enable_extras
+		indexer_opts.ExtrasDB = extras_dsn
 	}
 
 	indexer_opts.IndexMode = *mode
@@ -201,36 +269,41 @@ func main() {
 
 	indexer, err := app.NewApplicationIndexer(appindex, indexer_opts)
 
-	go func() {
+	// note: this is "-mode spatialite" not "-engine spatialite"
 
-		// TO DO: put this somewhere so that it can be triggered by signal(s)
-		// to reindex everything in bulk or incrementally
+	if *mode != "spatialite" {
 
-		err = indexer.IndexPaths(flag.Args())
+		go func() {
 
-		if err != nil {
-			logger.Fatal("failed to index paths because %s", err)
-		}
+			// TO DO: put this somewhere so that it can be triggered by signal(s)
+			// to reindex everything in bulk or incrementally
 
-		logger.Status("finished indexing")
-		godebug.FreeOSMemory()
-	}()
+			err = indexer.IndexPaths(flag.Args())
 
-	// set up some basic monitoring and feedback stuff
-
-	go func() {
-
-		c := time.Tick(1 * time.Second)
-
-		for _ = range c {
-
-			if !indexer.IsIndexing() {
-				continue
+			if err != nil {
+				logger.Fatal("failed to index paths because %s", err)
 			}
 
-			logger.Status("indexing %d records indexed", indexer.Indexed)
-		}
-	}()
+			logger.Status("finished indexing")
+			godebug.FreeOSMemory()
+		}()
+
+		// set up some basic monitoring and feedback stuff
+
+		go func() {
+
+			c := time.Tick(1 * time.Second)
+
+			for _ = range c {
+
+				if !indexer.IsIndexing() {
+					continue
+				}
+
+				logger.Status("indexing %d records indexed", indexer.Indexed)
+			}
+		}()
+	}
 
 	go func() {
 
@@ -245,11 +318,11 @@ func main() {
 
 	// set up the HTTP endpoint
 
-	if *www {
+	if *enable_www {
 		logger.Status("-www flag is true causing the following flags to also be true: -allow-geojson -candidates")
 
 		*allow_geojson = true
-		*candidates = true
+		*enable_candidates = true
 	}
 
 	intersects_opts := http.NewDefaultIntersectsHandlerOptions()
@@ -277,7 +350,7 @@ func main() {
 	mux.Handle("/ping", ping_handler)
 	mux.Handle("/", intersects_handler)
 
-	if *candidates {
+	if *enable_candidates {
 
 		candidateshandler, err := http.CandidatesHandler(appindex, indexer)
 
@@ -288,10 +361,26 @@ func main() {
 		mux.Handle("/candidates", candidateshandler)
 	}
 
-	if *polylines {
+	if *enable_polylines {
+
+		coords = 100
+
+		args := polyline_args.ToMap()
+
+		str_coords, ok := args["max-coords"]
+
+		if ok {
+			c, err := strconv.Atoi(str_coords)
+
+			if err != nil {
+				logger.Fatal("failed to create polylines handler because %s", err)
+			}
+
+			coords = c
+		}
 
 		poly_opts := http.NewDefaultPolylineHandlerOptions()
-		poly_opts.MaxCoords = *polylines_coords
+		poly_opts.MaxCoords = coords
 		poly_opts.AllowGeoJSON = *allow_geojson
 
 		poly_handler, err := http.PolylineHandler(appindex, indexer, poly_opts)
@@ -307,35 +396,23 @@ func main() {
 
 		var www_handler gohttp.Handler
 
-		if *www_local {
+		bundled_handler, err := http.BundledWWWHandler()
 
-			local_fs, err := http.LocalWWWFileSystem(*www_local_root)
+		if err != nil {
+			logger.Fatal("failed to create (bundled) www handler because %s", err)
+		}
 
-			if err != nil {
-				logger.Fatal("failed to create (local) file system because %s", err)
-			}
+		www_handler = bundled_handler
 
-			local_handler, err := http.LocalWWWHandler(local_fs)
+		args := nextzen_args.ToMap()
+		apikey, ok := args["api-key"]
 
-			if err != nil {
-				logger.Fatal("failed to create (local) www handler because %s", err)
-			}
-
-			www_handler = local_handler
-
-		} else {
-
-			bundled_handler, err := http.BundledWWWHandler()
-
-			if err != nil {
-				logger.Fatal("failed to create (bundled) www handler because %s", err)
-			}
-
-			www_handler = bundled_handler
+		if !ok {
+			logger.Fatal("failed to create (bundled) mapzen.js handler because missing API key")
 		}
 
 		mapzenjs_opts := mapzenjs.DefaultMapzenJSOptions()
-		mapzenjs_opts.APIKey = *api_key
+		mapzenjs_opts.APIKey = api_key
 
 		mapzenjs_handler, err := mapzenjs.MapzenJSHandler(www_handler, mapzenjs_opts)
 
@@ -388,12 +465,17 @@ func main() {
 		mux.Handle("/javascript/slippymap.crosshairs.js", www_handler)
 		mux.Handle("/css/mapzen.whosonfirst.pip.css", www_handler)
 
-		mux.Handle(*www_path, mapzenjs_handler)
+		www_map := www_args.ToMap()
+		path, ok := www_map["path"]
+
+		if !ok {
+			path = "/debug"
+		}
+
+		mux.Handle(path, mapzenjs_handler)
 	}
 
-	// make it go
-
-	err = gracehttp.Serve(&gohttp.Server{Addr: endpoint, Handler: mux})
+	err = gohttp.ListenAndServe(address, mux)
 
 	if err != nil {
 		logger.Fatal("failed to start server because %s", err)

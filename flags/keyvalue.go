@@ -23,13 +23,13 @@ func (e *KeyValueArgs) String() string {
 
 	return strings.Join(pairs, " ")
 }
- 
+
 func (e *KeyValueArgs) ToFlags() []string {
 
-     flags := make([]string, len(*e))
+	flags := make([]string, len(*e))
 
-     for i, kv := range *e {
-	flags[i] = fmt.Sprintf("%s %v", kv.Key, kv.Value)
+	for i, kv := range *e {
+		flags[i] = fmt.Sprintf("%s %v", kv.Key, kv.Value)
 	}
 
 	return flags

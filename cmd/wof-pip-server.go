@@ -16,6 +16,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"io"
 	"io/ioutil"
+	// golog "log"
 	gohttp "net/http"
 	"os"
 	"os/signal"
@@ -26,9 +27,13 @@ import (
 
 func main() {
 
-     	// not at all convinced this (multiple flags sets) is a good way
+	// not at all convinced this (multiple flags sets) is a good way
 	// to do this yet but I am still just trying to figure out flags
 	// in general so it will do for now... (20180228/thisisaaronland)
+
+	// this is a thing you can do... (20180228/thisisaaronland)
+	// fl := flag.Lookup("verbose")
+	// golog.Println("FLAG", fl)
 
 	spatialite_flags := flag.NewFlagSet("spatialite", flag.PanicOnError)
 	var spatialite_dsn = spatialite_flags.String("dsn", ":memory:", "...")
@@ -69,10 +74,7 @@ func main() {
 	var mode = flag.String("mode", "files", "...")
 	var procs = flag.Int("processes", runtime.NumCPU()*2, "...")
 
-	// please replace this with something like an "-input" flag
-	// (20180227/thisisaaronland)
-
-	var plain_old_geojson = flag.Bool("plain-old-geojson", false, "...")
+	var is_wof = flag.Bool("is-wof", true, "...")
 
 	var enable_geojson = flag.Bool("enable-geojson", false, "Allow users to request GeoJSON FeatureCollection formatted responses.")
 	var enable_extras = flag.Bool("enable-extras", false, "")
@@ -193,6 +195,7 @@ func main() {
 	}
 
 	indexer_opts.IndexMode = *mode
+	indexer_opts.IsWOF = *is_wof
 
 	// extras...
 
@@ -342,10 +345,6 @@ func main() {
 
 		indexer_opts.IndexExtras = index_extras
 		indexer_opts.ExtrasDB = extras_dsn
-	}
-
-	if *plain_old_geojson {
-		indexer_opts.IsWOF = false // if true we skip the WOF specific "is valid record" checks
 	}
 
 	for _, e := range exclude {

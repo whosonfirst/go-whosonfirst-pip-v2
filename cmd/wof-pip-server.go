@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	_ "github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-http-mapzenjs"
 	"github.com/whosonfirst/go-whosonfirst-log"
 	"github.com/whosonfirst/go-whosonfirst-pip/app"
@@ -239,6 +240,45 @@ func main() {
 			dsn, ok := spatialite_map["dsn"]
 
 			if ok {
+
+				/*
+
+						db, err := database.NewDB(dsn)
+
+						if err != nil {
+							logger.Fatal("Failed to set up extras, because %s", err)
+						}
+
+					defer db.Close()
+
+					conn, err := db.Conn()
+
+					if err != nil {
+						logger.Fatal("Failed to set up extras, because %s", err)
+					}
+
+						row := conn.QueryRow("SELECT body FROM geojson LIMIT 1")
+
+						var body []byte
+						err := row.Scan(&body)
+
+						switch {
+						case err == sql.ErrNoRows:
+							logger.Fatal("Failed to set up extras, because %s", err)
+						case err != nil:
+							logger.Fatal("Failed to set up extras, because %s", err)
+						default:
+							// pass
+						}
+
+						geom_lat := gjson.GetBytes(body, "properties.geom:latitude")
+
+						if !geom_lat.Exists() {
+							logger.Fatal("Failed to set up extras because ...")
+						}
+
+				*/
+
 				index_extras = false
 				extras_dsn = dsn
 			}

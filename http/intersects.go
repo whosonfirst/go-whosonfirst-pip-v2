@@ -21,17 +21,17 @@ import (
 )
 
 type IntersectsHandlerOptions struct {
-	AllowGeoJSON bool
-	AllowExtras  bool   // see notes below
-	ExtrasDB     string // see notes below
+	EnableGeoJSON bool
+	EnableExtras  bool   // see notes below
+	ExtrasDB      string // see notes below
 }
 
 func NewDefaultIntersectsHandlerOptions() *IntersectsHandlerOptions {
 
 	opts := IntersectsHandlerOptions{
-		AllowGeoJSON: false,
-		AllowExtras:  false,
-		ExtrasDB:     "",
+		EnableGeoJSON: false,
+		EnableExtras:  false,
+		ExtrasDB:      "",
 	}
 
 	return &opts
@@ -54,7 +54,7 @@ func IntersectsHandler(i pip_index.Index, idx *index.Indexer, opts *IntersectsHa
 
 		v1 := query.Get("v1")
 
-		if str_format == "geojson" && !opts.AllowGeoJSON {
+		if str_format == "geojson" && !opts.EnableGeoJSON {
 			gohttp.Error(rsp, "Invalid format", gohttp.StatusBadRequest)
 			return
 		}
@@ -144,7 +144,7 @@ func IntersectsHandler(i pip_index.Index, idx *index.Indexer, opts *IntersectsHa
 		//
 		// (20171217/thisisaaronland)
 
-		if opts.AllowExtras {
+		if opts.EnableExtras {
 
 			str_extras := query.Get("extras")
 			str_extras = strings.Trim(str_extras, " ")

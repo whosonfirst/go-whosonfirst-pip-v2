@@ -38,15 +38,15 @@ type PolylineResultsUnique struct {
 // }
 
 type PolylineHandlerOptions struct {
-	AllowGeoJSON bool
-	MaxCoords    int
+	EnableGeoJSON bool
+	MaxCoords     int
 }
 
 func NewDefaultPolylineHandlerOptions() *PolylineHandlerOptions {
 
 	opts := PolylineHandlerOptions{
-		AllowGeoJSON: false,
-		MaxCoords:    100,
+		EnableGeoJSON: false,
+		MaxCoords:     100,
 	}
 
 	return &opts
@@ -82,7 +82,7 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 			return
 		}
 
-		if str_format == "geojson" && !opts.AllowGeoJSON {
+		if str_format == "geojson" && !opts.EnableGeoJSON {
 			gohttp.Error(rsp, "Invalid format", gohttp.StatusBadRequest)
 			return
 		}

@@ -48,11 +48,7 @@ func main() {
 
 	var plain_old_geojson = flag.Bool("plain-old-geojson", false, "...")
 
-	// please replace with a more extinsible -format flag
-	// (20170927/thisisaaronland)
-
-	var allow_geojson = flag.Bool("allow-geojson", false, "Allow users to request GeoJSON FeatureCollection formatted responses. This flag will be replaced with a more generic -format flag in the future.")
-
+	var enable_geojson = flag.Bool("enable-geojson", false, "Allow users to request GeoJSON FeatureCollection formatted responses. This flag will be replaced with a more generic -format flag in the future.")
 	var enable_extras = flag.Bool("enable-extras", false, "")
 	var enable_candidates = flag.Bool("enable-candidates", false, "")
 	var enable_polylines = flag.Bool("enable-polylines", false, "")
@@ -74,10 +70,19 @@ func main() {
 	runtime.GOMAXPROCS(*procs)
 
 	logger := log.SimpleWOFLogger()
+	level := "status"
 
 	if *verbose {
-		stdout := io.Writer(os.Stdout)
-		logger.AddLogger(stdout, "status")
+		level = "debug"
+	}
+
+	stdout := io.Writer(os.Stdout)
+	logger.AddLogger(stdout, level)
+
+	if *enable_www {
+		logger.Status("-www flag is true causing the following flags to also be true: -enable-geojson -enable-candidates")
+		*enable_geojson = true
+		*enable_candidates = true
 	}
 
 	// cloned from wof-pip.go
@@ -94,12 +99,16 @@ func main() {
 
 	if *pip_index == "spatialite" {
 
+		logger.Debug("setting up spatialite database")
+
 		args := spatialite_args.ToMap()
 		dsn, ok := args["dsn"]
 
 		if !ok {
 			dsn = ":memory:"
 		}
+
+		logger.Debug("spatialite driver is %s and dsn is %s", *pip_index, dsn)
 
 		d, err := database.NewDBWithDriver(*pip_index, dsn)
 
@@ -115,6 +124,8 @@ func main() {
 
 		db = d
 	}
+
+	logger.Debug("setting up application cache")
 
 	switch *pip_cache {
 
@@ -151,6 +162,8 @@ func main() {
 		logger.Fatal("Failed to create caching layer because %s", appcache_err)
 	}
 
+	logger.Debug("setting up application index")
+
 	switch *pip_index {
 	case "rtree":
 		appindex, appindex_err = index.NewRTreeIndex(appcache)
@@ -164,27 +177,6 @@ func main() {
 		logger.Fatal("failed to create index because %s", appindex_err)
 	}
 
-	// note: this is "-mode spatialite" not "-engine spatialite"
-
-	if *mode != "spatialite" {
-
-		indexer_opts, err := app.DefaultApplicationIndexerOptions()
-
-		if err != nil {
-			logger.Fatal("failed to create indexer options because %s", err)
-		}
-
-		indexer_opts.IndexMode = *mode
-
-		indexer, err := app.NewApplicationIndexer(appindex, indexer_opts)
-
-		err = indexer.IndexPaths(flag.Args())
-
-		if err != nil {
-			logger.Fatal("failed to index paths because %s", err)
-		}
-	}
-
 	// end of cloned from...
 
 	indexer_opts, err := app.DefaultApplicationIndexerOptions()
@@ -193,48 +185,74 @@ func main() {
 		logger.Fatal("failed to create indexer options, because %s", err)
 	}
 
+	var extras_dsn string
+
 	if *enable_extras {
 
-		extras_map := extras_args.ToMap()
-		extras_dsn, ok := extras_map["dsn"]
+		index_extras := true
 
-		if !ok {
+		logger.Debug("setting up extras support")
 
-			tmpfile, err := ioutil.TempFile("", "pip-extras")
+		// we are relying on the fact that all of these things have already
+		// been vetted above and that the spatialite DB in fact has a geojson
+		// table (20180228/thisisaaronland)
 
-			if err != nil {
-				logger.Fatal("Failed to create temp file, because %s", err)
-			}
+		if *pip_cache == "spatialite" || *pip_cache == "sqlite" {
 
-			tmpfile.Close()
-			tmpnam := tmpfile.Name()
+			spatialite_map := spatialite_args.ToMap()
+			dsn, _ := spatialite_map["dsn"]
 
-			logger.Status("create temporary extras database '%s'", tmpnam)
-			extras_dsn = tmpnam
+			index_extras = false
+			extras_dsn = dsn
 
-			cleanup := func() {
+		} else {
 
-				logger.Status("remove temporary extras database '%s'", tmpnam)
+			extras_map := extras_args.ToMap()
+			dsn, ok := extras_map["dsn"]
 
-				err := os.Remove(tmpnam)
+			if !ok {
+
+				tmpfile, err := ioutil.TempFile("", "pip-extras")
 
 				if err != nil {
-					logger.Warning("failed to remove %s, because %s", tmpnam, err)
+					logger.Fatal("Failed to create temp file, because %s", err)
 				}
+
+				tmpfile.Close()
+				tmpnam := tmpfile.Name()
+
+				logger.Status("create temporary extras database '%s'", tmpnam)
+				dsn = tmpnam
+
+				cleanup := func() {
+
+					logger.Status("remove temporary extras database '%s'", tmpnam)
+
+					err := os.Remove(tmpnam)
+
+					if err != nil {
+						logger.Warning("failed to remove %s, because %s", tmpnam, err)
+					}
+				}
+
+				defer cleanup()
+
+				signal_ch := make(chan os.Signal, 1)
+				signal.Notify(signal_ch, os.Interrupt)
+
+				go func() {
+					<-signal_ch
+					cleanup()
+				}()
 			}
 
-			defer cleanup()
-
-			signal_ch := make(chan os.Signal, 1)
-			signal.Notify(signal_ch, os.Interrupt)
-
-			go func() {
-				<-signal_ch
-				cleanup()
-			}()
+			extras_dsn = dsn
 		}
 
-		indexer_opts.IndexExtras = *enable_extras
+		logger.Debug("enable extras with indexing %t", index_extras)
+		logger.Debug("enable extras with dsn %s", extras_dsn)
+
+		indexer_opts.IndexExtras = index_extras
 		indexer_opts.ExtrasDB = extras_dsn
 	}
 
@@ -271,13 +289,17 @@ func main() {
 			// TO DO: put this somewhere so that it can be triggered by signal(s)
 			// to reindex everything in bulk or incrementally
 
+			t1 := time.Now()
+
 			err = indexer.IndexPaths(flag.Args())
 
 			if err != nil {
 				logger.Fatal("failed to index paths because %s", err)
 			}
 
-			logger.Status("finished indexing")
+			t2 := time.Since(t1)
+
+			logger.Status("finished indexing in %v", t2)
 			godebug.FreeOSMemory()
 		}()
 
@@ -311,19 +333,12 @@ func main() {
 
 	// set up the HTTP endpoint
 
-	if *enable_www {
-		logger.Status("-www flag is true causing the following flags to also be true: -allow-geojson -candidates")
-
-		*allow_geojson = true
-		*enable_candidates = true
-	}
+	logger.Debug("setting up intersects handler")
 
 	intersects_opts := http.NewDefaultIntersectsHandlerOptions()
-	intersects_opts.AllowGeoJSON = *allow_geojson
-	intersects_opts.AllowExtras = *allow_extras
-
-	// FIX ME...
-	// intersects_opts.ExtrasDB = *extras_db
+	intersects_opts.EnableGeoJSON = *enable_geojson
+	intersects_opts.EnableExtras = *enable_extras
+	intersects_opts.ExtrasDB = extras_dsn
 
 	intersects_handler, err := http.IntersectsHandler(appindex, indexer, intersects_opts)
 
@@ -337,15 +352,14 @@ func main() {
 		logger.Fatal("failed to create Ping handler because %s", err)
 	}
 
-	endpoint := fmt.Sprintf("%s:%d", *host, *port)
-	logger.Status("listening on %s", endpoint)
-
 	mux := gohttp.NewServeMux()
 
 	mux.Handle("/ping", ping_handler)
 	mux.Handle("/", intersects_handler)
 
 	if *enable_candidates {
+
+		logger.Debug("setting up candidates handler")
 
 		candidateshandler, err := http.CandidatesHandler(appindex, indexer)
 
@@ -357,6 +371,8 @@ func main() {
 	}
 
 	if *enable_polylines {
+
+		logger.Debug("setting up polylines handler")
 
 		coords := 100
 
@@ -376,7 +392,7 @@ func main() {
 
 		poly_opts := http.NewDefaultPolylineHandlerOptions()
 		poly_opts.MaxCoords = coords
-		poly_opts.AllowGeoJSON = *allow_geojson
+		poly_opts.EnableGeoJSON = *enable_geojson
 
 		poly_handler, err := http.PolylineHandler(appindex, indexer, poly_opts)
 
@@ -389,7 +405,15 @@ func main() {
 
 	if *enable_www {
 
+		logger.Debug("setting up www handler")
+
 		www_map := www_args.ToMap()
+
+		www_path, ok_path := www_map["path"]
+
+		if !ok_path {
+			www_path = "/debug"
+		}
 
 		var www_handler gohttp.Handler
 
@@ -401,47 +425,48 @@ func main() {
 
 		www_handler = bundled_handler
 
-		api_key, ok := www_map["nextzen-api-key"]
-
-		if !ok {
-			logger.Fatal("failed to create (bundled) mapzen.js handler because missing API key")
-		}
-
-		mapzenjs_opts := mapzenjs.DefaultMapzenJSOptions()
-		mapzenjs_opts.APIKey = api_key
-
-		mapzenjs_handler, err := mapzenjs.MapzenJSHandler(www_handler, mapzenjs_opts)
-
-		if err != nil {
-			logger.Fatal("failed to create mapzen.js handler because %s", err)
-		}
-
 		/*
-			mzjs_opts := mapzenjs.DefaultMapzenJSOptions()
-			mzjs_opts.APIKey = *api_key
 
-			mzjs_handler, err := mapzenjs.MapzenJSHandler(www_handler, mzjs_opts)
+			api_key, ok := www_map["nextzen-api-key"]
+
+			if !ok {
+				logger.Fatal("failed to create (bundled) mapzen.js handler because missing API key")
+			}
+
+			mapzenjs_opts := mapzenjs.DefaultMapzenJSOptions()
+			mapzenjs_opts.APIKey = api_key
+
+			mapzenjs_handler, err := mapzenjs.MapzenJSHandler(www_handler, mapzenjs_opts)
 
 			if err != nil {
-				logger.Fatal("failed to create API key handler because %s", err)
+				logger.Fatal("failed to create mapzen.js handler because %s", err)
 			}
 
-			opts := rewrite.DefaultRewriteRuleOptions()
+				mzjs_opts := mapzenjs.DefaultMapzenJSOptions()
+				mzjs_opts.APIKey = *api_key
 
-			rewrite_path := *www_path
+				mzjs_handler, err := mapzenjs.MapzenJSHandler(www_handler, mzjs_opts)
 
-			if strings.HasSuffix(rewrite_path, "/") {
-				rewrite_path = strings.TrimRight(rewrite_path, "/")
-			}
+				if err != nil {
+					logger.Fatal("failed to create API key handler because %s", err)
+				}
 
-			rule := rewrite.RemovePrefixRewriteRule(rewrite_path, opts)
-			rules := []rewrite.RewriteRule{rule}
+				opts := rewrite.DefaultRewriteRuleOptions()
 
-			debug_handler, err := rewrite.RewriteHandler(rules, apikey_handler)
+				rewrite_path := *www_path
 
-			if err != nil {
-				logger.Fatal("failed to create www handler because %s", err)
-			}
+				if strings.HasSuffix(rewrite_path, "/") {
+					rewrite_path = strings.TrimRight(rewrite_path, "/")
+				}
+
+				rule := rewrite.RemovePrefixRewriteRule(rewrite_path, opts)
+				rules := []rewrite.RewriteRule{rule}
+
+				debug_handler, err := rewrite.RewriteHandler(rules, apikey_handler)
+
+				if err != nil {
+					logger.Fatal("failed to create www handler because %s", err)
+				}
 		*/
 
 		mapzenjs_assets_handler, err := mapzenjs.MapzenJSAssetsHandler()
@@ -461,14 +486,11 @@ func main() {
 		mux.Handle("/javascript/slippymap.crosshairs.js", www_handler)
 		mux.Handle("/css/mapzen.whosonfirst.pip.css", www_handler)
 
-		www_path, ok_path := www_map["path"]
-
-		if !ok_path {
-			www_path = "/debug"
-		}
-
-		mux.Handle(www_path, mapzenjs_handler)
+		mux.Handle(www_path, www_handler)
 	}
+
+	endpoint := fmt.Sprintf("%s:%d", *host, *port)
+	logger.Status("listening for requests on %s", endpoint)
 
 	err = gohttp.ListenAndServe(endpoint, mux)
 

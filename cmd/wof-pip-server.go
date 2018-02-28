@@ -1,10 +1,11 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"flag"
 	"fmt"
-	_ "github.com/tidwall/gjson"
+	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-http-mapzenjs"
 	"github.com/whosonfirst/go-whosonfirst-log"
 	"github.com/whosonfirst/go-whosonfirst-pip/app"
@@ -239,45 +240,48 @@ func main() {
 			spatialite_map := spatialite_args.ToMap()
 			dsn, ok := spatialite_map["dsn"]
 
+			// see above - this is solution (2) which is pretty WOF-specific in that it
+			// tests for a geom:latitude property which will probably break things if
+			// someone is indexing not-WOF documents but we'll just file that as a
+			// known-known for now (20180228/thisisaaronland)
+
 			if ok {
 
-				/*
+				db_test, err := database.NewDB(dsn)
 
-						db, err := database.NewDB(dsn)
+				if err != nil {
+					logger.Fatal("Failed to set up extras, because %s", err)
+				}
 
-						if err != nil {
-							logger.Fatal("Failed to set up extras, because %s", err)
-						}
+				defer db_test.Close()
 
-					defer db.Close()
+				conn, err := db_test.Conn()
 
-					conn, err := db.Conn()
+				if err != nil {
+					logger.Fatal("Failed to set up extras, because %s", err)
+				}
 
-					if err != nil {
-						logger.Fatal("Failed to set up extras, because %s", err)
-					}
+				row := conn.QueryRow("SELECT body FROM geojson LIMIT 1")
 
-						row := conn.QueryRow("SELECT body FROM geojson LIMIT 1")
+				var body []byte
+				err = row.Scan(&body)
 
-						var body []byte
-						err := row.Scan(&body)
+				switch {
+				case err == sql.ErrNoRows:
+					logger.Fatal("Failed to set up extras, because %s", err)
+				case err != nil:
+					logger.Fatal("Failed to set up extras, because %s", err)
+				default:
+					// pass
+				}
 
-						switch {
-						case err == sql.ErrNoRows:
-							logger.Fatal("Failed to set up extras, because %s", err)
-						case err != nil:
-							logger.Fatal("Failed to set up extras, because %s", err)
-						default:
-							// pass
-						}
+				geom_lat := gjson.GetBytes(body, "properties.geom:latitude")
 
-						geom_lat := gjson.GetBytes(body, "properties.geom:latitude")
+				if !geom_lat.Exists() {
+					logger.Fatal("Failed to set up extras because the first record in the 'geojson' table lacks a 'geom:latitude' property")
+				}
 
-						if !geom_lat.Exists() {
-							logger.Fatal("Failed to set up extras because ...")
-						}
-
-				*/
+				db_test.Close()
 
 				index_extras = false
 				extras_dsn = dsn
@@ -328,8 +332,8 @@ func main() {
 			extras_dsn = dsn
 		}
 
-		logger.Debug("enable extras with indexing %t", index_extras)
 		logger.Debug("enable extras with dsn %s", extras_dsn)
+		logger.Debug("enable extras with indexing %t", index_extras)
 
 		indexer_opts.IndexExtras = index_extras
 		indexer_opts.ExtrasDB = extras_dsn

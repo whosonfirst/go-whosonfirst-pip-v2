@@ -3,7 +3,7 @@ package flags
 import (
 	"errors"
 	"flag"
-	"fmt"
+	_ "fmt"
 	"os"
 	"runtime"
 )
@@ -77,7 +77,7 @@ func NewFlagSet(name string) *flag.FlagSet {
 	fs.Bool("help", false, "")
 
 	fs.Usage = func() {
-		fmt.Println("GO IS WEIRD, PART 2")
+		fs.PrintDefaults()
 	}
 
 	return fs
@@ -85,22 +85,22 @@ func NewFlagSet(name string) *flag.FlagSet {
 
 func CommonFlags() (*flag.FlagSet, error) {
 
-	common := NewFlagSet("common")
+	fs := NewFlagSet("common")
 
-	common.String("index", "rtree", "Valid options are: rtree, spatialite")
-	common.String("cache", "gocache", "Valid options are: gocache, fs, spatialite")
+	fs.String("index", "rtree", "Valid options are: rtree, spatialite")
+	fs.String("cache", "gocache", "Valid options are: gocache, fs, spatialite")
 
-	common.String("mode", "files", "...")
-	common.Int("processes", runtime.NumCPU()*2, "...")
+	fs.String("mode", "files", "...")
+	fs.Int("processes", runtime.NumCPU()*2, "...")
 
-	common.String("spatialite-dsn", ":memory:", "...")
-	common.String("fs-path", "", "...")
+	fs.String("spatialite-dsn", ":memory:", "...")
+	fs.String("fs-path", "", "...")
 
-	common.Bool("is-wof", true, "...")
+	fs.Bool("is-wof", true, "...")
 
 	// EXCLUDE FLAGS
 
-	common.Bool("verbose", false, "")
+	fs.Bool("verbose", false, "")
 
-	return common, nil
+	return fs, nil
 }

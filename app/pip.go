@@ -7,15 +7,16 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-pip/cache"
 	"github.com/whosonfirst/go-whosonfirst-pip/flags"
 	"github.com/whosonfirst/go-whosonfirst-pip/index"
+	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"runtime/debug"
 	"time"
 )
 
 type PIPApplication struct {
-	mode  string
-	Index index.Index
-	Cache cache.Cache
-	// Extras	something.Something
+	mode    string
+	Index   index.Index
+	Cache   cache.Cache
+	Extras  *database.SQLiteDatabase
 	Indexer *wof_index.Indexer
 	Logger  *log.WOFLogger
 }
@@ -40,6 +41,12 @@ func NewPIPApplication(fl *flag.FlagSet) (*PIPApplication, error) {
 		return nil, err
 	}
 
+	appextras, err := NewApplicationExtras(fl)
+
+	if err != nil {
+		return nil, err
+	}
+
 	indexer, err := NewApplicationIndexer(fl, appindex)
 
 	if err != nil {
@@ -52,6 +59,7 @@ func NewPIPApplication(fl *flag.FlagSet) (*PIPApplication, error) {
 		mode:    mode,
 		Cache:   appcache,
 		Index:   appindex,
+		Extras:  appextras,
 		Indexer: indexer,
 		Logger:  logger,
 	}

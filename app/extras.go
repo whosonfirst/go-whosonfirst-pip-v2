@@ -10,7 +10,7 @@ import (
 	"os/signal"
 )
 
-func NewApplicationsExtras(fl *flag.FlagSet) (*database.SQLiteDatabase, error) {
+func NewApplicationExtras(fl *flag.FlagSet) (*database.SQLiteDatabase, error) {
 
 	enable_extras, _ := flags.BoolVar(fl, "enable_extras")
 	extras_dsn, _ := flags.StringVar(fl, "extras-dsn")

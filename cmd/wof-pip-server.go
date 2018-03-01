@@ -3,12 +3,10 @@ package main
 import (
 	"fmt"
 	"github.com/whosonfirst/go-http-mapzenjs"
-	"github.com/whosonfirst/go-whosonfirst-log"
 	"github.com/whosonfirst/go-whosonfirst-pip/app"
 	"github.com/whosonfirst/go-whosonfirst-pip/flags"
 	"github.com/whosonfirst/go-whosonfirst-pip/http"
-	"io"
-	golog "log"
+	"log"
 	gohttp "net/http"
 	"os"
 	"runtime"
@@ -20,7 +18,7 @@ func main() {
 	fl, err := flags.CommonFlags()
 
 	if err != nil {
-		golog.Fatal(err)
+		log.Fatal(err)
 	}
 
 	fl.String("host", "localhost", "The hostname to listen for requests on")
@@ -35,39 +33,24 @@ func main() {
 	fl.Int("polylines-coords", 100, "...")
 	fl.String("www-path", "/debug", "...")
 
-	flags.Parse(fl, os.Args[1:])
+	flags.Parse(fl)
 
-	verbose, _ := flags.BoolVar(fl, "verbose")
-	procs, _ := flags.IntVar(fl, "processes")
+	pip, err := app.NewPIPApplication(fl)
 
-	logger := log.SimpleWOFLogger()
-	level := "status"
-
-	if verbose {
-		level = "debug"
+	if err != nil {
+		pip.Logger.Fatal("Failed to create new PIP application, because %s", err)
 	}
-
-	stdout := io.Writer(os.Stdout)
-	logger.AddLogger(stdout, level)
-
-	runtime.GOMAXPROCS(procs)
 
 	pip_index, _ := flags.StringVar(fl, "index")
 	pip_cache, _ := flags.StringVar(fl, "cache")
 	mode, _ := flags.StringVar(fl, "mode")
 
-	logger.Info("index is %s cache is %s mode is %s", pip_index, pip_cache, mode)
+	pip.Logger.Info("index is %s cache is %s mode is %s", pip_index, pip_cache, mode)
 
-	pip_app, err := app.NewPIPApplication(fl)
-
-	if err != nil {
-		logger.Fatal("Failed to create new PIP application, because %s", err)
-	}
-
-	err = pip_app.IndexPaths(fl.Args())
+	err = pip.IndexPaths(fl.Args())
 
 	if err != nil {
-		logger.Fatal("Failed to index paths, because %s", err)
+		pip.Logger.Fatal("Failed to index paths, because %s", err)
 	}
 
 	go func() {
@@ -77,7 +60,7 @@ func main() {
 		for _ = range tick {
 			var ms runtime.MemStats
 			runtime.ReadMemStats(&ms)
-			logger.Status("memstats system: %8d inuse: %8d released: %8d objects: %6d", ms.HeapSys, ms.HeapInuse, ms.HeapReleased, ms.HeapObjects)
+			pip.Logger.Status("memstats system: %8d inuse: %8d released: %8d objects: %6d", ms.HeapSys, ms.HeapInuse, ms.HeapReleased, ms.HeapObjects)
 		}
 	}()
 
@@ -86,13 +69,13 @@ func main() {
 	enable_www, _ := flags.BoolVar(fl, "enable_www")
 
 	if enable_www {
-		logger.Status("-enable-www flag is true causing the following flags to also be true: -enable-geojson -enable-candidates")
+		pip.Logger.Status("-enable-www flag is true causing the following flags to also be true: -enable-geojson -enable-candidates")
 
 		fl.Set("enable_geojson", "true")
 		fl.Set("enable_candidates", "true")
 	}
 
-	logger.Debug("setting up intersects handler")
+	pip.Logger.Debug("setting up intersects handler")
 
 	enable_geojson, _ := flags.BoolVar(fl, "enable-geojson")
 	enable_extras, _ := flags.BoolVar(fl, "enable_extras")
@@ -105,16 +88,16 @@ func main() {
 	intersects_opts.EnableExtras = enable_extras
 	intersects_opts.ExtrasDB = extras_dsn
 
-	intersects_handler, err := http.IntersectsHandler(pip_app.Index, pip_app.Indexer, intersects_opts)
+	intersects_handler, err := http.IntersectsHandler(pip.Index, pip.Indexer, intersects_opts)
 
 	if err != nil {
-		logger.Fatal("failed to create PIP handler because %s", err)
+		pip.Logger.Fatal("failed to create PIP handler because %s", err)
 	}
 
 	ping_handler, err := http.PingHandler()
 
 	if err != nil {
-		logger.Fatal("failed to create Ping handler because %s", err)
+		pip.Logger.Fatal("failed to create Ping handler because %s", err)
 	}
 
 	mux := gohttp.NewServeMux()
@@ -129,12 +112,12 @@ func main() {
 
 	if enable_candidates {
 
-		logger.Debug("setting up candidates handler")
+		pip.Logger.Debug("setting up candidates handler")
 
-		candidateshandler, err := http.CandidatesHandler(pip_app.Index, pip_app.Indexer)
+		candidateshandler, err := http.CandidatesHandler(pip.Index, pip.Indexer)
 
 		if err != nil {
-			logger.Fatal("failed to create Spatial handler because %s", err)
+			pip.Logger.Fatal("failed to create Spatial handler because %s", err)
 		}
 
 		mux.Handle("/candidates", candidateshandler)
@@ -142,7 +125,7 @@ func main() {
 
 	if enable_polylines {
 
-		logger.Debug("setting up polylines handler")
+		pip.Logger.Debug("setting up polylines handler")
 
 		poly_coords, _ := flags.IntVar(fl, "polylines-coords")
 
@@ -150,10 +133,10 @@ func main() {
 		poly_opts.MaxCoords = poly_coords
 		poly_opts.EnableGeoJSON = enable_geojson
 
-		poly_handler, err := http.PolylineHandler(pip_app.Index, pip_app.Indexer, poly_opts)
+		poly_handler, err := http.PolylineHandler(pip.Index, pip.Indexer, poly_opts)
 
 		if err != nil {
-			logger.Fatal("failed to create polyline handler because %s", err)
+			pip.Logger.Fatal("failed to create polyline handler because %s", err)
 		}
 
 		mux.Handle("/polyline", poly_handler)
@@ -161,14 +144,14 @@ func main() {
 
 	if enable_www {
 
-		logger.Debug("setting up www handler")
+		pip.Logger.Debug("setting up www handler")
 
 		var www_handler gohttp.Handler
 
 		bundled_handler, err := http.BundledWWWHandler()
 
 		if err != nil {
-			logger.Fatal("failed to create (bundled) www handler because %s", err)
+			pip.Logger.Fatal("failed to create (bundled) www handler because %s", err)
 		}
 
 		www_handler = bundled_handler
@@ -181,7 +164,7 @@ func main() {
 			mapzenjs_handler, err := mapzenjs.MapzenJSHandler(www_handler, mapzenjs_opts)
 
 			if err != nil {
-				logger.Fatal("failed to create mapzen.js handler because %s", err)
+				pip.Logger.Fatal("failed to create mapzen.js handler because %s", err)
 			}
 
 				mzjs_opts := mapzenjs.DefaultMapzenJSOptions()
@@ -190,7 +173,7 @@ func main() {
 				mzjs_handler, err := mapzenjs.MapzenJSHandler(www_handler, mzjs_opts)
 
 				if err != nil {
-					logger.Fatal("failed to create API key handler because %s", err)
+					pip.Logger.Fatal("failed to create API key handler because %s", err)
 				}
 
 				opts := rewrite.DefaultRewriteRuleOptions()
@@ -207,14 +190,14 @@ func main() {
 				debug_handler, err := rewrite.RewriteHandler(rules, apikey_handler)
 
 				if err != nil {
-					logger.Fatal("failed to create www handler because %s", err)
+					pip.Logger.Fatal("failed to create www handler because %s", err)
 				}
 		*/
 
 		mapzenjs_assets_handler, err := mapzenjs.MapzenJSAssetsHandler()
 
 		if err != nil {
-			logger.Fatal("failed to create mapzenjs_assets handler because %s", err)
+			pip.Logger.Fatal("failed to create mapzenjs_assets handler because %s", err)
 		}
 
 		mux.Handle("/javascript/mapzen.min.js", mapzenjs_assets_handler)
@@ -236,12 +219,12 @@ func main() {
 	port, _ := flags.IntVar(fl, "port")
 
 	endpoint := fmt.Sprintf("%s:%d", host, port)
-	logger.Status("listening for requests on %s", endpoint)
+	pip.Logger.Status("listening for requests on %s", endpoint)
 
 	err = gohttp.ListenAndServe(endpoint, mux)
 
 	if err != nil {
-		logger.Fatal("failed to start server because %s", err)
+		pip.Logger.Fatal("failed to start server because %s", err)
 	}
 
 	os.Exit(0)

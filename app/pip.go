@@ -3,24 +3,31 @@ package app
 import (
 	"flag"
 	wof_index "github.com/whosonfirst/go-whosonfirst-index"
+	"github.com/whosonfirst/go-whosonfirst-log"
 	"github.com/whosonfirst/go-whosonfirst-pip/cache"
 	"github.com/whosonfirst/go-whosonfirst-pip/flags"
 	"github.com/whosonfirst/go-whosonfirst-pip/index"
-	"log"
+	"runtime"
 	"runtime/debug"
 	"time"
 )
 
 type PIPApplication struct {
-	mode    string
-	Index   index.Index
-	Cache   cache.Cache
+	mode  string
+	Index index.Index
+	Cache cache.Cache
+	// Extras	something.Something
 	Indexer *wof_index.Indexer
+	Logger  *log.WOFLogger
 }
 
 func NewPIPApplication(fl *flag.FlagSet) (*PIPApplication, error) {
 
-	mode, _ := flags.StringVar(fl, "mode")
+	logger, err := NewApplicationLogger(fl)
+
+	if err != nil {
+		return nil, err
+	}
 
 	appcache, err := NewApplicationCache(fl)
 
@@ -40,11 +47,17 @@ func NewPIPApplication(fl *flag.FlagSet) (*PIPApplication, error) {
 		return nil, err
 	}
 
+	mode, _ := flags.StringVar(fl, "mode")
+
+	procs, _ := flags.IntVar(fl, "processes")
+	runtime.GOMAXPROCS(procs)
+
 	p := PIPApplication{
 		mode:    mode,
 		Cache:   appcache,
 		Index:   appindex,
 		Indexer: indexer,
+		Logger:  logger,
 	}
 
 	return &p, nil
@@ -64,14 +77,12 @@ func (p *PIPApplication) IndexPaths(paths []string) error {
 			err := p.Indexer.IndexPaths(paths)
 
 			if err != nil {
-				log.Fatal(err)
-				// logger.Fatal("failed to index paths because %s", err)
+				p.Logger.Fatal("failed to index paths because %s", err)
 			}
 
 			t2 := time.Since(t1)
 
-			log.Println(t2)
-			//logger.Status("finished indexing in %v", t2)
+			p.Logger.Status("finished indexing in %v", t2)
 			debug.FreeOSMemory()
 		}()
 
@@ -87,7 +98,7 @@ func (p *PIPApplication) IndexPaths(paths []string) error {
 					continue
 				}
 
-				// logger.Status("indexing %d records indexed", indexer.Indexed)
+				p.Logger.Status("indexing %d records indexed", p.Indexer.Indexed)
 			}
 		}()
 	}

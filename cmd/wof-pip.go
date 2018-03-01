@@ -3,177 +3,69 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"errors"
-	"flag"
 	"fmt"
 	geojson_utils "github.com/whosonfirst/go-whosonfirst-geojson-v2/utils"
-	"github.com/whosonfirst/go-whosonfirst-log"
 	"github.com/whosonfirst/go-whosonfirst-pip/app"
-	"github.com/whosonfirst/go-whosonfirst-pip/cache"
 	"github.com/whosonfirst/go-whosonfirst-pip/filter"
 	"github.com/whosonfirst/go-whosonfirst-pip/flags"
-	"github.com/whosonfirst/go-whosonfirst-pip/index"
 	"github.com/whosonfirst/go-whosonfirst-pip/utils"
-	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
-	// golog "log"
-	"io"
+	log "log"
 	"os"
-	"runtime"
 	"strconv"
 	"strings"
 )
 
 func main() {
 
-	var pip_index = flag.String("index", "rtree", "Valid options are: rtree, spatialite")
-	var pip_cache = flag.String("cache", "gocache", "Valid options are: gocache, fs, spatialite")
+	fl, err := flags.CommonFlags()
 
-	var mode = flag.String("mode", "files", "")
-	var procs = flag.Int("processes", runtime.NumCPU()*2, "")
-
-	var fs_args flags.KeyValueArgs
-	flag.Var(&fs_args, "fs-cache", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to the fs cache")
-
-	var spatialite_args flags.KeyValueArgs
-	flag.Var(&spatialite_args, "spatialite", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to the spatialite database")
-
-	var verbose = flag.Bool("verbose", false, "")
-
-	flag.Parse()
-
-	runtime.GOMAXPROCS(*procs)
-
-	logger := log.SimpleWOFLogger()
-
-	if *verbose {
-		stdout := io.Writer(os.Stdout)
-		logger.AddLogger(stdout, "info")
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	var db *database.SQLiteDatabase
+	flags.Parse(fl)
 
-	var appindex index.Index
-	var appindex_err error
+	pip, err := app.NewPIPApplication(fl)
 
-	var appcache cache.Cache
-	var appcache_err error
-
-	logger.Info("index is %s cache is %s", *pip_index, *pip_cache)
-
-	if *pip_index == "spatialite" {
-
-		args := spatialite_args.ToMap()
-		dsn, ok := args["dsn"]
-
-		if !ok {
-			dsn = ":memory:"
-		}
-
-		d, err := database.NewDBWithDriver(*pip_index, dsn)
-
-		if err != nil {
-			logger.Fatal("Failed to create spatialite database, because %s", err)
-		}
-
-		err = d.LiveHardDieFast()
-
-		if err != nil {
-			logger.Fatal("Failed to create spatialite database, because %s", err)
-		}
-
-		db = d
+	if err != nil {
+		log.Fatal("Failed to create new PIP application, because", err)
 	}
 
-	switch *pip_cache {
+	pip_index, _ := flags.StringVar(fl, "index")
+	pip_cache, _ := flags.StringVar(fl, "cache")
+	mode, _ := flags.StringVar(fl, "mode")
 
-	case "gocache":
+	pip.Logger.Info("index is %s cache is %s mode is %s", pip_index, pip_cache, mode)
 
-		opts, err := cache.DefaultGoCacheOptions()
+	err = pip.IndexPaths(fl.Args())
 
-		if err != nil {
-			appcache_err = err
-		} else {
-			appcache, appcache_err = cache.NewGoCache(opts)
-		}
-
-	case "fs":
-
-		args := fs_args.ToMap()
-		root, ok := args["root"]
-
-		if ok {
-			appcache, appindex_err = cache.NewFSCache(root)
-		} else {
-			appcache_err = errors.New("Missing FS cache root")
-		}
-
-	case "sqlite":
-		appcache, appcache_err = cache.NewSQLiteCache(db)
-	case "spatialite":
-		appcache, appcache_err = cache.NewSQLiteCache(db)
-	default:
-		appcache_err = errors.New("Invalid cache layer")
+	if err != nil {
+		pip.Logger.Fatal("Failed to index paths, because %s", err)
 	}
-
-	if appcache_err != nil {
-		logger.Fatal("Failed to create caching layer because %s", appcache_err)
-	}
-
-	switch *pip_index {
-	case "rtree":
-		appindex, appindex_err = index.NewRTreeIndex(appcache)
-	case "spatialite":
-		appindex, appindex_err = index.NewSpatialiteIndex(db, appcache)
-	default:
-		appindex_err = errors.New("Invalid engine")
-	}
-
-	if appindex_err != nil {
-		logger.Fatal("failed to create index because %s", appindex_err)
-	}
-
-	// note: this is "-mode spatialite" not "-engine spatialite"
-
-	if *mode != "spatialite" {
-
-		indexer_opts, err := app.DefaultApplicationIndexerOptions()
-
-		if err != nil {
-			logger.Fatal("failed to create indexer options because %s", err)
-		}
-
-		indexer_opts.IndexMode = *mode
-
-		indexer, err := app.NewApplicationIndexer(appindex, indexer_opts)
-
-		err = indexer.IndexPaths(flag.Args())
-
-		if err != nil {
-			logger.Fatal("failed to index paths because %s", err)
-		}
-	}
-
-	logger.Status("cache size: %d evictions: %d", appcache.Size(), appcache.Evictions())
 
 	f, err := filter.NewSPRFilter()
 
 	if err != nil {
-		logger.Fatal("failed to create filter because %s", err)
+		pip.Logger.Fatal("Failed to create SPR filter, because %s", err)
 	}
 
+	// ADD WAIT FOR INDEXER CODE HERE
+
 	fmt.Println("ready to query")
+
+	appindex := pip.Index
 
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for scanner.Scan() {
 
 		input := scanner.Text()
-		logger.Status("# %s", input)
+		pip.Logger.Status("# %s", input)
 
 		parts := strings.Split(input, " ")
 
 		if len(parts) == 0 {
-			logger.Warning("Invalid input")
+			pip.Logger.Warning("Invalid input")
 			continue
 		}
 
@@ -188,7 +80,7 @@ func main() {
 		case "polyline":
 			command = parts[0]
 		default:
-			logger.Warning("Invalid command")
+			pip.Logger.Warning("Invalid command")
 			continue
 		}
 
@@ -202,21 +94,21 @@ func main() {
 			lat, err := strconv.ParseFloat(str_lat, 64)
 
 			if err != nil {
-				logger.Warning("Invalid latitude, %s", err)
+				pip.Logger.Warning("Invalid latitude, %s", err)
 				continue
 			}
 
 			lon, err := strconv.ParseFloat(str_lon, 64)
 
 			if err != nil {
-				logger.Warning("Invalid longitude, %s", err)
+				pip.Logger.Warning("Invalid longitude, %s", err)
 				continue
 			}
 
 			c, err := geojson_utils.NewCoordinateFromLatLons(lat, lon)
 
 			if err != nil {
-				logger.Warning("Invalid latitude, longitude, %s", err)
+				pip.Logger.Warning("Invalid latitude, longitude, %s", err)
 				continue
 			}
 
@@ -225,7 +117,7 @@ func main() {
 				intersects, err := appindex.GetIntersectsByCoord(c, f)
 
 				if err != nil {
-					logger.Warning("Unable to get intersects, because %s", err)
+					pip.Logger.Warning("Unable to get intersects, because %s", err)
 					continue
 				}
 
@@ -236,7 +128,7 @@ func main() {
 				candidates, err := appindex.GetCandidatesByCoord(c)
 
 				if err != nil {
-					logger.Warning("Unable to get candidates, because %s", err)
+					pip.Logger.Warning("Unable to get candidates, because %s", err)
 					continue
 				}
 
@@ -253,7 +145,7 @@ func main() {
 				f, err := utils.StringPrecisionToFactor(parts[2])
 
 				if err != nil {
-					logger.Warning("Unable to parse precision because %s", err)
+					pip.Logger.Warning("Unable to parse precision because %s", err)
 					continue
 				}
 
@@ -263,28 +155,28 @@ func main() {
 			path, err := utils.DecodePolyline(poly, factor)
 
 			if err != nil {
-				logger.Warning("Unable to decode polyline because %s", err)
+				pip.Logger.Warning("Unable to decode polyline because %s", err)
 				continue
 			}
 
 			intersects, err := appindex.GetIntersectsByPath(*path, f)
 
 			if err != nil {
-				logger.Warning("Unable to get candidates, because %s", err)
+				pip.Logger.Warning("Unable to get candidates, because %s", err)
 				continue
 			}
 
 			results = intersects
 
 		} else {
-			logger.Warning("Invalid command")
+			pip.Logger.Warning("Invalid command")
 			continue
 		}
 
 		body, err := json.Marshal(results)
 
 		if err != nil {
-			logger.Warning("Failed to marshal results, because %s", err)
+			pip.Logger.Warning("Failed to marshal results, because %s", err)
 			continue
 		}
 

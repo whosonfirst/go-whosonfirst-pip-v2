@@ -25,33 +25,6 @@ import (
 	"sync"
 )
 
-type ApplicationIndexerOptions struct {
-	IndexMode         string
-	IsWOF             bool
-	IncludeDeprecated bool
-	IncludeSuperseded bool
-	IncludeCeased     bool
-	IncludeNotCurrent bool
-	IndexExtras       bool
-	ExtrasDB          string
-}
-
-func DefaultApplicationIndexerOptions() (ApplicationIndexerOptions, error) {
-
-	opts := ApplicationIndexerOptions{
-		IndexMode:         "",
-		IsWOF:             true,
-		IncludeDeprecated: true,
-		IncludeSuperseded: true,
-		IncludeCeased:     true,
-		IncludeNotCurrent: true,
-		IndexExtras:       false,
-		ExtrasDB:          "",
-	}
-
-	return opts, nil
-}
-
 func NewApplicationIndexer(fl *flag.FlagSet, appindex index.Index) (*wof_index.Indexer, error) {
 
 	pip_cache, _ := flags.StringVar(fl, "cache")

@@ -9,7 +9,9 @@ import (
 	"runtime"
 )
 
-func Parse(fl *flag.FlagSet, args []string) {
+func Parse(fl *flag.FlagSet) {
+
+	args := os.Args[1:]
 
 	if len(args) > 0 && args[0] == "-h" {
 		fl.Usage()
@@ -67,7 +69,7 @@ func BoolVar(fl *flag.FlagSet, k string) (bool, error) {
 
 func NewFlagSet(name string) *flag.FlagSet {
 
-	fs := flag.NewFlagSet(name, flag.ContinueOnError)
+	fs := flag.NewFlagSet(name, flag.ExitOnError)
 
 	fs.Usage = func() {
 		fs.PrintDefaults()

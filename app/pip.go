@@ -7,7 +7,6 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-pip/cache"
 	"github.com/whosonfirst/go-whosonfirst-pip/flags"
 	"github.com/whosonfirst/go-whosonfirst-pip/index"
-	"runtime"
 	"runtime/debug"
 	"time"
 )
@@ -48,9 +47,6 @@ func NewPIPApplication(fl *flag.FlagSet) (*PIPApplication, error) {
 	}
 
 	mode, _ := flags.StringVar(fl, "mode")
-
-	procs, _ := flags.IntVar(fl, "processes")
-	runtime.GOMAXPROCS(procs)
 
 	p := PIPApplication{
 		mode:    mode,

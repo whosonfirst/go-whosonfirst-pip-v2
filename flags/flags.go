@@ -6,7 +6,6 @@ import (
 	"fmt"
 	_ "log"
 	"os"
-	"runtime"
 )
 
 func Parse(fl *flag.FlagSet) {
@@ -86,7 +85,6 @@ func CommonFlags() (*flag.FlagSet, error) {
 	fs.String("cache", "gocache", "Valid options are: gocache, fs, spatialite")
 
 	fs.String("mode", "files", "...")
-	fs.Int("processes", runtime.NumCPU()*2, "...")
 
 	fs.String("spatialite-dsn", ":memory:", "...")
 	fs.String("fs-path", "", "...")

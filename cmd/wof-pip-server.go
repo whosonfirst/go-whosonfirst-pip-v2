@@ -1,21 +1,16 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
-	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-http-mapzenjs"
 	"github.com/whosonfirst/go-whosonfirst-log"
 	"github.com/whosonfirst/go-whosonfirst-pip/app"
 	"github.com/whosonfirst/go-whosonfirst-pip/flags"
 	"github.com/whosonfirst/go-whosonfirst-pip/http"
-	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"io"
-	"io/ioutil"
 	golog "log"
 	gohttp "net/http"
 	"os"
-	"os/signal"
 	"runtime"
 	godebug "runtime/debug"
 	"time"
@@ -69,8 +64,9 @@ func main() {
 
 	pip_index, _ := flags.StringVar(fl, "index")
 	pip_cache, _ := flags.StringVar(fl, "cache")
+	mode, _ := flags.StringVar(fl, "mode")
 
-	logger.Info("index is %s cache is %s", pip_index, pip_cache)
+	logger.Info("index is %s cache is %s mode is %s", pip_index, pip_cache, mode)
 
 	logger.Debug("setting up application cache")
 
@@ -88,184 +84,13 @@ func main() {
 		logger.Fatal("Failed to create indexing layer, because %s", err)
 	}
 
-	// extras...
-
-	var extras_dsn string
-
-	enable_extras, _ := flags.BoolVar(fl, "enable_extras")
-
-	if enable_extras {
-
-		index_extras := true
-
-		logger.Debug("setting up extras support")
-
-		// we are relying on the fact that all of these things have already
-		// been vetted above and that the spatialite DB in fact has a geojson
-		// table (20180228/thisisaaronland)
-
-		// the problem with this approach is that we might be using a SQLite
-		// database that was *generated* by the cache/sqlite.go code whose Set()
-		// method only knows about cache.CacheItem thingies which don't have a
-		// full WOF properties hash so things like '?extras=geom:longitude'
-		// will always fail... (20180228/thisisaaronland)
-
-		// for example, this:
-		// ./bin/wof-pip-server -index spatialite -cache spatialite -spatialite dsn=test3.db -enable-extras
-		//
-		// where test3.db has previously been created by doing (something like) this:
-		// ./bin/wof-pip -index spatialite -cache spatialite -spatialite dsn=test3.db -mode repo /usr/local/data/whosonfirst-data
-		//
-		// which will have populated the 'geojson' table in 'test3.db' using the cache.Set()
-		// method described above, and which will be lacking a full (WOF) properties
-		// dictionary
-		//
-		// possible solutions include:
-		//
-		// 1. testing for and using a '-extras dsn=foo.db' flag which has the perverse
-		//    side-effect of requiring *two* SQLite databases
-		// 2. testing the '-spatialite dsn=foo.db' database for a record that contains
-		//    something we know will be in the WOF properties hash but is _not_ part of
-		//    the SPR interface (geom:latitude for example) and throwing an error if it
-		//    is missing
-		// 3. changing the name of the table that the sqlite.Cache Get() method uses and
-		//    adding a flag (flags) to query the correct table and... I am having trouble
-		//    keeping track of it as I write these words
-		//
-		// (2) plus proper documentation is probably the easiest thing going forward under
-		// the assumption that almost no one is going to be creating *fresh* databases and
-		// instead just using the databases that WOF itself produces (20180228/thisisaaronland)
-
-		spatialite_dsn, _ := flags.StringVar(fl, "spatialite-dsn")
-
-		if pip_cache == "spatialite" || pip_cache == "sqlite" {
-
-			dsn := spatialite_dsn
-
-			// see above - this is solution (2) which is pretty WOF-specific in that it
-			// tests for a geom:latitude property which will probably break things if
-			// someone is indexing not-WOF documents but we'll just file that as a
-			// known-known for now (20180228/thisisaaronland)
-
-			if dsn != ":memory:" {
-
-				db_test, err := database.NewDB(dsn)
-
-				if err != nil {
-					logger.Fatal("Failed to set up extras, because %s", err)
-				}
-
-				defer db_test.Close()
-
-				conn, err := db_test.Conn()
-
-				if err != nil {
-					logger.Fatal("Failed to set up extras, because %s", err)
-				}
-
-				row := conn.QueryRow("SELECT body FROM geojson LIMIT 1")
-
-				var body []byte
-				err = row.Scan(&body)
-
-				switch {
-				case err == sql.ErrNoRows:
-					logger.Fatal("Failed to set up extras, because %s", err)
-				case err != nil:
-					logger.Fatal("Failed to set up extras, because %s", err)
-				default:
-					// pass
-				}
-
-				geom_lat := gjson.GetBytes(body, "properties.geom:latitude")
-
-				if !geom_lat.Exists() {
-					logger.Fatal("Failed to set up extras because the first record in the 'geojson' table lacks a 'geom:latitude' property")
-				}
-
-				db_test.Close()
-
-				index_extras = false
-				extras_dsn = dsn
-			}
-		}
-
-		if index_extras {
-
-			dsn := spatialite_dsn
-
-			// MAYBE REVISIT THIS DECISION? (20180228/thisisaaronland)
-
-			if dsn == ":memory:" {
-
-				tmpfile, err := ioutil.TempFile("", "pip-extras")
-
-				if err != nil {
-					logger.Fatal("Failed to create temp file, because %s", err)
-				}
-
-				tmpfile.Close()
-				tmpnam := tmpfile.Name()
-
-				logger.Status("create temporary extras database '%s'", tmpnam)
-				dsn = tmpnam
-
-				cleanup := func() {
-
-					logger.Status("remove temporary extras database '%s'", tmpnam)
-
-					err := os.Remove(tmpnam)
-
-					if err != nil {
-						logger.Warning("failed to remove %s, because %s", tmpnam, err)
-					}
-				}
-
-				defer cleanup()
-
-				signal_ch := make(chan os.Signal, 1)
-				signal.Notify(signal_ch, os.Interrupt)
-
-				go func() {
-					<-signal_ch
-					cleanup()
-				}()
-			}
-
-			extras_dsn = dsn
-		}
-
-		logger.Debug("enable extras with dsn %s", extras_dsn)
-		logger.Debug("enable extras with indexing %t", index_extras)
-
-		// FIX ME
-		// indexer_opts.IndexExtras = index_extras
-		// indexer_opts.ExtrasDB = extras_dsn
-	}
-
-	/*
-		for _, e := range exclude {
-
-			switch e {
-			case "deprecated":
-				indexer_opts.IncludeDeprecated = false
-			case "ceased":
-				indexer_opts.IncludeCeased = false
-			case "superseded":
-				indexer_opts.IncludeSuperseded = false
-			case "not-current":
-				indexer_opts.IncludeNotCurrent = false
-			default:
-				logger.Warning("unknown exclude filter (%s), ignoring", e)
-			}
-		}
-	*/
-
 	indexer, err := app.NewApplicationIndexer(fl, appindex)
 
-	// note: this is "-mode spatialite" not "-engine spatialite"
+	if err != nil {
+		logger.Fatal("Failed to create indexer, because %s", err)
+	}
 
-	mode, _ := flags.StringVar(fl, "mode")
+	// note: this is "-mode spatialite" not "-engine spatialite"
 
 	if mode != "spatialite" {
 
@@ -321,6 +146,8 @@ func main() {
 	logger.Debug("setting up intersects handler")
 
 	enable_geojson, _ := flags.BoolVar(fl, "enable-geojson")
+	enable_extras, _ := flags.BoolVar(fl, "enable_extras")
+	extras_dsn, _ := flags.StringVar(fl, "extras_dsn")
 
 	// enable_extras is set above...
 

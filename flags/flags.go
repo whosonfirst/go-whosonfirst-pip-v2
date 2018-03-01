@@ -10,18 +10,12 @@ import (
 
 func Parse(fl *flag.FlagSet, args []string) {
 
-	fl.Parse(args)
-
-	help, _ := BoolVar(fl, "h")
-
-	if !help {
-		help, _ = BoolVar(fl, "help")
-	}
-
-	if help {
+     	if len(args) > 0 && args[0] == "-h" {
 		fl.Usage()
 		os.Exit(0)
 	}
+
+	fl.Parse(args)
 }
 
 func Lookup(fl *flag.FlagSet, k string) (interface{}, error) {
@@ -72,9 +66,6 @@ func BoolVar(fl *flag.FlagSet, k string) (bool, error) {
 func NewFlagSet(name string) *flag.FlagSet {
 
 	fs := flag.NewFlagSet(name, flag.ContinueOnError)
-
-	fs.Bool("h", false, "")
-	fs.Bool("help", false, "")
 
 	fs.Usage = func() {
 		fs.PrintDefaults()

@@ -11,7 +11,8 @@ func Lookup(fl *flag.FlagSet, k string) (interface{}, error) {
 	v := fl.Lookup(k)
 
 	if v != nil {
-		return v.Value, nil
+		// Go is weird...
+		return v.Value.(flag.Getter).Get(), nil
 	}
 
 	return nil, errors.New("Unknown flag")
@@ -52,7 +53,7 @@ func BoolVar(fl *flag.FlagSet, k string) (bool, error) {
 
 func CommonFlags() (*flag.FlagSet, error) {
 
-	common := flag.NewFlagSet("common", flag.PanicOnError)
+	common := flag.NewFlagSet("common", flag.ContinueOnError)
 
 	common.String("index", "rtree", "Valid options are: rtree, spatialite")
 	common.String("cache", "gocache", "Valid options are: gocache, fs, spatialite")
@@ -67,10 +68,8 @@ func CommonFlags() (*flag.FlagSet, error) {
 
 	// EXCLUDE FLAGS
 
+	common.Bool("help", false, "")
 	common.Bool("verbose", false, "")
-
-	// MAYBE ?
-	common.Int("polylines-coords", 100, "...")
 
 	return common, nil
 }

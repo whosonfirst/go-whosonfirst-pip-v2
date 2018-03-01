@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"flag"
 	"fmt"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-http-mapzenjs"
@@ -38,7 +39,10 @@ func main() {
 	fl.Bool("enable-polylines", false, "")
 	fl.Bool("enable-www", false, "")
 
-	fl.Parse(os.Args)
+	fl.Int("polylines-coords", 100, "...")
+	fl.String("www-path", "/debug", "...")
+
+	fl.Parse(os.Args[1:])
 
 	verbose, _ := flags.BoolVar(fl, "verbose")
 	procs, _ := flags.IntVar(fl, "processes")
@@ -258,7 +262,7 @@ func main() {
 		}
 	*/
 
-	indexer, err := app.NewApplicationIndexer(appindex, fl)
+	indexer, err := app.NewApplicationIndexer(fl, appindex)
 
 	// note: this is "-mode spatialite" not "-engine spatialite"
 

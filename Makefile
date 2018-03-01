@@ -77,7 +77,7 @@ fmt:
 	go fmt *.go
 
 bin: 	self
-	@GOPATH=$(GOPATH) go build -o bin/wof-pip cmd/wof-pip.go
+	# @GOPATH=$(GOPATH) go build -o bin/wof-pip cmd/wof-pip.go
 	@GOPATH=$(GOPATH) go build -o bin/wof-pip-server cmd/wof-pip-server.go
 
 assets:	self

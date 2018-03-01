@@ -2,11 +2,13 @@ package app
 
 import (
 	"context"
+	"flag"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/feature"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/geometry"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/whosonfirst"
 	wof_index "github.com/whosonfirst/go-whosonfirst-index"
+	"github.com/whosonfirst/go-whosonfirst-pip/flags"
 	"github.com/whosonfirst/go-whosonfirst-pip/index"
 	"github.com/whosonfirst/go-whosonfirst-pip/utils"
 	"github.com/whosonfirst/go-whosonfirst-sqlite"
@@ -44,15 +46,28 @@ func DefaultApplicationIndexerOptions() (ApplicationIndexerOptions, error) {
 	return opts, nil
 }
 
-func NewApplicationIndexer(appindex index.Index, opts ApplicationIndexerOptions) (*wof_index.Indexer, error) {
+func NewApplicationIndexer(fl *flag.FlagSet, appindex index.Index) (*wof_index.Indexer, error) {
+
+	mode, _ := flags.StringVar(fl, "mode")
+	is_wof, _ := flags.BoolVar(fl, "is-wof")
+
+	include_deprecated := true
+	include_superseded := true
+	include_ceased := true
+	include_notcurrent := true
+
+	// FIX ME...
+
+	include_extras := false
+	extras_dsn := ""
 
 	var wg *sync.WaitGroup
 	var mu *sync.Mutex
 	var gt sqlite.Table
 
-	if opts.IndexExtras {
+	if include_extras {
 
-		db, err := database.NewDB(opts.ExtrasDB)
+		db, err := database.NewDB(extras_dsn)
 
 		if err != nil {
 			return nil, err
@@ -83,7 +98,7 @@ func NewApplicationIndexer(appindex index.Index, opts ApplicationIndexerOptions)
 
 		var f geojson.Feature
 
-		if opts.IsWOF {
+		if is_wof {
 
 			ok, err := utils.IsValidRecord(fh, ctx)
 
@@ -101,7 +116,7 @@ func NewApplicationIndexer(appindex index.Index, opts ApplicationIndexerOptions)
 				return err
 			}
 
-			if !opts.IncludeNotCurrent {
+			if !include_notcurrent {
 
 				fl, err := whosonfirst.IsCurrent(tmp)
 
@@ -114,7 +129,7 @@ func NewApplicationIndexer(appindex index.Index, opts ApplicationIndexerOptions)
 				}
 			}
 
-			if !opts.IncludeDeprecated {
+			if !include_deprecated {
 
 				fl, err := whosonfirst.IsDeprecated(tmp)
 
@@ -127,7 +142,7 @@ func NewApplicationIndexer(appindex index.Index, opts ApplicationIndexerOptions)
 				}
 			}
 
-			if !opts.IncludeCeased {
+			if !include_ceased {
 
 				fl, err := whosonfirst.IsCeased(tmp)
 
@@ -140,7 +155,7 @@ func NewApplicationIndexer(appindex index.Index, opts ApplicationIndexerOptions)
 				}
 			}
 
-			if !opts.IncludeSuperseded {
+			if !include_superseded {
 
 				fl, err := whosonfirst.IsSuperseded(tmp)
 
@@ -184,7 +199,7 @@ func NewApplicationIndexer(appindex index.Index, opts ApplicationIndexerOptions)
 		// an error signal - maybe we want to do that? maybe not...?
 		// (20171218/thisisaaronland)
 
-		if opts.IndexExtras {
+		if include_extras {
 
 			wg.Add(1)
 
@@ -192,7 +207,7 @@ func NewApplicationIndexer(appindex index.Index, opts ApplicationIndexerOptions)
 
 				defer wg.Done()
 
-				db, err := database.NewDB(opts.ExtrasDB)
+				db, err := database.NewDB(extras_dsn)
 
 				if err != nil {
 					log.Println(err)
@@ -219,9 +234,9 @@ func NewApplicationIndexer(appindex index.Index, opts ApplicationIndexerOptions)
 		return nil
 	}
 
-	idx, err := wof_index.NewIndexer(opts.IndexMode, cb)
+	idx, err := wof_index.NewIndexer(mode, cb)
 
-	if opts.IndexExtras {
+	if include_extras {
 		wg.Wait()
 	}
 

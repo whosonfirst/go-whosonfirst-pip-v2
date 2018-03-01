@@ -25,7 +25,6 @@ func main() {
 	fl.Int("port", 8080, "The port number to listen for requests on")
 
 	fl.Bool("enable-geojson", false, "Allow users to request GeoJSON FeatureCollection formatted responses.")
-	fl.Bool("enable-extras", false, "")
 	fl.Bool("enable-candidates", false, "")
 	fl.Bool("enable-polylines", false, "")
 	fl.Bool("enable-www", false, "")

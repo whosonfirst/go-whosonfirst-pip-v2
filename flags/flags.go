@@ -93,6 +93,9 @@ func CommonFlags() (*flag.FlagSet, error) {
 
 	fs.Bool("is-wof", true, "Input data is WOF-flavoured GeoJSON")
 
+	fs.Bool("enable-extras", false, "")
+	fs.String("extras-dsn", ":tmpfile:", "")
+
 	// this is invoked/used in app/indexer.go but for the life of me I can't
 	// figure out how to make the code in flags/exclude.go implement the
 	// correct inferface wah wah so that flag.Lookup("exclude").Value returns

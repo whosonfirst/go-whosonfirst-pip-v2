@@ -12,7 +12,6 @@ import (
 	gohttp "net/http"
 	"os"
 	"runtime"
-	godebug "runtime/debug"
 	"time"
 )
 
@@ -53,81 +52,22 @@ func main() {
 
 	runtime.GOMAXPROCS(procs)
 
-	enable_www, _ := flags.BoolVar(fl, "enable_www")
-
-	if enable_www {
-		logger.Status("-enable-www flag is true causing the following flags to also be true: -enable-geojson -enable-candidates")
-
-		fl.Set("enable_geojson", "true")
-		fl.Set("enable_candidates", "true")
-	}
-
 	pip_index, _ := flags.StringVar(fl, "index")
 	pip_cache, _ := flags.StringVar(fl, "cache")
 	mode, _ := flags.StringVar(fl, "mode")
 
 	logger.Info("index is %s cache is %s mode is %s", pip_index, pip_cache, mode)
 
-	logger.Debug("setting up application cache")
-
-	appcache, err := app.NewApplicationCache(fl)
+	pip_app, err := app.NewPIPApplication(fl)
 
 	if err != nil {
-		logger.Fatal("Failed to create caching layer, because %s", err)
+		logger.Fatal("Failed to create new PIP application, because %s", err)
 	}
 
-	logger.Debug("setting up application index")
-
-	appindex, err := app.NewApplicationIndex(fl, appcache)
+	err = pip_app.IndexPaths(fl.Args())
 
 	if err != nil {
-		logger.Fatal("Failed to create indexing layer, because %s", err)
-	}
-
-	indexer, err := app.NewApplicationIndexer(fl, appindex)
-
-	if err != nil {
-		logger.Fatal("Failed to create indexer, because %s", err)
-	}
-
-	// note: this is "-mode spatialite" not "-engine spatialite"
-
-	if mode != "spatialite" {
-
-		go func() {
-
-			// TO DO: put this somewhere so that it can be triggered by signal(s)
-			// to reindex everything in bulk or incrementally
-
-			t1 := time.Now()
-
-			err = indexer.IndexPaths(fl.Args())
-
-			if err != nil {
-				logger.Fatal("failed to index paths because %s", err)
-			}
-
-			t2 := time.Since(t1)
-
-			logger.Status("finished indexing in %v", t2)
-			godebug.FreeOSMemory()
-		}()
-
-		// set up some basic monitoring and feedback stuff
-
-		go func() {
-
-			c := time.Tick(1 * time.Second)
-
-			for _ = range c {
-
-				if !indexer.IsIndexing() {
-					continue
-				}
-
-				logger.Status("indexing %d records indexed", indexer.Indexed)
-			}
-		}()
+		logger.Fatal("Failed to index paths, because %s", err)
 	}
 
 	go func() {
@@ -143,6 +83,15 @@ func main() {
 
 	// set up the HTTP endpoint
 
+	enable_www, _ := flags.BoolVar(fl, "enable_www")
+
+	if enable_www {
+		logger.Status("-enable-www flag is true causing the following flags to also be true: -enable-geojson -enable-candidates")
+
+		fl.Set("enable_geojson", "true")
+		fl.Set("enable_candidates", "true")
+	}
+
 	logger.Debug("setting up intersects handler")
 
 	enable_geojson, _ := flags.BoolVar(fl, "enable-geojson")
@@ -156,7 +105,7 @@ func main() {
 	intersects_opts.EnableExtras = enable_extras
 	intersects_opts.ExtrasDB = extras_dsn
 
-	intersects_handler, err := http.IntersectsHandler(appindex, indexer, intersects_opts)
+	intersects_handler, err := http.IntersectsHandler(pip_app.Index, pip_app.Indexer, intersects_opts)
 
 	if err != nil {
 		logger.Fatal("failed to create PIP handler because %s", err)
@@ -182,7 +131,7 @@ func main() {
 
 		logger.Debug("setting up candidates handler")
 
-		candidateshandler, err := http.CandidatesHandler(appindex, indexer)
+		candidateshandler, err := http.CandidatesHandler(pip_app.Index, pip_app.Indexer)
 
 		if err != nil {
 			logger.Fatal("failed to create Spatial handler because %s", err)
@@ -201,7 +150,7 @@ func main() {
 		poly_opts.MaxCoords = poly_coords
 		poly_opts.EnableGeoJSON = enable_geojson
 
-		poly_handler, err := http.PolylineHandler(appindex, indexer, poly_opts)
+		poly_handler, err := http.PolylineHandler(pip_app.Index, pip_app.Indexer, poly_opts)
 
 		if err != nil {
 			logger.Fatal("failed to create polyline handler because %s", err)

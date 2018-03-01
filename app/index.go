@@ -10,7 +10,7 @@ import (
 
 func NewApplicationIndex(fl *flag.FlagSet, appcache cache.Cache) (index.Index, error) {
 
-	pip_index, err := flags.StringVar(fl, "pip-index")
+	pip_index, err := flags.StringVar(fl, "index")
 
 	if err != nil {
 		return nil, err

@@ -9,7 +9,7 @@ import (
 
 func NewApplicationCache(fl *flag.FlagSet) (cache.Cache, error) {
 
-	pip_cache, err := flags.StringVar(fl, "pip-cache")
+	pip_cache, err := flags.StringVar(fl, "cache")
 
 	if err != nil {
 		return nil, err

@@ -3,14 +3,15 @@ package flags
 import (
 	"errors"
 	"flag"
-	_ "fmt"
+	"fmt"
+	_ "log"
 	"os"
 	"runtime"
 )
 
 func Parse(fl *flag.FlagSet, args []string) {
 
-     	if len(args) > 0 && args[0] == "-h" {
+	if len(args) > 0 && args[0] == "-h" {
 		fl.Usage()
 		os.Exit(0)
 	}
@@ -22,12 +23,13 @@ func Lookup(fl *flag.FlagSet, k string) (interface{}, error) {
 
 	v := fl.Lookup(k)
 
-	if v != nil {
-		// Go is weird...
-		return v.Value.(flag.Getter).Get(), nil
+	if v == nil {
+		msg := fmt.Sprintf("Unknown flag '%s'", k)
+		return nil, errors.New(msg)
 	}
 
-	return nil, errors.New("Unknown flag")
+	// Go is weird...
+	return v.Value.(flag.Getter).Get(), nil
 }
 
 func StringVar(fl *flag.FlagSet, k string) (string, error) {
@@ -87,9 +89,17 @@ func CommonFlags() (*flag.FlagSet, error) {
 	fs.String("spatialite-dsn", ":memory:", "...")
 	fs.String("fs-path", "", "...")
 
-	fs.Bool("is-wof", true, "...")
+	fs.Bool("is-wof", true, "Input data is WOF-flavoured GeoJSON")
 
-	// EXCLUDE FLAGS
+	// this is invoked/used in app/indexer.go but for the life of me I can't
+	// figure out how to make the code in flags/exclude.go implement the
+	// correct inferface wah wah so that flag.Lookup("exclude").Value returns
+	// something we can loop over... so instead we just strings.Split() on
+	// flag.Lookup("exclude").String() which is dumb but works...
+	// (20180301/thisisaaronland)
+
+	var exclude Exclude
+	fs.Var(&exclude, "exclude", "Exclude (WOF) records based on their existential flags. Valid options are: ceased, deprecated, not-current, superseded.")
 
 	fs.Bool("verbose", false, "")
 

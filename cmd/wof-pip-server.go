@@ -67,8 +67,8 @@ func main() {
 		fl.Set("enable_candidates", "true")
 	}
 
-	pip_index, _ := flags.StringVar(fl, "pip-index")
-	pip_cache, _ := flags.StringVar(fl, "pip-cache")
+	pip_index, _ := flags.StringVar(fl, "index")
+	pip_cache, _ := flags.StringVar(fl, "cache")
 
 	logger.Info("index is %s cache is %s", pip_index, pip_cache)
 
@@ -457,7 +457,7 @@ func main() {
 	}
 
 	host, _ := flags.StringVar(fl, "host")
-	port, _ := flags.StringVar(fl, "port")
+	port, _ := flags.IntVar(fl, "port")
 
 	endpoint := fmt.Sprintf("%s:%d", host, port)
 	logger.Status("listening for requests on %s", endpoint)

@@ -16,6 +16,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"io"
 	"log"
+	"strings"
 	"sync"
 )
 
@@ -55,6 +56,34 @@ func NewApplicationIndexer(fl *flag.FlagSet, appindex index.Index) (*wof_index.I
 	include_superseded := true
 	include_ceased := true
 	include_notcurrent := true
+
+	exclude_fl := fl.Lookup("exclude")
+
+	if exclude_fl != nil {
+
+		// ugh... Go - why do I have to do this... I am willing
+		// to believe I am "doing it wrong" (obviously) but for
+		// the life of me I can't figure out how to do it "right"
+		// (20180301/thisisaaronland)
+
+		exclude := strings.Split(exclude_fl.Value.String(), " ")
+
+		for _, e := range exclude {
+
+			switch e {
+			case "deprecated":
+				include_deprecated = false
+			case "ceased":
+				include_ceased = false
+			case "superseded":
+				include_superseded = false
+			case "not-current":
+				include_notcurrent = false
+			default:
+				continue
+			}
+		}
+	}
 
 	// FIX ME...
 

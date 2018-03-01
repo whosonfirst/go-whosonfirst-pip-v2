@@ -16,7 +16,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"io"
 	"io/ioutil"
-	// golog "log"
+	golog "log"
 	gohttp "net/http"
 	"os"
 	"os/signal"
@@ -27,108 +27,69 @@ import (
 
 func main() {
 
-	// not at all convinced this (multiple flags sets) is a good way
-	// to do this yet but I am still just trying to figure out flags
-	// in general so it will do for now... (20180228/thisisaaronland)
+	fl, err := flags.CommonFlags()
 
-	// this is a thing you can do... (20180228/thisisaaronland)
-	// fl := flag.Lookup("verbose")
-	// golog.Println("FLAG", fl)
+	if err != nil {
+		golog.Fatal(err)
+	}
 
-	spatialite_flags := flag.NewFlagSet("spatialite", flag.PanicOnError)
-	var spatialite_dsn = spatialite_flags.String("dsn", ":memory:", "...")
+	fl.String("host", "localhost", "The hostname to listen for requests on")
+	fl.Int("port", 8080, "The port number to listen for requests on")
 
-	polylines_flags := flag.NewFlagSet("polylines", flag.PanicOnError)
-	var polylines_coords = polylines_flags.Int("coords", 100, "...")
+	fl.Bool("enable-geojson", false, "Allow users to request GeoJSON FeatureCollection formatted responses.")
+	fl.Bool("enable-extras", false, "")
+	fl.Bool("enable-candidates", false, "")
+	fl.Bool("enable-polylines", false, "")
+	fl.Bool("enable-www", false, "")
 
-	www_flags := flag.NewFlagSet("www", flag.PanicOnError)
-	var www_path = www_flags.String("path", "/debug", "...")
-	// var www_apikey = www_flags.String("api-key", "nextzen-xxxxxx", "...")
+	fl.Parse()
 
-	fs_flags := flag.NewFlagSet("fs", flag.PanicOnError)
-	var fs_path = fs_flags.String("path", "...", "...")
-
-	var fs_args flags.KeyValueArgs
-	flag.Var(&fs_args, "fs", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to the fs cache")
-
-	var spatialite_args flags.KeyValueArgs
-	flag.Var(&spatialite_args, "spatialite", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to the spatialite database")
-
-	var exclude flags.Exclude
-	flag.Var(&exclude, "exclude", "Exclude (WOF) records based on their existential flags. Valid options are: ceased, deprecated, not-current, superseded.")
-
-	var polylines_args flags.KeyValueArgs
-	flag.Var(&polylines_args, "polylines", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to ... polylines")
-
-	var www_args flags.KeyValueArgs
-	flag.Var(&www_args, "www", "(0) or more user-defined '{KEY}={VALUE}' arguments to pass to ... www")
-
-	// normal flags
-
-	var host = flag.String("host", "localhost", "The hostname to listen for requests on")
-	var port = flag.Int("port", 8080, "The port number to listen for requests on")
-
-	var pip_index = flag.String("index", "rtree", "Valid options are: rtree, spatialite")
-	var pip_cache = flag.String("cache", "gocache", "Valid options are: gocache, fs, spatialite")
-
-	var mode = flag.String("mode", "files", "...")
-	var procs = flag.Int("processes", runtime.NumCPU()*2, "...")
-
-	var is_wof = flag.Bool("is-wof", true, "...")
-
-	var enable_geojson = flag.Bool("enable-geojson", false, "Allow users to request GeoJSON FeatureCollection formatted responses.")
-	var enable_extras = flag.Bool("enable-extras", false, "")
-	var enable_candidates = flag.Bool("enable-candidates", false, "")
-	var enable_polylines = flag.Bool("enable-polylines", false, "")
-	var enable_www = flag.Bool("enable-www", false, "")
-
-	var verbose = flag.Bool("verbose", false, "")
-
-	flag.Parse()
+	verbose, _ := flags.Lookup(fl, "verbose")
+	procs, _ := flages.Lookup(fl, "processes")
 
 	logger := log.SimpleWOFLogger()
 	level := "status"
 
-	if *verbose {
+	if verbose {
 		level = "debug"
 	}
 
 	stdout := io.Writer(os.Stdout)
 	logger.AddLogger(stdout, level)
 
-	// see above
+	runtime.GOMAXPROCS(procs)
 
-	spatialite_flags.Parse(spatialite_args.ToFlags())
-	polylines_flags.Parse(spatialite_args.ToFlags())
-	www_flags.Parse(www_args.ToFlags())
-	fs_flags.Parse(fs_args.ToFlags())
+	enable_www := fl.Lookup("enable_www")
+	enable_geojson := fl.Lookup("enable_geojson")
+	enable_candidates := fl.Lookup("enable_candidates")
 
-	runtime.GOMAXPROCS(*procs)
+	enable_www := fl_enable_www.Value
 
-	if *enable_www {
-		logger.Status("-www flag is true causing the following flags to also be true: -enable-geojson -enable-candidates")
-		*enable_geojson = true
-		*enable_candidates = true
+	if enable_www {
+		logger.Status("-enable-www flag is true causing the following flags to also be true: -enable-geojson -enable-candidates")
+		fl_enable_geojson.Value = true
+		fl_enable_candidates.Value = true
 	}
 
-	// cloned from wof-pip.go
+	fl_pip_index := fl.Lookup("pip-index")
+	fl_pip_cache := fl.Lookup("pip-cache")
 
-	var db *database.SQLiteDatabase
-
-	var appindex index.Index
-	var appindex_err error
-
-	var appcache cache.Cache
-	var appcache_err error
+	pip_index := fl_pip_index.Value
+	pip_cache := fl_pip_cache.Value
 
 	logger.Info("index is %s cache is %s", *pip_index, *pip_cache)
 
-	if *pip_index == "spatialite" {
+	var db *database.SQLiteDatabase
+
+	if pip_index == "spatialite" {
+
+		fl_spatialite_dsn := fl.Lookup("spatialite-dsn")
+		spatialite_dsn := fl_spatialite_dsn.Value
 
 		logger.Debug("setting up spatialite database")
-		logger.Debug("spatialite driver is %s and dsn is %s", *pip_index, *spatialite_dsn)
+		logger.Debug("spatialite driver is %s and dsn is %s", pip_index, spatialite_dsn)
 
-		d, err := database.NewDBWithDriver(*pip_index, *spatialite_dsn)
+		d, err := database.NewDBWithDriver(*pip_index, spatialite_dsn)
 
 		if err != nil {
 			logger.Fatal("Failed to create spatialite database, because %s", err)
@@ -145,63 +106,28 @@ func main() {
 
 	logger.Debug("setting up application cache")
 
-	switch *pip_cache {
+	appcache, err := app.NewApplicationCache(fl)
 
-	case "gocache":
-
-		opts, err := cache.DefaultGoCacheOptions()
-
-		if err != nil {
-			appcache_err = err
-		} else {
-			appcache, appcache_err = cache.NewGoCache(opts)
-		}
-
-	case "fs":
-		appcache, appcache_err = cache.NewFSCache(*fs_path)
-	case "sqlite":
-		appcache, appcache_err = cache.NewSQLiteCache(db)
-	case "spatialite":
-		appcache, appcache_err = cache.NewSQLiteCache(db)
-	default:
-		appcache_err = errors.New("Invalid cache layer")
-	}
-
-	if appcache_err != nil {
-		logger.Fatal("Failed to create caching layer because %s", appcache_err)
+	if err != nil {
+		logger.Fatal("Failed to create caching layer, because %s", err)
 	}
 
 	logger.Debug("setting up application index")
 
-	switch *pip_index {
-	case "rtree":
-		appindex, appindex_err = index.NewRTreeIndex(appcache)
-	case "spatialite":
-		appindex, appindex_err = index.NewSpatialiteIndex(db, appcache)
-	default:
-		appindex_err = errors.New("Invalid engine")
-	}
-
-	if appindex_err != nil {
-		logger.Fatal("failed to create index because %s", appindex_err)
-	}
-
-	// end of cloned from...
-
-	indexer_opts, err := app.DefaultApplicationIndexerOptions()
+	appindex, err := app.NewApplicationIndex(fl)
 
 	if err != nil {
-		logger.Fatal("failed to create indexer options, because %s", err)
+		logger.Fatal("Failed to create indexing layer, because %s", err)
 	}
-
-	indexer_opts.IndexMode = *mode
-	indexer_opts.IsWOF = *is_wof
 
 	// extras...
 
 	var extras_dsn string
 
-	if *enable_extras {
+	fl_enable_extras := fl.Lookup("enable_extras")
+	enable_extras := fl_enable_extras
+
+	if enable_extras {
 
 		index_extras := true
 
@@ -243,9 +169,12 @@ func main() {
 		// the assumption that almost no one is going to be creating *fresh* databases and
 		// instead just using the databases that WOF itself produces (20180228/thisisaaronland)
 
-		if *pip_cache == "spatialite" || *pip_cache == "sqlite" {
+		if pip_cache == "spatialite" || pip_cache == "sqlite" {
 
-			dsn := *spatialite_dsn
+			fl_spatialite_dsn := fl.Lookup("spatialite-dsn")
+			spatialite_dsn := fl_spatialite_dsn.Value
+
+			dsn := spatialite_dsn
 
 			// see above - this is solution (2) which is pretty WOF-specific in that it
 			// tests for a geom:latitude property which will probably break things if
@@ -297,7 +226,7 @@ func main() {
 
 		if index_extras {
 
-			dsn := *spatialite_dsn
+			dsn := spatialite_dsn
 
 			// MAYBE REVISIT THIS DECISION? (20180228/thisisaaronland)
 
@@ -343,31 +272,37 @@ func main() {
 		logger.Debug("enable extras with dsn %s", extras_dsn)
 		logger.Debug("enable extras with indexing %t", index_extras)
 
-		indexer_opts.IndexExtras = index_extras
-		indexer_opts.ExtrasDB = extras_dsn
+		// FIX ME
+		// indexer_opts.IndexExtras = index_extras
+		// indexer_opts.ExtrasDB = extras_dsn
 	}
 
-	for _, e := range exclude {
+	/*
+		for _, e := range exclude {
 
-		switch e {
-		case "deprecated":
-			indexer_opts.IncludeDeprecated = false
-		case "ceased":
-			indexer_opts.IncludeCeased = false
-		case "superseded":
-			indexer_opts.IncludeSuperseded = false
-		case "not-current":
-			indexer_opts.IncludeNotCurrent = false
-		default:
-			logger.Warning("unknown exclude filter (%s), ignoring", e)
+			switch e {
+			case "deprecated":
+				indexer_opts.IncludeDeprecated = false
+			case "ceased":
+				indexer_opts.IncludeCeased = false
+			case "superseded":
+				indexer_opts.IncludeSuperseded = false
+			case "not-current":
+				indexer_opts.IncludeNotCurrent = false
+			default:
+				logger.Warning("unknown exclude filter (%s), ignoring", e)
+			}
 		}
-	}
+	*/
 
-	indexer, err := app.NewApplicationIndexer(appindex, indexer_opts)
+	indexer, err := app.NewApplicationIndexer(appindex, fl)
 
 	// note: this is "-mode spatialite" not "-engine spatialite"
 
-	if *mode != "spatialite" {
+	fl_mode := fl.Lookup("mode")
+	mode = fl_mode.Value
+
+	if mode != "spatialite" {
 
 		go func() {
 
@@ -376,7 +311,7 @@ func main() {
 
 			t1 := time.Now()
 
-			err = indexer.IndexPaths(flag.Args())
+			err = indexer.IndexPaths(fl.Args())
 
 			if err != nil {
 				logger.Fatal("failed to index paths because %s", err)

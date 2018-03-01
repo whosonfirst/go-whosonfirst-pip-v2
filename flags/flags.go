@@ -5,6 +5,17 @@ import (
 	"runtime"
 )
 
+func Lookup(fl *flag.FlagSet, key string) (interface{}, error) {
+
+     v := fl.Lookup(k)
+
+     if v != nil {
+     	return v.Value, nil
+     }
+
+     return nil, errors.New("Unknown flag")
+}
+
 func CommonFlags() (*flag.FlagSet, error) {
 
 	common := flag.NewFlagSet("common", flag.PanicOnError)
@@ -15,15 +26,17 @@ func CommonFlags() (*flag.FlagSet, error) {
 	common.String("mode", "files", "...")
 	common.Int("processes", runtime.NumCPU()*2, "...")
 
-	common.Bool("is-wof", true, "...")
+	common.String("spatialite-dsn", ":memory:", "...")
+	common.String("fs-path", "", "...")
 
-	common.Bool("enable-geojson", false, "Allow users to request GeoJSON FeatureCollection formatted responses.")
-	common.Bool("enable-extras", false, "")
-	common.Bool("enable-candidates", false, "")
-	common.Bool("enable-polylines", false, "")
-	common.Bool("enable-www", false, "")
+	fl.Bool("is-wof", true, "...")
+
+	// EXCLUDE FLAGS
 
 	common.Bool("verbose", false, "")
+
+	// MAYBE ?
+	common.Int("polylines-coords", 100, "...")
 
 	return common, nil
 }

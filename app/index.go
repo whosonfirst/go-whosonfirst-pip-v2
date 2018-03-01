@@ -8,9 +8,9 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-pip/index"
 )
 
-func NewApplicationIndex(fl *fl.FlagSet, appcache cache.Cache) (index.Index, error) {
+func NewApplicationIndex(fl *flag.FlagSet, appcache cache.Cache) (index.Index, error) {
 
-	pip_index := flags.Lookup(fl, "pip-index")
+	pip_index, err := flags.StringVar(fl, "pip-index")
 
 	if err != nil {
 		return nil, err
@@ -20,6 +20,13 @@ func NewApplicationIndex(fl *fl.FlagSet, appcache cache.Cache) (index.Index, err
 	case "rtree":
 		return index.NewRTreeIndex(appcache)
 	case "spatialite":
+
+		db, err := NewSpatialiteDB(fl)
+
+		if err != nil {
+			return nil, err
+		}
+
 		return index.NewSpatialiteIndex(db, appcache)
 	default:
 		return nil, errors.New("Invalid engine")

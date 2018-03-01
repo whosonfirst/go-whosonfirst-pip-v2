@@ -9,11 +9,11 @@ import (
 
 func NewApplicationCache(fl *flag.FlagSet) (cache.Cache, error) {
 
-     pip_cache, err := flags.Lookup(fl, "pip-cache")
+	pip_cache, err := flags.StringVar(fl, "pip-cache")
 
-     if err != nil {
-     	return nil, err
-     }
+	if err != nil {
+		return nil, err
+	}
 
 	switch pip_cache {
 
@@ -29,18 +29,34 @@ func NewApplicationCache(fl *flag.FlagSet) (cache.Cache, error) {
 
 	case "fs":
 
-		path, err := flags.Lookup(fl, "fs-path")
+		path, err := flags.StringVar(fl, "fs-path")
 
 		if err != nil {
 			return nil, err
 		}
 
-		appcache, appcache_err = cache.NewFSCache(path)
+		return cache.NewFSCache(path)
 
 	case "sqlite":
+
+		db, err := NewSpatialiteDB(fl)
+
+		if err != nil {
+			return nil, err
+		}
+
 		return cache.NewSQLiteCache(db)
+
 	case "spatialite":
+
+		db, err := NewSpatialiteDB(fl)
+
+		if err != nil {
+			return nil, err
+		}
+
 		return cache.NewSQLiteCache(db)
+
 	default:
 		return nil, errors.New("Invalid cache layer")
 	}

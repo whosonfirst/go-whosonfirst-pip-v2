@@ -1,19 +1,53 @@
 package flags
 
 import (
+	"errors"
 	"flag"
 	"runtime"
 )
 
-func Lookup(fl *flag.FlagSet, key string) (interface{}, error) {
+func Lookup(fl *flag.FlagSet, k string) (interface{}, error) {
 
-     v := fl.Lookup(k)
+	v := fl.Lookup(k)
 
-     if v != nil {
-     	return v.Value, nil
-     }
+	if v != nil {
+		return v.Value, nil
+	}
 
-     return nil, errors.New("Unknown flag")
+	return nil, errors.New("Unknown flag")
+}
+
+func StringVar(fl *flag.FlagSet, k string) (string, error) {
+
+	i, err := Lookup(fl, k)
+
+	if err != nil {
+		return "", err
+	}
+
+	return i.(string), nil
+}
+
+func IntVar(fl *flag.FlagSet, k string) (int, error) {
+
+	i, err := Lookup(fl, k)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return i.(int), nil
+}
+
+func BoolVar(fl *flag.FlagSet, k string) (bool, error) {
+
+	i, err := Lookup(fl, k)
+
+	if err != nil {
+		return false, err
+	}
+
+	return i.(bool), nil
 }
 
 func CommonFlags() (*flag.FlagSet, error) {
@@ -29,7 +63,7 @@ func CommonFlags() (*flag.FlagSet, error) {
 	common.String("spatialite-dsn", ":memory:", "...")
 	common.String("fs-path", "", "...")
 
-	fl.Bool("is-wof", true, "...")
+	common.Bool("is-wof", true, "...")
 
 	// EXCLUDE FLAGS
 

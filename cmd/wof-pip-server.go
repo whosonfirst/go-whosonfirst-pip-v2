@@ -2,17 +2,13 @@ package main
 
 import (
 	"database/sql"
-	"errors"
-	"flag"
 	"fmt"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-http-mapzenjs"
 	"github.com/whosonfirst/go-whosonfirst-log"
 	"github.com/whosonfirst/go-whosonfirst-pip/app"
-	"github.com/whosonfirst/go-whosonfirst-pip/cache"
 	"github.com/whosonfirst/go-whosonfirst-pip/flags"
 	"github.com/whosonfirst/go-whosonfirst-pip/http"
-	"github.com/whosonfirst/go-whosonfirst-pip/index"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"io"
 	"io/ioutil"
@@ -42,10 +38,10 @@ func main() {
 	fl.Bool("enable-polylines", false, "")
 	fl.Bool("enable-www", false, "")
 
-	fl.Parse()
+	fl.Parse(os.Args)
 
-	verbose, _ := flags.Lookup(fl, "verbose")
-	procs, _ := flages.Lookup(fl, "processes")
+	verbose, _ := flags.BoolVar(fl, "verbose")
+	procs, _ := flags.IntVar(fl, "processes")
 
 	logger := log.SimpleWOFLogger()
 	level := "status"
@@ -59,50 +55,19 @@ func main() {
 
 	runtime.GOMAXPROCS(procs)
 
-	enable_www := fl.Lookup("enable_www")
-	enable_geojson := fl.Lookup("enable_geojson")
-	enable_candidates := fl.Lookup("enable_candidates")
-
-	enable_www := fl_enable_www.Value
+	enable_www, _ := flags.BoolVar(fl, "enable_www")
 
 	if enable_www {
 		logger.Status("-enable-www flag is true causing the following flags to also be true: -enable-geojson -enable-candidates")
-		fl_enable_geojson.Value = true
-		fl_enable_candidates.Value = true
+
+		fl.Set("enable_geojson", "true")
+		fl.Set("enable_candidates", "true")
 	}
 
-	fl_pip_index := fl.Lookup("pip-index")
-	fl_pip_cache := fl.Lookup("pip-cache")
+	pip_index, _ := flags.StringVar(fl, "pip-index")
+	pip_cache, _ := flags.StringVar(fl, "pip-cache")
 
-	pip_index := fl_pip_index.Value
-	pip_cache := fl_pip_cache.Value
-
-	logger.Info("index is %s cache is %s", *pip_index, *pip_cache)
-
-	var db *database.SQLiteDatabase
-
-	if pip_index == "spatialite" {
-
-		fl_spatialite_dsn := fl.Lookup("spatialite-dsn")
-		spatialite_dsn := fl_spatialite_dsn.Value
-
-		logger.Debug("setting up spatialite database")
-		logger.Debug("spatialite driver is %s and dsn is %s", pip_index, spatialite_dsn)
-
-		d, err := database.NewDBWithDriver(*pip_index, spatialite_dsn)
-
-		if err != nil {
-			logger.Fatal("Failed to create spatialite database, because %s", err)
-		}
-
-		err = d.LiveHardDieFast()
-
-		if err != nil {
-			logger.Fatal("Failed to create spatialite database, because %s", err)
-		}
-
-		db = d
-	}
+	logger.Info("index is %s cache is %s", pip_index, pip_cache)
 
 	logger.Debug("setting up application cache")
 
@@ -114,7 +79,7 @@ func main() {
 
 	logger.Debug("setting up application index")
 
-	appindex, err := app.NewApplicationIndex(fl)
+	appindex, err := app.NewApplicationIndex(fl, appcache)
 
 	if err != nil {
 		logger.Fatal("Failed to create indexing layer, because %s", err)
@@ -124,8 +89,7 @@ func main() {
 
 	var extras_dsn string
 
-	fl_enable_extras := fl.Lookup("enable_extras")
-	enable_extras := fl_enable_extras
+	enable_extras, _ := flags.BoolVar(fl, "enable_extras")
 
 	if enable_extras {
 
@@ -169,10 +133,9 @@ func main() {
 		// the assumption that almost no one is going to be creating *fresh* databases and
 		// instead just using the databases that WOF itself produces (20180228/thisisaaronland)
 
-		if pip_cache == "spatialite" || pip_cache == "sqlite" {
+		spatialite_dsn, _ := flags.StringVar(fl, "spatialite-dsn")
 
-			fl_spatialite_dsn := fl.Lookup("spatialite-dsn")
-			spatialite_dsn := fl_spatialite_dsn.Value
+		if pip_cache == "spatialite" || pip_cache == "sqlite" {
 
 			dsn := spatialite_dsn
 
@@ -299,8 +262,7 @@ func main() {
 
 	// note: this is "-mode spatialite" not "-engine spatialite"
 
-	fl_mode := fl.Lookup("mode")
-	mode = fl_mode.Value
+	mode, _ := flags.StringVar(fl, "mode")
 
 	if mode != "spatialite" {
 
@@ -355,9 +317,13 @@ func main() {
 
 	logger.Debug("setting up intersects handler")
 
+	enable_geojson, _ := flags.BoolVar(fl, "enable-geojson")
+
+	// enable_extras is set above...
+
 	intersects_opts := http.NewDefaultIntersectsHandlerOptions()
-	intersects_opts.EnableGeoJSON = *enable_geojson
-	intersects_opts.EnableExtras = *enable_extras
+	intersects_opts.EnableGeoJSON = enable_geojson
+	intersects_opts.EnableExtras = enable_extras
 	intersects_opts.ExtrasDB = extras_dsn
 
 	intersects_handler, err := http.IntersectsHandler(appindex, indexer, intersects_opts)
@@ -377,7 +343,12 @@ func main() {
 	mux.Handle("/ping", ping_handler)
 	mux.Handle("/", intersects_handler)
 
-	if *enable_candidates {
+	enable_candidates, _ := flags.BoolVar(fl, "enable-candidates")
+	enable_polylines, _ := flags.BoolVar(fl, "enable-polylines")
+
+	// enable_www is set above
+
+	if enable_candidates {
 
 		logger.Debug("setting up candidates handler")
 
@@ -390,13 +361,15 @@ func main() {
 		mux.Handle("/candidates", candidateshandler)
 	}
 
-	if *enable_polylines {
+	if enable_polylines {
 
 		logger.Debug("setting up polylines handler")
 
+		poly_coords, _ := flags.IntVar(fl, "polylines-coords")
+
 		poly_opts := http.NewDefaultPolylineHandlerOptions()
-		poly_opts.MaxCoords = *polylines_coords
-		poly_opts.EnableGeoJSON = *enable_geojson
+		poly_opts.MaxCoords = poly_coords
+		poly_opts.EnableGeoJSON = enable_geojson
 
 		poly_handler, err := http.PolylineHandler(appindex, indexer, poly_opts)
 
@@ -407,7 +380,7 @@ func main() {
 		mux.Handle("/polyline", poly_handler)
 	}
 
-	if *enable_www {
+	if enable_www {
 
 		logger.Debug("setting up www handler")
 
@@ -476,10 +449,14 @@ func main() {
 		mux.Handle("/javascript/slippymap.crosshairs.js", www_handler)
 		mux.Handle("/css/mapzen.whosonfirst.pip.css", www_handler)
 
-		mux.Handle(*www_path, www_handler)
+		www_path, _ := flags.StringVar(fl, "www-path")
+		mux.Handle(www_path, www_handler)
 	}
 
-	endpoint := fmt.Sprintf("%s:%d", *host, *port)
+	host, _ := flags.StringVar(fl, "host")
+	port, _ := flags.StringVar(fl, "port")
+
+	endpoint := fmt.Sprintf("%s:%d", host, port)
 	logger.Status("listening for requests on %s", endpoint)
 
 	err = gohttp.ListenAndServe(endpoint, mux)

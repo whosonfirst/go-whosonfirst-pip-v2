@@ -3,8 +3,26 @@ package flags
 import (
 	"errors"
 	"flag"
+	"fmt"
+	"os"
 	"runtime"
 )
+
+func Parse(fl *flag.FlagSet, args []string) {
+
+	fl.Parse(args)
+
+	help, _ := BoolVar(fl, "h")
+
+	if !help {
+		help, _ = BoolVar(fl, "help")
+	}
+
+	if help {
+		fl.Usage()
+		os.Exit(0)
+	}
+}
 
 func Lookup(fl *flag.FlagSet, k string) (interface{}, error) {
 
@@ -51,9 +69,23 @@ func BoolVar(fl *flag.FlagSet, k string) (bool, error) {
 	return i.(bool), nil
 }
 
+func NewFlagSet(name string) *flag.FlagSet {
+
+	fs := flag.NewFlagSet(name, flag.ContinueOnError)
+
+	fs.Bool("h", false, "")
+	fs.Bool("help", false, "")
+
+	fs.Usage = func() {
+		fmt.Println("GO IS WEIRD, PART 2")
+	}
+
+	return fs
+}
+
 func CommonFlags() (*flag.FlagSet, error) {
 
-	common := flag.NewFlagSet("common", flag.ContinueOnError)
+	common := NewFlagSet("common")
 
 	common.String("index", "rtree", "Valid options are: rtree, spatialite")
 	common.String("cache", "gocache", "Valid options are: gocache, fs, spatialite")
@@ -68,7 +100,6 @@ func CommonFlags() (*flag.FlagSet, error) {
 
 	// EXCLUDE FLAGS
 
-	common.Bool("help", false, "")
 	common.Bool("verbose", false, "")
 
 	return common, nil

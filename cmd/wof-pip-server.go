@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"flag"
 	"fmt"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-http-mapzenjs"
@@ -42,7 +41,7 @@ func main() {
 	fl.Int("polylines-coords", 100, "...")
 	fl.String("www-path", "/debug", "...")
 
-	fl.Parse(os.Args[1:])
+	flags.Parse(fl, os.Args[1:])
 
 	verbose, _ := flags.BoolVar(fl, "verbose")
 	procs, _ := flags.IntVar(fl, "processes")

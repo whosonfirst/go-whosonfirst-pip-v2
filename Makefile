@@ -91,16 +91,16 @@ wwwdirs:
 	if test ! -d www/tangram; then mkdir -p www/tangram; fi
 
 tangram:
-	curl -s -o www/javascript/tangram.js https://mapzen.com/tangram/tangram.debug.js
-	curl -s -o www/javascript/tangram.min.js https://mapzen.com/tangram/tangram.min.js
+	curl -s -o www/javascript/tangram.js https://www.nextzen.org/tangram/tangram.debug.js
+	curl -s -o www/javascript/tangram.min.js https://www.nextzen.org/tangram/tangram.min.js
 
 refill:
-	curl -s -o www/tangram/refill-style.zip https://mapzen.com/carto/refill-style/refill-style.zip
+	curl -s -o www/tangram/refill-style.zip https://www.nextzen.org/carto/refill-style/refill-style.zip
 
 mapzenjs:
-	curl -s -o www/css/mapzen.js.css https://mapzen.com/js/mapzen.css
-	curl -s -o www/javascript/mapzen.js https://mapzen.com/js/mapzen.js
-	curl -s -o www/javascript/mapzen.min.js https://mapzen.com/js/mapzen.min.js
+	curl -s -o www/css/mapzen.js.css https://www.nextzen.org/js/mapzen.css
+	curl -s -o www/javascript/mapzen.js https://www.nextzen.org/js/mapzen.js
+	curl -s -o www/javascript/mapzen.min.js https://www.nextzen.org/js/mapzen.min.js
 
 crosshairs:
 	curl -s -o www/javascript/slippymap.crosshairs.js https://raw.githubusercontent.com/whosonfirst/js-slippymap-crosshairs/master/src/slippymap.crosshairs.js	

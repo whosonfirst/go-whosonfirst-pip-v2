@@ -14,6 +14,7 @@ type Cache interface {
 	Misses() int64
 	Evictions() int64
 	Size() int64
+	Close() error
 }
 
 type CacheItem interface {

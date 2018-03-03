@@ -27,6 +27,10 @@ type RTreeSpatialIndex struct {
 	Id     string
 }
 
+func (sp RTreeSpatialIndex) Close() error {
+	return nil
+}
+
 func (sp RTreeSpatialIndex) Bounds() *rtreego.Rect {
 	return sp.bounds
 }

@@ -77,17 +77,13 @@ func main() {
 	pip.Logger.Debug("setting up intersects handler")
 
 	enable_geojson, _ := flags.BoolVar(fl, "enable-geojson")
-	enable_extras, _ := flags.BoolVar(fl, "enable_extras")
-	extras_dsn, _ := flags.StringVar(fl, "extras_dsn")
 
 	// enable_extras is set above...
 
 	intersects_opts := http.NewDefaultIntersectsHandlerOptions()
 	intersects_opts.EnableGeoJSON = enable_geojson
-	intersects_opts.EnableExtras = enable_extras
-	intersects_opts.ExtrasDB = extras_dsn
 
-	intersects_handler, err := http.IntersectsHandler(pip.Index, pip.Indexer, intersects_opts)
+	intersects_handler, err := http.IntersectsHandler(pip.Index, pip.Indexer, pip.Extras, intersects_opts)
 
 	if err != nil {
 		pip.Logger.Fatal("failed to create PIP handler because %s", err)

@@ -69,6 +69,10 @@ func NewGoCache(opts *GoCacheOptions) (Cache, error) {
 	return &lc, nil
 }
 
+func (c *GoCache) Close() error {
+	return nil
+}
+
 func (c *GoCache) Get(key string) (CacheItem, error) {
 
 	// to do: timings that don't slow everything down the way

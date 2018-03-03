@@ -71,6 +71,10 @@ func NewSpatialiteIndex(db *database.SQLiteDatabase, c cache.Cache) (Index, erro
 	return &i, nil
 }
 
+func (i *SpatialiteIndex) Close() error {
+	return i.database.Close()
+}
+
 func (i *SpatialiteIndex) Cache() cache.Cache {
 	return i.cache
 }

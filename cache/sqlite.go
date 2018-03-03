@@ -43,6 +43,10 @@ func NewSQLiteCache(db *database.SQLiteDatabase) (Cache, error) {
 	return &lc, nil
 }
 
+func (c *SQLiteCache) Close() error {
+	return c.database.Close()
+}
+
 func (c *SQLiteCache) Get(key string) (CacheItem, error) {
 
 	db := c.database

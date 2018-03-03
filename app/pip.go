@@ -67,6 +67,18 @@ func NewPIPApplication(fl *flag.FlagSet) (*PIPApplication, error) {
 	return &p, nil
 }
 
+func (p *PIPApplication) Close() error {
+
+	p.Cache.Close()
+	p.Index.Close()
+
+	if p.Extras != nil {
+		p.Extras.Close()
+	}
+
+	return nil
+}
+
 func (p *PIPApplication) IndexPaths(paths []string) error {
 
 	if p.mode != "spatialite" {

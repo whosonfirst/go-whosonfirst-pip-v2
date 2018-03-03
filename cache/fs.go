@@ -55,6 +55,10 @@ func NewFSCache(data_root string) (Cache, error) {
 	return &c, nil
 }
 
+func (c *FSCache) Close() error {
+	return nil
+}
+
 func (c *FSCache) Get(key string) (CacheItem, error) {
 
 	// to do: timings that don't slow everything down the way

@@ -12,7 +12,7 @@ import (
 
 func NewApplicationExtras(fl *flag.FlagSet) (*database.SQLiteDatabase, error) {
 
-	enable_extras, _ := flags.BoolVar(fl, "enable_extras")
+	enable_extras, _ := flags.BoolVar(fl, "enable-extras")
 	extras_dsn, _ := flags.StringVar(fl, "extras-dsn")
 
 	if !enable_extras {

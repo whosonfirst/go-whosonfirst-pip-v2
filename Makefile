@@ -7,15 +7,10 @@ prep:
 self:   prep rmdeps
 	if test -d src/github.com/whosonfirst/go-whosonfirst-pip; then rm -rf src/github.com/whosonfirst/go-whosonfirst-pip; fi
 	mkdir -p src/github.com/whosonfirst/go-whosonfirst-pip
-	mkdir -p src/github.com/whosonfirst/go-whosonfirst-pip/app
-	mkdir -p src/github.com/whosonfirst/go-whosonfirst-pip/cache
-	mkdir -p src/github.com/whosonfirst/go-whosonfirst-pip/filter
-	mkdir -p src/github.com/whosonfirst/go-whosonfirst-pip/http
-	mkdir -p src/github.com/whosonfirst/go-whosonfirst-pip/index
-	mkdir -p src/github.com/whosonfirst/go-whosonfirst-pip/utils
 	cp *.go src/github.com/whosonfirst/go-whosonfirst-pip/
 	cp -r app src/github.com/whosonfirst/go-whosonfirst-pip/
 	cp -r cache src/github.com/whosonfirst/go-whosonfirst-pip/
+	cp -r extras src/github.com/whosonfirst/go-whosonfirst-pip/
 	cp -r filter src/github.com/whosonfirst/go-whosonfirst-pip/
 	cp -r flags src/github.com/whosonfirst/go-whosonfirst-pip/
 	cp -r http src/github.com/whosonfirst/go-whosonfirst-pip/
@@ -69,6 +64,7 @@ fmt:
 	go fmt app/*.go
 	go fmt cache/*.go
 	go fmt cmd/*.go
+	go fmt extras/*.go
 	go fmt filter/*.go
 	go fmt flags/*.go
 	go fmt http/*.go

@@ -121,7 +121,7 @@ window.addEventListener("load", function load(event){
 				
 				var props = features[i]["properties"];
 				var id = props["id"];
-				
+
 				var code = document.createElement("code")
 				code.appendChild(document.createTextNode(id));
 				
@@ -150,8 +150,6 @@ window.addEventListener("load", function load(event){
 		
 		var onsuccess = function(rsp){
 
-			console.log("INTERSECTING", rsp);
-			
 			if ((rsp["type"]) && ((rsp["type"] == "FeatureCollection") || (rsp["type"] == "Feature"))){
 				show_geojson(rsp);
 				return;
@@ -159,7 +157,7 @@ window.addEventListener("load", function load(event){
 			
 			var places = rsp["places"];
 			var count = places.length;						    
-			
+
 			for (var i=0; i < count; i++){
 				
 				var spr = places[i];
@@ -169,17 +167,8 @@ window.addEventListener("load", function load(event){
 					console.log("missing mz:uri property, so skipping");
 					return;
 				}
-				
-				var id = spr["wof:id"];
-				var name = spr["wof:name"];
-				
-				var c = document.getElementById("candidate-" + id);
 
-				if (c){
-					c.appendChild(document.createTextNode(" " + name));
-					c.setAttribute("class", "intersects");
-				}
-				
+				// update_candidate(spr);
 				fetch_geojson(url);
 			}
        		};
@@ -187,8 +176,24 @@ window.addEventListener("load", function load(event){
 		fetch(url, onsuccess);
 	};
 
+	var update_candidate = function(props) {
+
+	    var id = props["wof:id"];
+	    var name = props["wof:name"];
+				
+	    var c = document.getElementById("candidate-" + id);
+
+	    if (!c){
+		console.log("UNABLE TO UPDATE CANDIDATE", id);
+		return;
+	    }
+
+	    c.appendChild(document.createTextNode(" " + name));
+	    c.setAttribute("class", "intersects");
+	};
+
 	var show_geojson = function(rsp){
-		
+
 		var style = {
 			"color": "#FF69B4",
 			"weight": 5,
@@ -209,6 +214,15 @@ window.addEventListener("load", function load(event){
 		layer.addTo(map);
 		
 		intersecting.push(layer);
+
+		var features = rsp["features"];
+		var count = features.length;
+
+		for (var i=0; i < count; i++){
+		    var feature = features[i];
+		    var props = feature["properties"];
+		    update_candidate(props);
+		}
 	};
 	
 	var fetch_geojson = function(url){

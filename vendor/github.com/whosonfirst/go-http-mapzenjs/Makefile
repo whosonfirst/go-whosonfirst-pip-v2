@@ -43,7 +43,7 @@ assets:	self
 	@GOPATH=$(GOPATH) go build -o bin/go-bindata-assetfs vendor/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs/main.go
 	rm -f www/*~ www/css/*~ www/javascript/*~ www/tangram/*~
 	@PATH=$(PATH):$(CWD)/bin bin/go-bindata-assetfs -pkg mapzenjs www www/javascript www/css www/tangram
-	mv bindata_assetfs.go assets.go
+	mv bindata.go assets.go
 
 wwwdirs:
 	if test ! -d www/javascript; then mkdir www/javascript; fi
@@ -57,12 +57,14 @@ tangram:
 styles: refill walkabout
 
 refill:
-	curl -s -o www/tangram/refill-style.zip https://www.nextzen.org/carto/refill-style/refill-style.zip
+	curl -s -o www/tangram/refill-style.zip https://www.nextzen.org/carto/refill-style/10/refill-style.zip
+	curl -s -o www/tangram/refill-style-themes-label.zip https://www.nextzen.org/carto/refill-style/10/themes/label-10.zip
 
 walkabout:
 	curl -s -o www/tangram/walkabout-style.zip https://www.nextzen.org/carto/refill-style/walkabout-style.zip
 
 mapzenjs:
-	curl -s -o www/css/mapzen.js.css https://www.nextzen.org/js/mapzen.css
-	curl -s -o www/javascript/mapzen.js https://www.nextzen.org/js/mapzen.js
-	curl -s -o www/javascript/mapzen.min.js https://www.nextzen.org/js/mapzen.min.js
+	@echo "waiting for nextzen.js..."
+	# curl -s -o www/css/mapzen.js.css https://mapzen.com/js/mapzen.css
+	# curl -s -o www/javascript/mapzen.js https://mapzen.com/js/mapzen.js
+	# curl -s -o www/javascript/mapzen.min.js https://mapzen.com/js/mapzen.min.js

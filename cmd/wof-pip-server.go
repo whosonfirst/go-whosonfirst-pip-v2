@@ -190,6 +190,7 @@ func main() {
 		mux.Handle("/javascript/tangram.js", mapzenjs_assets_handler)
 		mux.Handle("/css/mapzen.js.css", mapzenjs_assets_handler)
 		mux.Handle("/tangram/refill-style.zip", mapzenjs_assets_handler)
+		mux.Handle("/tangram/refill-style-themes-label.zip", mapzenjs_assets_handler)
 
 		mux.Handle("/javascript/mapzen.whosonfirst.pip.js", www_handler)
 		mux.Handle("/javascript/slippymap.crosshairs.js", www_handler)

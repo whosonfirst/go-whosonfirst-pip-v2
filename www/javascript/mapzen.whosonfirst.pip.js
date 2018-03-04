@@ -249,27 +249,66 @@ window.addEventListener("load", function load(event){
 	
 	var api_key = document.body.getAttribute("data-mapzen-api-key");
 
-	var scene_url = "/tangram/refill-style.zip";
-	var tangram_url = "/javascript/tangram.js";
-	var tile_url = 'https://tile.nextzen.org/tilezen/vector/v1/512/all/{z}/{x}/{y}.topojson';
+	var sources = {
+	    mapzen: {
+		url: 'https://{s}.tile.nextzen.org/tilezen/vector/v1/512/all/{z}/{x}/{y}.topojson',
+		url_subdomains: ['a', 'b', 'c', 'd'],
+		url_params: {
+		    api_key: api_key	// not clear this actually works... ?
+		},
+		tile_size: 512,
+		max_zoom: 15
+	    }
+	};
 
-	// not clear to me whether it's possible or how to tell mapzen.js to use
-	// tilezen URLs - there is a (hopefully temporary) hack to load tangram
-	// directly below (20180304/thisisaaronland)
+	var scene = {
+                import: [
+			 "/tangram/refill-style.zip",
+			 "/tangram/refill-style-themes-label.zip",
+			 ],
+                sources: sources,
+		global: {
+		    sdk_mapzen_api_key: api_key,
+		},
+	};
+
+	var attributions = {
+	    "Tangram": "https://github.com/tangrams/",
+	    "© OSM contributors": "http://www.openstreetmap.org/",
+	    "Who\"s On First": "http://www.whosonfirst.org/",
+	    "Nextzen": "https://nextzen.org/",
+	};
+
+	var attrs = [];
+
+	for (var label in attributions){
+
+	    var link = attrs[label];
+
+	    if (! link){
+		attrs.push(label);
+		continue;
+	    }
+	    
+	    var anchor = '<a href="' + link + '" target="_blank">' + enc_label + '</a>';
+	    attrs.push(anchor);
+	}
+
+	var str_attributions = attrs.join(" | ");
+
+	// waiting for nextzen.js to be updated to do all the things - that said it's
+	// not entirely clear we need all of (map/next)zen.js and could probably get
+	// away with leaflet + tangram but for now we'll just keep on as-is...
+	// (20180304/thisisaaronland)
 
 	/*
+
 	L.Mapzen.apiKey = api_key;
 
 	var map_opts = {
 	    tangramOptions: {
-		scene: scene_url,
-		tangramURL: tangram_url,
-		global: {
-		    sdk_mapzen_api_key: api_key,
-		},
-		sources: {
-		    mapzen: { url: tile_url }
-		}
+		scene: scene,
+		attribution: attributions,
 	    }
 	};
 	
@@ -309,27 +348,12 @@ window.addEventListener("load", function load(event){
 
 	map = L.map("map");
 
-	var attributions = {
-	    "Tangram": "https://github.com/tangrams/",
-	    "© OSM contributors": "http://www.openstreetmap.org/",
-	    "Who\"s On First": "http://www.whosonfirst.org/",
-	    "Nextzen": "https://nextzen.org/",
-	};
-
 	var tangram = Tangram.leafletLayer({
-		scene: {
-		    import: scene_url,
-		    global: {
-			sdk_mapzen_api_key: api_key,
-		    },
-		    sources: {
-			mapzen: { url: tile_url }
-		    }
-		},
+		scene: scene,
 		numWorkers: 2,
 		unloadInvisibleTiles: false,
 		updateWhenIdle: false,
-		attribution: attributions,
+		attribution: str_attributions,
 	    });
 
 	tangram.addTo(map);

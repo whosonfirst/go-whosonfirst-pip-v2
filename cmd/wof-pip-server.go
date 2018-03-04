@@ -149,15 +149,7 @@ func main() {
 			pip.Logger.Fatal("failed to create (bundled) www handler because %s", err)
 		}
 
-		// all the HTML-y bits expect everything to be hanging off of '/' but the default
-		// www endpoint is '/debug' so we set up an internal rewrite handler here
-		// (20180304/thisisaaronland)
-
-		mapzenjs_assets_handler, err := mapzenjs.MapzenJSAssetsHandler()
-
-		if err != nil {
-			pip.Logger.Fatal("failed to create mapzenjs_assets handler because %s", err)
-		}
+		// squirt an API key in to document.body in HTML pages
 
 		mapzenjs_opts := mapzenjs.DefaultMapzenJSOptions()
 		mapzenjs_opts.APIKey = api_key
@@ -167,6 +159,10 @@ func main() {
 		if err != nil {
 			pip.Logger.Fatal("failed to create (bundled) mapzenjs handler because %s", err)
 		}
+
+		// all the HTML-y bits expect everything to be hanging off of '/' but the default
+		// www endpoint is '/debug' so we set up an internal rewrite handler here
+		// (20180304/thisisaaronland)
 
 		rewrite_opts := rewrite.DefaultRewriteRuleOptions()
 		rewrite_path := www_path
@@ -182,6 +178,12 @@ func main() {
 
 		if err != nil {
 			pip.Logger.Fatal("failed to create rewrite handler because %s", err)
+		}
+
+		mapzenjs_assets_handler, err := mapzenjs.MapzenJSAssetsHandler()
+
+		if err != nil {
+			pip.Logger.Fatal("failed to create mapzenjs_assets handler because %s", err)
 		}
 
 		mux.Handle("/javascript/mapzen.min.js", mapzenjs_assets_handler)

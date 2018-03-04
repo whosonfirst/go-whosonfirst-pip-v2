@@ -234,23 +234,33 @@ window.addEventListener("load", function load(event){
 	};
 	
 	var api_key = document.body.getAttribute("data-mapzen-api-key");
+
+	var scene_url = "/tangram/refill-style.zip";
+	var tangram_url = "/javascript/tangram.js";
+	var tile_url = 'https://tile.nextzen.org/tilezen/vector/v1/512/all/{z}/{x}/{y}.topojson';
+
+	// not clear to me whether it's possible or how to tell mapzen.js to use
+	// tilezen URLs - there is a (hopefully temporary) hack to load tangram
+	// directly below (20180304/thisisaaronland)
+
+	/*
 	L.Mapzen.apiKey = api_key;
 
-	var tilezen_url = 'https://tile.nextzen.org/tilezen/vector/v1/512/all/{z}/{x}/{y}.mvt?api_key=' + api_key;
-
 	var map_opts = {
-		tangramOptions: {
-                        scene: "/tangram/refill-style.zip",
-			tangramURL: "/javascript/tangram.js",
-			fallbackTileURL: tilezen_url,
-                }
+	    tangramOptions: {
+		scene: scene_url,
+		tangramURL: tangram_url,
+		global: {
+		    sdk_mapzen_api_key: api_key,
+		},
+		sources: {
+		    mapzen: { url: tile_url }
+		}
+	    }
 	};
 	
 	map = L.Mapzen.map('map', map_opts);
-	map.setView([37.7749, -122.4194], 12);
 
-	slippymap.crosshairs.init(map);
-	
         var layers = [
 		"neighbourhood",			    
                 "locality",
@@ -273,9 +283,50 @@ window.addEventListener("load", function load(event){
 	L.Mapzen.hash({
 		map: map
 	});
+	*/
+
+	// hack pending updates to nextzen/mapzen.js - or someone tells me
+	// what the correct syntax for doing the equivalent of this is...
+	// (20180304/thisisaaronland)
+
+	// note that we assume Leaflet has been loaded by mapzen.js and we
+	// explicitly load tangram.js in index.html
+	// (20180304/thisisaaronland)
+
+	map = L.map("map");
+
+	var attributions = {
+	    "Tangram": "https://github.com/tangrams/",
+	    "© OSM contributors": "http://www.openstreetmap.org/",
+	    "Who\"s On First": "http://www.whosonfirst.org/",
+	    "Nextzen": "https://nextzen.org/",
+	};
+
+	var tangram = Tangram.leafletLayer({
+		scene: {
+		    import: scene_url,
+		    global: {
+			sdk_mapzen_api_key: api_key,
+		    },
+		    sources: {
+			mapzen: { url: tile_url }
+		    }
+		},
+		numWorkers: 2,
+		unloadInvisibleTiles: false,
+		updateWhenIdle: false,
+		attribution: attributions,
+	    });
+
+	tangram.addTo(map);
+
+	// END OF hack pending updates to nextzen/mapzen.js
+
+	map.setView([37.7749, -122.4194], 12);
+
+	slippymap.crosshairs.init(map);
 	
-	map.on('dragend', pip);
-	
+	map.on("dragend", pip);
 	pip();
 
 	var jump_form = document.getElementById("jump-to-form");

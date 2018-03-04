@@ -233,12 +233,16 @@ window.addEventListener("load", function load(event){
 		fetch_intersecting(lat, lon);				
 	};
 	
-	L.Mapzen.apiKey = document.body.getAttribute("data-mapzen-api-key");
+	var api_key = document.body.getAttribute("data-mapzen-api-key");
+	L.Mapzen.apiKey = api_key;
+
+	var tilezen_url = 'https://tile.nextzen.org/tilezen/vector/v1/512/all/{z}/{x}/{y}.mvt?api_key=' + api_key;
 
 	var map_opts = {
 		tangramOptions: {
                         scene: "/tangram/refill-style.zip",
 			tangramURL: "/javascript/tangram.js",
+			fallbackTileURL: tilezen_url,
                 }
 	};
 	

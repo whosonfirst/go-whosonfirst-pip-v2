@@ -77,11 +77,11 @@ bin: 	self
 	@GOPATH=$(GOPATH) go build -o bin/wof-pip-server cmd/wof-pip-server.go
 
 assets:	self
-	@GOPATH=$(GOPATH) go build -o bin/go-bindata ./vendor/github.com/jteeuwen/go-bindata/go-bindata/
+	@GOPATH=$(GOPATH) go build -o bin/go-bindata ./vendor/github.com/zendesk/go-bindata/go-bindata/
 	@GOPATH=$(GOPATH) go build -o bin/go-bindata-assetfs vendor/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs/main.go
 	rm -f www/*~ www/css/*~ www/javascript/*~
 	@PATH=$(PATH):$(CWD)/bin bin/go-bindata-assetfs -pkg http www www/javascript www/css www/tangram
-	mv bindata_assetfs.go http/assets.go
+	mv bindata.go http/assets.go
 
 maps: wwwdirs mapzenjs tangram refill
 

@@ -27,7 +27,7 @@ func DefaultMapzenJSOptions() *MapzenJSOptions {
 		AppendAPIKey: true,
 		AppendJS:     true,
 		AppendCSS:    true,
-		APIKey:       "mapzen-xxxxxx",
+		APIKey:       "nextzen-xxxxxx",
 		JS:           []string{"/javascript/mapzen.min.js"},
 		CSS:          []string{"/css/mapzen.js.css"},
 	}
@@ -114,7 +114,7 @@ func (h MapzenJSWriter) ServeHTTP(rsp http.ResponseWriter, req *http.Request) {
 
 			if h.options.AppendAPIKey {
 				api_key_ns := ""
-				api_key_key := "data-mapzen-api-key"
+				api_key_key := "data-mapzen-api-key"	// make this nextzen - TBD... (20180304/thisisaaronland)
 				api_key_value := h.options.APIKey
 
 				api_key_attr := html.Attribute{api_key_ns, api_key_key, api_key_value}
@@ -142,6 +142,11 @@ func (h MapzenJSWriter) ServeHTTP(rsp http.ResponseWriter, req *http.Request) {
 	wr.Flush()
 	
 	for k, v := range rec.Header() {
+
+		if k == "Content-Length" {
+			continue	// or else we'll make curl (and everyone else) sad and confused
+		}
+
 		rsp.Header()[k] = v
 	}
 

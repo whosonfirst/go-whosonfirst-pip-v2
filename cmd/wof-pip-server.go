@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/whosonfirst/go-http-mapzenjs"
+	"github.com/whosonfirst/go-http-rewrite"
 	"github.com/whosonfirst/go-whosonfirst-pip/app"
 	"github.com/whosonfirst/go-whosonfirst-pip/flags"
 	"github.com/whosonfirst/go-whosonfirst-pip/http"
@@ -10,6 +11,7 @@ import (
 	gohttp "net/http"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -31,6 +33,7 @@ func main() {
 
 	fl.Int("polylines-coords", 100, "...")
 	fl.String("www-path", "/debug", "...")
+	fl.String("www-api-key", "xxxxxx", "...")
 
 	flags.Parse(fl)
 
@@ -65,20 +68,18 @@ func main() {
 
 	// set up the HTTP endpoint
 
-	enable_www, _ := flags.BoolVar(fl, "enable_www")
+	enable_www, _ := flags.BoolVar(fl, "enable-www")
 
 	if enable_www {
 		pip.Logger.Status("-enable-www flag is true causing the following flags to also be true: -enable-geojson -enable-candidates")
 
-		fl.Set("enable_geojson", "true")
-		fl.Set("enable_candidates", "true")
+		fl.Set("enable-geojson", "true")
+		fl.Set("enable-candidates", "true")
 	}
 
 	pip.Logger.Debug("setting up intersects handler")
 
 	enable_geojson, _ := flags.BoolVar(fl, "enable-geojson")
-
-	// enable_extras is set above...
 
 	intersects_opts := http.NewDefaultIntersectsHandlerOptions()
 	intersects_opts.EnableGeoJSON = enable_geojson
@@ -102,8 +103,6 @@ func main() {
 
 	enable_candidates, _ := flags.BoolVar(fl, "enable-candidates")
 	enable_polylines, _ := flags.BoolVar(fl, "enable-polylines")
-
-	// enable_www is set above
 
 	if enable_candidates {
 
@@ -139,60 +138,50 @@ func main() {
 
 	if enable_www {
 
-		pip.Logger.Debug("setting up www handler")
+		www_path, _ := flags.StringVar(fl, "www-path")
+		api_key, _ := flags.StringVar(fl, "www-api-key")
 
-		var www_handler gohttp.Handler
+		pip.Logger.Debug("setting up www handler at %s", www_path)
 
-		bundled_handler, err := http.BundledWWWHandler()
+		www_handler, err := http.BundledWWWHandler()
 
 		if err != nil {
 			pip.Logger.Fatal("failed to create (bundled) www handler because %s", err)
 		}
 
-		www_handler = bundled_handler
-
-		/*
-
-			mapzenjs_opts := mapzenjs.DefaultMapzenJSOptions()
-			mapzenjs_opts.APIKey = *www_apikey
-
-			mapzenjs_handler, err := mapzenjs.MapzenJSHandler(www_handler, mapzenjs_opts)
-
-			if err != nil {
-				pip.Logger.Fatal("failed to create mapzen.js handler because %s", err)
-			}
-
-				mzjs_opts := mapzenjs.DefaultMapzenJSOptions()
-				mzjs_opts.APIKey = *api_key
-
-				mzjs_handler, err := mapzenjs.MapzenJSHandler(www_handler, mzjs_opts)
-
-				if err != nil {
-					pip.Logger.Fatal("failed to create API key handler because %s", err)
-				}
-
-				opts := rewrite.DefaultRewriteRuleOptions()
-
-				rewrite_path := *www_path
-
-				if strings.HasSuffix(rewrite_path, "/") {
-					rewrite_path = strings.TrimRight(rewrite_path, "/")
-				}
-
-				rule := rewrite.RemovePrefixRewriteRule(rewrite_path, opts)
-				rules := []rewrite.RewriteRule{rule}
-
-				debug_handler, err := rewrite.RewriteHandler(rules, apikey_handler)
-
-				if err != nil {
-					pip.Logger.Fatal("failed to create www handler because %s", err)
-				}
-		*/
+		// all the HTML-y bits expect everything to be hanging off of '/' but the default
+		// www endpoint is '/debug' so we set up an internal rewrite handler here
+		// (20180304/thisisaaronland)
 
 		mapzenjs_assets_handler, err := mapzenjs.MapzenJSAssetsHandler()
 
 		if err != nil {
 			pip.Logger.Fatal("failed to create mapzenjs_assets handler because %s", err)
+		}
+
+		mapzenjs_opts := mapzenjs.DefaultMapzenJSOptions()
+		mapzenjs_opts.APIKey = api_key
+
+		mapzenjs_handler, err := mapzenjs.MapzenJSHandler(www_handler, mapzenjs_opts)
+
+		if err != nil {
+			pip.Logger.Fatal("failed to create (bundled) mapzenjs handler because %s", err)
+		}
+
+		rewrite_opts := rewrite.DefaultRewriteRuleOptions()
+		rewrite_path := www_path
+
+		if strings.HasSuffix(rewrite_path, "/") {
+			rewrite_path = strings.TrimRight(rewrite_path, "/")
+		}
+
+		rule := rewrite.RemovePrefixRewriteRule(rewrite_path, rewrite_opts)
+		rules := []rewrite.RewriteRule{rule}
+
+		rewrite_handler, err := rewrite.RewriteHandler(rules, mapzenjs_handler)
+
+		if err != nil {
+			pip.Logger.Fatal("failed to create rewrite handler because %s", err)
 		}
 
 		mux.Handle("/javascript/mapzen.min.js", mapzenjs_assets_handler)
@@ -206,8 +195,7 @@ func main() {
 		mux.Handle("/javascript/slippymap.crosshairs.js", www_handler)
 		mux.Handle("/css/mapzen.whosonfirst.pip.css", www_handler)
 
-		www_path, _ := flags.StringVar(fl, "www-path")
-		mux.Handle(www_path, www_handler)
+		mux.Handle(www_path, rewrite_handler)
 	}
 
 	host, _ := flags.StringVar(fl, "host")

@@ -157,7 +157,7 @@ _Please write me._
 
 ### wof-pip
 
-_Please write me_
+`wof-pip` is an interactive tool for querying a set of Who's On First (or GeoJSON) documents.
 
 ```
 ./bin/wof-pip -h
@@ -205,9 +205,13 @@ _Please write me_
     	This flag is DEPRECATED and doesn't do anything anymore.
 ```
 
+For example:
+
+_Please write me..._
+
 ### wof-pip-server
 
-_Please write me._
+`wof-pip-server` is an HTTP daemon for querying Who's On First (or GeoJSON) documents.
 
 ```
 ./bin/wof-pip-server -h
@@ -307,7 +311,7 @@ And then:
 16:40:29.562617 [wof-pip-server] STATUS finished indexing
 ```
 
-_Note the part where you need to get a [Mapzen API key](https://mapzen.com/developers/) in order for the map-y parts of things to work._
+_Note the part where you need to get a [Nextzen Map Tiles API key](https://www.nextzen.org/developers/) in order for the map-y parts of things to work._
 
 And finally:
 
@@ -335,6 +339,8 @@ Indexing results and then fetching all the places that intersect a polyline:
 11:56:09.356374 [wof-pip-server][index] STATUS time to index paths (1) 4.750577455s
 11:56:09.356377 [wof-pip-server] STATUS finished indexing
 ```
+
+_See the way we're indexing a Who's On First `meta` (CSV) file instead of a SQLite database this time?_
 
 And then given a polyline (`oqseF~gcjVvRQaJbLhRuIzN_JeFza@cH{@gK`KxMtErX_NeXtf@yW{l@`) like this:
 
@@ -408,10 +414,10 @@ cd water-polygons-split-4326
 ogr2ogr -F GeoJSON water_polygons.geojson water_polygons.shp
 ```
 
-Now we start up the PIP server passing along the `-is-wof NO` and `-mode feature-collection` flag:
+Now we start up the PIP server passing along the `-is-wof false` and `-mode feature-collection` flag:
 
 ```
-./bin/wof-pip-server -port 5555 -is-wof NO -enable-www -www-api-key mapzen-xxxxxxx \
+./bin/wof-pip-server -port 5555 -is-wof false -enable-www -www-api-key mapzen-xxxxxxx \
 	-mode feature-collection /usr/local/water-polygons-split-4326/water_polygons.geojson
 
 10:33:49.735255 [wof-pip-server] STATUS -www flag is true causing the following flags to also be true: -allow-geojson -candidates

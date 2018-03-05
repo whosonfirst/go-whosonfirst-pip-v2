@@ -94,7 +94,7 @@ func CommonFlags() (*flag.FlagSet, error) {
 	fs.String("spatialite-dsn", ":memory:", "A valid SQLite DSN for the '-cache spatialite/sqlite' or '-index spatialite' option. As of this writing for the '-index' and '-cache' options share the same '-spatailite' DSN.")
 	fs.String("fs-path", "", "The root directory to look for features if '-cache fs'.")
 
-	fs.Bool("is-wof", true, "Input data is WOF-flavoured GeoJSON.")
+	fs.Bool("is-wof", true, "Input data is WOF-flavoured GeoJSON. (Pass a value of '0' or 'false' if you need to index non-WOF documents.")
 
 	// this is invoked/used in app/indexer.go but for the life of me I can't
 	// figure out how to make the code in flags/exclude.go implement the

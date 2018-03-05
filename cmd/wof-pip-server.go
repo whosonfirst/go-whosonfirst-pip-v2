@@ -38,8 +38,8 @@ func main() {
 	fl.String("www-path", "/debug", "The URL path for the interactive debug endpoint.")
 	fl.String("www-api-key", "xxxxxx", "A valid Nextzen Map Tiles API key (https://developers.nextzen.org).")
 
-	fl.Bool("allow-extras", false, "This flag is DEPRECATED. Please use -enable-extras instead.")
-	fl.String("extras-db", "", "This flag is DEPRECATED. Please use -extras-dsn instead.")
+	fl.Bool("allow-extras", false, "This flag is DEPRECATED. Please use the '-enable-extras' flag instead.")
+	fl.String("extras-db", "", "This flag is DEPRECATED. Please use '-extras-dsn' flag instead.")
 
 	flags.Parse(fl)
 

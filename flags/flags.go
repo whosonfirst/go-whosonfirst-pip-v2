@@ -108,16 +108,16 @@ func CommonFlags() (*flag.FlagSet, error) {
 
 	fs.Bool("verbose", false, "Be chatty.")
 
-	fs.Bool("www", false, "This flag is DEPRECATED. Please use -enable-www instead.")
-	fs.Bool("polylines", false, "This flag is DEPRECATED. Please use -enable-polylines instead.")
-	fs.Bool("candidates", false, "This flag is DEPRECATED. Please use -enable-candidates instead.")
-	fs.Bool("allow-geojson", false, "This flag is DEPRECATED. Please use -enable-geojson instead.")
-	fs.String("mapzen-api-key", "", "This flag is DEPRECATED. Please use -www-api-key instead.")
+	fs.Bool("www", false, "This flag is DEPRECATED. Please use the '-enable-www' flag instead.")
+	fs.Bool("polylines", false, "This flag is DEPRECATED. Please use the '-enable-polylines' flag instead.")
+	fs.Bool("candidates", false, "This flag is DEPRECATED. Please use the '-enable-candidates' flag instead.")
+	fs.Bool("allow-geojson", false, "This flag is DEPRECATED. Please use the '-enable-geojson' flag instead.")
+	fs.String("mapzen-api-key", "", "This flag is DEPRECATED. Please use the '-www-api-key' flag instead.")
 
 	fs.String("www-local", "", "This flag is DEPRECATED and doesn't do anything anymore.")
 	fs.String("www-local-root", "", "This flag is DEPRECATED and doesn't do anything anymore.")
 
-	fs.String("source-cache-root", "", "This flag is DEPRECATED and doesn't do anything anymore.")
+	fs.String("source-cache-root", "", "This flag is DEPRECATED and doesn't do anything anymore. Please use the '-cache fs' and '-fs-path {PATH}' flags instead.")
 
 	fs.Bool("cache-all", false, "This flag is DEPRECATED and doesn't do anything anymore.")
 	fs.String("failover-cache", "", "This flag is DEPRECATED and doesn't do anything anymore.")

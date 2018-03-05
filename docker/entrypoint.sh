@@ -17,21 +17,16 @@ fi
 
 if [ "${EXTRAS}" != "" ]
 then
-    ARGS="${ARGS} -allow-extras"
-fi
-
-if [ "${PROCESSES}" != "" ]
-then
-    ARGS="${ARGS} -processes ${PROCESSES}"
+    ARGS="${ARGS} -enable-extras -extras-dsn ${EXTRAS}"
 fi
 
 if [ "${WWW}" != "" ]
 then
-    ARGS="${ARGS} -www"
+    ARGS="${ARGS} -enable-www"
 
-    if [ "${MAPZEN_APIKEY}" != "" ]
+    if [ "${NEXTZEN_APIKEY}" != "" ]
     then
-	ARGS="${ARGS} -mapzen-apikey ${MAPZEN_APIKEY}"
+	ARGS="${ARGS} -www-api-key ${NEXTZEN_APIKEY}"
     fi
 fi
     

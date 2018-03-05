@@ -4,8 +4,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/whosonfirst/go-whosonfirst-index"
 	_ "log"
 	"os"
+	"strings"
 )
 
 func Parse(fl *flag.FlagSet) {
@@ -81,18 +83,18 @@ func CommonFlags() (*flag.FlagSet, error) {
 
 	fs := NewFlagSet("common")
 
-	fs.String("index", "rtree", "Valid options are: rtree, spatialite")
-	fs.String("cache", "gocache", "Valid options are: gocache, fs, spatialite")
+	fs.String("index", "rtree", "Valid options are: rtree, spatialite.")
+	fs.String("cache", "gocache", "Valid options are: gocache, fs, spatialite, sqlite. Note that the spatalite option is just a convenience to mirror the '-index spatialite' option.")
 
-	fs.String("mode", "files", "...")
+	valid_modes := strings.Join(index.Modes(), ", ")
+	desc_modes := fmt.Sprintf("Valid modes are: %s.", valid_modes)
 
-	fs.String("spatialite-dsn", ":memory:", "...")
-	fs.String("fs-path", "", "...")
+	fs.String("mode", "files", desc_modes)
 
-	fs.Bool("is-wof", true, "Input data is WOF-flavoured GeoJSON")
+	fs.String("spatialite-dsn", ":memory:", "A valid SQLite DSN for the '-cache spatialite/sqlite' or '-index spatialite' option. As of this writing for the '-index' and '-cache' options share the same '-spatailite' DSN.")
+	fs.String("fs-path", "", "The root directory to look for features if '-cache fs'.")
 
-	fs.Bool("enable-extras", false, "")
-	fs.String("extras-dsn", ":tmpfile:", "")
+	fs.Bool("is-wof", true, "Input data is WOF-flavoured GeoJSON.")
 
 	// this is invoked/used in app/indexer.go but for the life of me I can't
 	// figure out how to make the code in flags/exclude.go implement the
@@ -104,7 +106,25 @@ func CommonFlags() (*flag.FlagSet, error) {
 	var exclude Exclude
 	fs.Var(&exclude, "exclude", "Exclude (WOF) records based on their existential flags. Valid options are: ceased, deprecated, not-current, superseded.")
 
-	fs.Bool("verbose", false, "")
+	fs.Bool("verbose", false, "Be chatty.")
+
+	fs.Bool("www", false, "This flag is DEPRECATED. Please use -enable-www instead.")
+	fs.Bool("polylines", false, "This flag is DEPRECATED. Please use -enable-polylines instead.")
+	fs.Bool("candidates", false, "This flag is DEPRECATED. Please use -enable-candidates instead.")
+	fs.Bool("allow-geojson", false, "This flag is DEPRECATED. Please use -enable-geojson instead.")
+	fs.String("mapzen-api-key", "", "This flag is DEPRECATED. Please use -www-api-key instead.")
+
+	fs.String("www-local", "", "This flag is DEPRECATED and doesn't do anything anymore.")
+	fs.String("www-local-root", "", "This flag is DEPRECATED and doesn't do anything anymore.")
+
+	fs.String("source-cache-root", "", "This flag is DEPRECATED and doesn't do anything anymore.")
+
+	fs.Bool("cache-all", false, "This flag is DEPRECATED and doesn't do anything anymore.")
+	fs.String("failover-cache", "", "This flag is DEPRECATED and doesn't do anything anymore.")
+	fs.Int("lru-cache-size", 0, "This flag is DEPRECATED and doesn't do anything anymore.")
+	fs.Int("lru-cache-trigger", 0, "This flag is DEPRECATED and doesn't do anything anymore.")
+
+	fs.Int("processes", 0, "This flag is DEPRECATED and doesn't do anything anymore.")
 
 	return fs, nil
 }

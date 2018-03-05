@@ -133,13 +133,153 @@ type Index interface {
 }
 ```
 
+## Indexes (indices)
+
+### rtree
+
+### spatialite
+
+## Caches
+
+### fs
+
+### gocache
+
+### spatialite
+
+_This is just an alias of the `sqlite` cache.
+
+### sqlite
+
 ## Tools
 
 _Please write me._
 
+### wof-pip
+
+_Please write me_
+
+```
+./bin/wof-pip -h
+  -allow-geojson
+    	This flag is DEPRECATED. Please use -enable-geojson instead.
+  -cache string
+    	Valid options are: gocache, fs, spatialite, sqlite. Note that the spatalite option is just a convenience to mirror the '-index spatialite' option. (default "gocache")
+  -cache-all
+    	This flag is DEPRECATED and doesn't do anything anymore.
+  -candidates
+    	This flag is DEPRECATED. Please use -enable-candidates instead.
+  -exclude value
+    	Exclude (WOF) records based on their existential flags. Valid options are: ceased, deprecated, not-current, superseded.
+  -failover-cache string
+    	This flag is DEPRECATED and doesn't do anything anymore.
+  -fs-path string
+    	The root directory to look for features if '-cache fs'.
+  -index string
+    	Valid options are: rtree, spatialite. (default "rtree")
+  -is-wof
+    	Input data is WOF-flavoured GeoJSON. (default true)
+  -lru-cache-size int
+    	This flag is DEPRECATED and doesn't do anything anymore.
+  -lru-cache-trigger int
+    	This flag is DEPRECATED and doesn't do anything anymore.
+  -mapzen-api-key string
+    	This flag is DEPRECATED. Please use -www-api-key instead.
+  -mode string
+    	Valid modes are: directory, feature, feature-collection, files, geojson-ls, meta, path, repo, sqlite. (default "files")
+  -polylines
+    	This flag is DEPRECATED. Please use -enable-polylines instead.
+  -processes int
+    	This flag is DEPRECATED and doesn't do anything anymore.
+  -source-cache-root string
+    	This flag is DEPRECATED and doesn't do anything anymore.
+  -spatialite-dsn string
+    	A valid SQLite DSN for the '-cache spatialite/sqlite' or '-index spatialite' option. As of this writing for the '-index' and '-cache' options share the same '-spatailite' DSN. (default ":memory:")
+  -verbose
+    	Be chatty.
+  -www
+    	This flag is DEPRECATED. Please use -enable-www instead.
+  -www-local string
+    	This flag is DEPRECATED and doesn't do anything anymore.
+  -www-local-root string
+    	This flag is DEPRECATED and doesn't do anything anymore.
+```
+
 ### wof-pip-server
 
 _Please write me._
+
+```
+./bin/wof-pip-server -h
+  -allow-extras
+    	This flag is DEPRECATED. Please use -enable-extras instead.
+  -allow-geojson
+    	This flag is DEPRECATED. Please use -enable-geojson instead.
+  -cache string
+    	Valid options are: gocache, fs, spatialite, sqlite. Note that the spatalite option is just a convenience to mirror the '-index spatialite' option. (default "gocache")
+  -cache-all
+    	This flag is DEPRECATED and doesn't do anything anymore.
+  -candidates
+    	This flag is DEPRECATED. Please use -enable-candidates instead.
+  -enable-candidates
+    	Enable the /candidates endpoint to return candidate bounding boxes (as GeoJSON) for requests.
+  -enable-extras
+    	Enable support for 'extras' parameters in queries.
+  -enable-geojson
+    	Allow users to request GeoJSON FeatureCollection formatted responses.
+  -enable-polylines
+    	Enable the /polylines endpoint to return hierarchies intersecting a path.
+  -enable-www
+    	Enable the interactive /debug endpoint to query points and display results.
+  -exclude value
+    	Exclude (WOF) records based on their existential flags. Valid options are: ceased, deprecated, not-current, superseded.
+  -extras-db string
+    	This flag is DEPRECATED. Please use -extras-dsn instead.
+  -extras-dsn string
+    	A valid SQLite DSN for your 'extras' database - if ':tmpfile:' then a temporary database will be created during indexing and deleted when the program exits. (default ":tmpfile:")
+  -failover-cache string
+    	This flag is DEPRECATED and doesn't do anything anymore.
+  -fs-path string
+    	The root directory to look for features if '-cache fs'.
+  -host string
+    	The hostname to listen for requests on. (default "localhost")
+  -index string
+    	Valid options are: rtree, spatialite. (default "rtree")
+  -is-wof
+    	Input data is WOF-flavoured GeoJSON. (default true)
+  -lru-cache-size int
+    	This flag is DEPRECATED and doesn't do anything anymore.
+  -lru-cache-trigger int
+    	This flag is DEPRECATED and doesn't do anything anymore.
+  -mapzen-api-key string
+    	This flag is DEPRECATED. Please use -www-api-key instead.
+  -mode string
+    	Valid modes are: directory, feature, feature-collection, files, geojson-ls, meta, path, repo, sqlite. (default "files")
+  -polylines
+    	This flag is DEPRECATED. Please use -enable-polylines instead.
+  -polylines-max-coords int
+    	The maximum number of points a (/polylines) path may contain before it is automatically paginated. (default 100)
+  -port int
+    	The port number to listen for requests on. (default 8080)
+  -processes int
+    	This flag is DEPRECATED and doesn't do anything anymore.
+  -source-cache-root string
+    	This flag is DEPRECATED and doesn't do anything anymore.
+  -spatialite-dsn string
+    	A valid SQLite DSN for the '-cache spatialite/sqlite' or '-index spatialite' option. As of this writing for the '-index' and '-cache' options share the same '-spatailite' DSN. (default ":memory:")
+  -verbose
+    	Be chatty.
+  -www
+    	This flag is DEPRECATED. Please use -enable-www instead.
+  -www-api-key string
+    	A valid Nextzen Map Tiles API key (https://developers.nextzen.org). (default "xxxxxx")
+  -www-local string
+    	This flag is DEPRECATED and doesn't do anything anymore.
+  -www-local-root string
+    	This flag is DEPRECATED and doesn't do anything anymore.
+  -www-path string
+    	The URL path for the interactive debug endpoint. (default "/debug")```
+```
 
 For example, to index [Who's On First data published as a SQLite database](https://whosonfirst.mapzen.com/sqlite) and spinning up a little web server for debugging things you might do something like:
 
@@ -151,8 +291,8 @@ bunzip2 region-20171212.db.bz2
 And then:
 
 ```
-./bin/wof-pip-server -cache-all -mode sqlite -www -mapzen-api-key mapzen-**** region-20171212.db
-16:37:25.490337 [wof-pip-server] STATUS -www flag is true causing the following flags to also be true: -allow-geojson -candidates
+./bin/wof-pip-server -index spatialite -cache spatialite -spatialite-dsn region-20171212.db -enable-www -www-api-key **** -mode spatialite
+16:37:25.490337 [wof-pip-server] STATUS -enable-www flag is true causing the following flags to also be true: -enable-geojson -enable-candidates
 16:37:25.490562 [wof-pip-server] STATUS listening on localhost:8080
 16:37:26.491416 [wof-pip-server] STATUS indexing 33 records indexed
 16:37:27.495491 [wof-pip-server] STATUS indexing 118 records indexed
@@ -184,7 +324,7 @@ And you should see something like this:
 Indexing results and then fetching all the places that intersect a polyline:
 
 ```
-./bin/wof-pip-server -polylines -mode meta /usr/local/data/whosonfirst-data/meta/wof-microhood-latest.csv
+./bin/wof-pip-server -enable-polylines -mode meta /usr/local/data/whosonfirst-data/meta/wof-microhood-latest.csv
 11:56:04.605805 [wof-pip-server] STATUS listening on localhost:8080
 11:56:05.606812 [wof-pip-server] STATUS indexing 537 records indexed
 11:56:06.608378 [wof-pip-server] STATUS indexing 749 records indexed
@@ -236,8 +376,8 @@ Indexing API results (in this case counties in California) by piping them in to 
     -param method=whosonfirst.places.getDescendants -param id=85688637 \
     -param placetype=county -geojson-ls \
     | \
-    ./bin/wof-pip-server -mode geojson-ls -www -mapzen-api-key mapzen-xxxxxx \
-    -cache gocache -port 8081 \
+    ./bin/wof-pip-server -mode geojson-ls -enable-www -www-api-key xxxxxx \
+    -port 8081 \
     STDIN
     
 11:18:19.537724 [wof-pip-server] STATUS listening on localhost:8081
@@ -268,11 +408,11 @@ cd water-polygons-split-4326
 ogr2ogr -F GeoJSON water_polygons.geojson water_polygons.shp
 ```
 
-Now we start up the PIP server passing along the `-plain-old-geojson` and `-mode feature-collection` flag:
+Now we start up the PIP server passing along the `-is-wof NO` and `-mode feature-collection` flag:
 
 ```
-./bin/wof-pip-server -port 5555 -cache-all -allow-geojson -www -mapzen-api-key mapzen-xxxxxxx \
-	-plain-old-geojson -mode feature-collection /usr/local/water-polygons-split-4326/water_polygons.geojson
+./bin/wof-pip-server -port 5555 -is-wof NO -enable-www -www-api-key mapzen-xxxxxxx \
+	-mode feature-collection /usr/local/water-polygons-split-4326/water_polygons.geojson
 
 10:33:49.735255 [wof-pip-server] STATUS -www flag is true causing the following flags to also be true: -allow-geojson -candidates
 10:33:49.735402 [wof-pip-server] STATUS listening on localhost:5555

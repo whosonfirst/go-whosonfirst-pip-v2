@@ -23,17 +23,23 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fl.String("host", "localhost", "The hostname to listen for requests on")
-	fl.Int("port", 8080, "The port number to listen for requests on")
+	fl.String("host", "localhost", "The hostname to listen for requests on.")
+	fl.Int("port", 8080, "The port number to listen for requests on.")
+
+	fl.Bool("enable-extras", false, "Enable support for 'extras' parameters in queries.")
+	fl.String("extras-dsn", ":tmpfile:", "A valid SQLite DSN for your 'extras' database - if ':tmpfile:' then a temporary database will be created during indexing and deleted when the program exits.")
 
 	fl.Bool("enable-geojson", false, "Allow users to request GeoJSON FeatureCollection formatted responses.")
-	fl.Bool("enable-candidates", false, "")
-	fl.Bool("enable-polylines", false, "")
-	fl.Bool("enable-www", false, "")
+	fl.Bool("enable-candidates", false, "Enable the /candidates endpoint to return candidate bounding boxes (as GeoJSON) for requests.")
+	fl.Bool("enable-polylines", false, "Enable the /polylines endpoint to return hierarchies intersecting a path.")
+	fl.Bool("enable-www", false, "Enable the interactive /debug endpoint to query points and display results.")
 
-	fl.Int("polylines-coords", 100, "...")
-	fl.String("www-path", "/debug", "...")
-	fl.String("www-api-key", "xxxxxx", "...")
+	fl.Int("polylines-max-coords", 100, "The maximum number of points a (/polylines) path may contain before it is automatically paginated.")
+	fl.String("www-path", "/debug", "The URL path for the interactive debug endpoint.")
+	fl.String("www-api-key", "xxxxxx", "A valid Nextzen Map Tiles API key (https://developers.nextzen.org).")
+
+	fl.Bool("allow-extras", false, "This flag is DEPRECATED. Please use -enable-extras instead.")
+	fl.String("extras-db", "", "This flag is DEPRECATED. Please use -extras-dsn instead.")
 
 	flags.Parse(fl)
 
@@ -121,7 +127,7 @@ func main() {
 
 		pip.Logger.Debug("setting up polylines handler")
 
-		poly_coords, _ := flags.IntVar(fl, "polylines-coords")
+		poly_coords, _ := flags.IntVar(fl, "polylines-max-coords")
 
 		poly_opts := http.NewDefaultPolylineHandlerOptions()
 		poly_opts.MaxCoords = poly_coords

@@ -206,6 +206,32 @@ func Validate(fs *flag.FlagSet) error {
 		}
 	}
 
+	enable_www, err := BoolVar(fs, "enable-www")
+
+	if err != nil {
+		return err
+	}
+
+	if enable_www {
+
+		key, err := StringVar(fs, "www-api-key")
+
+		if err != nil {
+			return err
+		}
+
+		if key == "xxxxxx" {
+
+			warning := "-enable-www flag is set but -www-api-key is empty"
+
+			if strict {
+				return errors.New(warning)
+			}
+
+			log.Printf("[WARNING] %s\n", warning)
+		}
+	}
+
 	return nil
 }
 

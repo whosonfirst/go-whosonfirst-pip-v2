@@ -611,7 +611,8 @@ curl -s 'localhost:8080/polyline?polyline=oqseF%7EgcjVvRQaJbLhRuIzN_JeFza%40cH%7
 There are two important things to note here, at least as of this writing:
 
 1. It is left as an exercise to consumers of the `/polyline` endpoint to deduplicate results (assuming you wanted a list of unique places that intersect a polyline)
-2. If you are passing in [a polyline line returned from Mapzen's Turn-By-Turn service](https://mapzen.com/documentation/mobility/decoding/) you will need to include a `?precision=6` query parameter with your request so that the code can properly decode your polyline
+2. If you are passing in [a polyline line returned from Valhalla's turn-by-turn
+routing service](https://github.com/valhalla/valhalla) you will need to include a `?precision=6` query parameter with your request so that the code can properly decode your polyline
 2. The response format for the `/polyline` endpoint _will_ change so please don't get too attached to anything that is returned today
 
 See also: https://github.com/whosonfirst/go-mapzen-valhalla#valhalla-route

@@ -618,6 +618,10 @@ See also: https://github.com/whosonfirst/go-mapzen-valhalla#valhalla-route
 
 #### Fancy McFancyPants
 
+_Note: As of this writing the [Who's On First API]() is still offline but the
+point – the ability to indexing line-separated GeoJSON by piping it to the
+`wof-pip-server` – remains the same._
+
 Indexing API results (in this case counties in California) by piping them in to `wof-pip-server` on STDIN:
 
 ```
@@ -645,7 +649,7 @@ Indexing API results (in this case counties in California) by piping them in to 
 
 ![](docs/images/wof-pip-counties.png)
 
-#### Plain old GeoJSON
+## Plain old GeoJSON
 
 Let assume that you've downloaded the [OSM water polygons data](http://openstreetmapdata.com/data/water-polygons) and created a GeoJSON file. For example:
 

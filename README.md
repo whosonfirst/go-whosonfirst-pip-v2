@@ -242,8 +242,9 @@ on disk, following the [Who's On First URI conventions](https://www.whosonfirst.
 
 ### gocache
 
-This is an in-memory cache that is created during indexing that stores a
-feature's `SPR` response (see above).
+This is an in-memory cache using Patrick Mylund Nielsen's
+[go-cache](https://github.com/patrickmn/go-cache) package that is created during
+indexing that stores a feature's `SPR` response (see above).
 
 ### spatialite
 

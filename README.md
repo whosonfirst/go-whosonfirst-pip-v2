@@ -16,9 +16,17 @@ All of this package's dependencies are bundled with the code in the `vendor` dir
 
 ## Important
 
-The documentation in this package is incomplete. Proper documentation is on the way but in the interim if you want to understand what's going on, in broad strokes, I'd suggest looking at [https://github.com/whosonfirst/go-whosonfirst-pip](https://github.com/whosonfirst/go-whosonfirst-pip).
+This package lacks normal Go documentation for packages and methods. Also normal
+Go tests. Both are on the list but in the meantime there is documentation (-ish)
+below.
 
-Pretty much everything under the hood has changed as have the public interfaces but _in broad stokes_ both packages have the same goal and do the same thing. The main differences between the two packages are:
+## Differences from "v1"
+
+Pretty much everything under the hood has changed as have the public interfaces
+since the [first
+release](https://github.com/whosonfirst/go-whosonfirst-geojson-v2/blob/master/feature/whosonfirst.go)
+(so called "v1") of this package. In _broad stokes_ both packages have the same goal and do the same
+thing. The main differences between the two packages are: 
 
 * Decoupling of the indexing layers (to allow for alternatives to the default RTree implementation) and the caching layers and making proper interfaces for both
 * The ability to filter results by placetype or existential flags (is current, is deprecated, etc.)
@@ -82,11 +90,189 @@ Detailed documentation for `wof-pip-server` is included below.
 
 ## Responses
 
-This is still in flux but the short version is the everything will be a [standard places result](https://github.com/whosonfirst/go-whosonfirst-spr). Once what that means _exactly_ has been nailed down (it's close).
+The default response format is a [standard places
+result](https://www.whosonfirst.org/docs/spr/) (SPR) and more
+specifically something that implements the `spr.StandardPlacesResults`
+interface, so really just a list of SPRs.
+
+Under the hood this package uses the
+[go-whosonfirst-geojson-v2](https://github.com/whosonfirst/go-whosonfirst-geojson-v2)
+package for working with GeoJSON documents. In order to accomodate various Who's
+On First -isms that package has two separate GeoJSON parser thingies (one for
+Who's On First GeoJSON and one for everything) each of which implements the
+`SPR` interface but with different serializations.
+
+The [Who's On
+First](https://github.com/whosonfirst/go-whosonfirst-geojson-v2/blob/master/feature/whosonfirst.go)
+SPR looks like this:
+
+```
+type WOFStandardPlacesResult struct {
+	spr.StandardPlacesResult `json:",omitempty"`
+	WOFId                    int64   `json:"wof:id"`
+	WOFParentId              int64   `json:"wof:parent_id"`
+	WOFName                  string  `json:"wof:name"`
+	WOFPlacetype             string  `json:"wof:placetype"`
+	WOFCountry               string  `json:"wof:country"`
+	WOFRepo                  string  `json:"wof:repo"`
+	WOFPath                  string  `json:"wof:path"`
+	WOFSupersededBy          []int64 `json:"wof:superseded_by"`
+	WOFSupersedes            []int64 `json:"wof:supersedes"`
+	MZURI                    string  `json:"mz:uri"`
+	MZLatitude               float64 `json:"mz:latitude"`
+	MZLongitude              float64 `json:"mz:longitude"`
+	MZMinLatitude            float64 `json:"mz:min_latitude"`
+	MZMinLongitude           float64 `json:"mz:min_longitude"`
+	MZMaxLatitude            float64 `json:"mz:max_latitude"`
+	MZMaxLongitude           float64 `json:"mz:max_longitude"`
+	MZIsCurrent              int64   `json:"mz:is_current"`
+	MZIsCeased               int64   `json:"mz:is_ceased"`
+	MZIsDeprecated           int64   `json:"mz:is_deprecated"`
+	MZIsSuperseded           int64   `json:"mz:is_superseded"`
+	MZIsSuperseding          int64   `json:"mz:is_superseding"`
+	WOFLastModified          int64   `json:"wof:lastmodified"`
+}
+```
+
+The [generic GeoJSON
+](https://github.com/whosonfirst/go-whosonfirst-geojson-v2/blob/master/feature/geojson.go) SPR looks like this:
+
+```
+type GeoJSONStandardPlacesResult struct {
+     spr.StandardPlacesResult `json:",omitempty"`
+     SPRId                    string  `json:"spr:id"`
+     SPRName                  string  `json:"spr:name"`
+     SPRPlacetype             string  `json:"spr:placetype"`
+     SPRLatitude              float64 `json:"spr:latitude"`
+     SPRLongitude             float64 `json:"spr:longitude"`
+     SPRMinLatitude           float64 `json:"spr:min_latitude"`
+     SPRMinLongitude          float64 `json:"spr:min_longitude"`
+     SPRMaxLatitude           float64 `json:"spr:max_latitude"`
+     SPRMaxLongitude          float64 `json:"spr:max_longitude"`
+}
+```
+
+It is also possible to request GeoJSON formatted responses either by calling the
+[utils.ResultsToFeatureCollection() method](https://github.com/whosonfirst/go-whosonfirst-pip-v2/blob/master/utils/utils.go) in code or by passing in a
+`?format=geojson` flag in an HTTP request (assuming that `wof-pip-server` has
+been started with the `-enable-geojson` flag).
+
+### Extras
+
+_Please write me_
+
+## Indexes (indices)
+
+Indexing layers are used to store and query spatial data for performing point in
+polygon lookups.
+
+_SOMETHING SOMETHING SOMETHING `-no-index` FLAG_
+
+### rtree
+
+This is an in-memory RTree implementation that is created during indexing. Under
+the hood it uses Daniel Connely's [rtreego package](http://dhconnelly.com/rtreego/) and then
+performs a final raycasting operation to filter out false positives.
+
+Indexing time will vary depending on your hardware configuration. In our
+experience it is possible to index the entirety of the [Who's On First
+administrative data](https://github.com/whosonfirst-data) in about 10-12GB of
+RAM, in a little under 10 minutes time.
+
+### spatialite
+
+This is a Spatialite (SQLite with the `libspatialite` extension) based cache that assumes a `geometries` table matching the schema
+defined in the
+[go-whosonfirst-sqlite-features](https://github.com/whosonfirst/go-whosonfirst-sqlite-features#geometries)
+package. It is generally assumed that the databases created by that package will
+be used with this caching layer but if you need or want to create your own the
+schema looks like this:
+
+```
+CREATE TABLE geometries (
+       id INTEGER NOT NULL PRIMARY KEY,
+       is_alt TINYINT,
+       type TEXT,
+       lastmodified INTEGER
+);
+
+SELECT InitSpatialMetaData();
+SELECT AddGeometryColumn('geometries', 'geom', 4326, 'GEOMETRY', 'XY');
+SELECT CreateSpatialIndex('geometries', 'geom');
+
+CREATE INDEX geometries_by_lastmod ON geometries (lastmodified);`
+```
+
+_This assumes that you have already installed [libspatialite](https://www.gaia-gis.it/fossil/libspatialite/index) on your machine,
+the details of which are out of scope for this document._
+
+## Caches
+
+The caching layer is used to persist non-spatial data that needs to be returned
+with each result (the SPR) or used to filter queries.
+
+_SOMETHING SOMETHING SOMETHING `-no-index` FLAG_
+
+_At some future date these caches may be replaced with the Cache and Reader
+functionality defined in the
+[go-whosonfirst-readwrite](https://github.com/whosonfirst/go-whosonfirst-readwrite)
+package but not today._
+
+### fs
+
+This is a filesystem based cache which will read data stored as GeoJSON (and
+following the [Who's On First URI
+conventions](https://github.com/whosonfirst/go-whosonfirst-readwrite#caches) on
+disk.
+
+### gocache
+
+This is an in-memory cache that is created during indexing that stores a
+feature's `SPR` response (see above).
+
+### spatialite
+
+_This is just an alias of the `sqlite` cache.
+
+### sqlite
+
+This is a SQLite based cache that assumes a `geojson` table matching the schema
+defined in the
+[go-whosonfirst-sqlite-features](https://github.com/whosonfirst/go-whosonfirst-sqlite-features#geojson)
+package. It is generally assumed that the databases created by that package will
+be used with this caching layer but if you need or want to create your own the
+schema looks like this:
+
+```
+CREATE TABLE geojson (
+       id INTEGER NOT NULL PRIMARY KEY,
+       body TEXT,
+       lastmodified INTEGER
+);
+
+CREATE INDEX geojson_by_lastmod ON geojson (lastmodified);
+```
+
+## Filters
+
+_Please write me._
 
 ## Interfaces
 
-_Please write me._
+This package defines the following interfaces for indexing and cachine layers.
+
+### index.Index
+
+```
+type Index interface {
+	IndexFeature(geojson.Feature) error
+	Cache() cache.Cache
+	GetIntersectsByCoord(geom.Coord, filter.Filter) (spr.StandardPlacesResults, error)
+	GetCandidatesByCoord(geom.Coord) (*pip.GeoJSONFeatureCollection, error)
+	GetIntersectsByPath(geom.Path, filter.Filter) ([]spr.StandardPlacesResults, error)
+	Close() error
+}
+```
 
 ### cache.Cache
 
@@ -98,6 +284,7 @@ type Cache interface {
 	Misses() int64
 	Evictions() int64
 	Size() int64
+	Close() error
 }
 ```
 
@@ -121,39 +308,81 @@ type FeatureCache struct {
 }
 ```
 
-### index.Index
+## Example
 
 ```
-type Index interface {
-	IndexFeature(geojson.Feature) error
-	Cache() cache.Cache
-	GetIntersectsByCoord(geom.Coord, filter.Filter) (spr.StandardPlacesResults, error)
-	GetCandidatesByCoord(geom.Coord) (*pip.GeoJSONFeatureCollection, error)
-	GetIntersectsByPath(geom.Path, filter.Filter) ([]spr.StandardPlacesResults, error)
-}
+package main
+
+import (
+       "context"
+       "fmt"
+       "github.com/whosonfirst/go-whosonfirst-geojson-v2/feature"
+       "github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/geometry"
+       "github.com/whosonfirst/go-whosonfirst-geojson-v2/utils"
+       wof_index "github.com/whosonfirst/go-whosonfirst-index"
+       "github.com/whosonfirst/go-whosonfirst-pip/cache"
+       "github.com/whosonfirst/go-whosonfirst-pip/filter"
+       "github.com/whosonfirst/go-whosonfirst-pip/index"
+       "io"
+)
+
+func main() {
+
+	data := "/usr/local/data/whosonfirst-data"
+     	mode := "repo"
+
+	gocache_opts, _ := cache.DefaultGoCacheOptions()
+	gocache, _ := cache.NewGoCache(gocache_opts)
+
+	rtree_index, _ := index.NewRTreeIndex(gocache)
+
+	cb := func(fh io.Reader, ctx context.Context, args ...interface{}) error {
+
+		f, _ := feature.LoadFeatureFromReader(fh)
+		geom_type := geometry.Type(f)
+
+		if geom_type == "Point" {
+			return nil
+		}
+
+		return rtree_index.IndexFeature(f)
+	}
+
+	idx, _ := wof_index.NewIndexer(mode, cb)
+	idx.IndexPaths([]{ data })
+
+	// time passes and/or you check the value of idx.IsIndexing()
+
+	c, _ := utils.NewCoordinateFromLatLons(lat, lon)
+	f, _ := filter.NewSPRFilter()
+
+	results, _ := rtree_index.GetIntersectsByCoord(c, f)
+
+	body, _ := json.Marshal(results)
+	fmt.Println(string(body))
 ```
 
-## Indexes (indices)
+_Error handling has been removed for the sake of brevity._
 
-### rtree
+There are a few things to note about the example above:
 
-### spatialite
+* See the way the name is still is
+  `github.com/whosonfirst/go-whosonfirst-pip/...` even though this package is
+  called `github.com/whosonfirst/go-whosonfirst-pip-v2` ? That's unfortunate and
+  something that we'll reconcile in the future...
 
-## Caches
+* See the way there is a `github.com/whosonfirst/go-whosonfirst-index` package
+  (for indexing data) and a `github.com/whosonfirst/go-whosonfirst-pip/index`
+  package (for spatial indexes) ? This is why we can't have nice things...
 
-### fs
-
-### gocache
-
-### spatialite
-
-_This is just an alias of the `sqlite` cache.
-
-### sqlite
+* See the way we're creating a new `filter.NewSPRFilter()` variable and then
+blindly passing it to the `GetIntersectsByCoord` method ? It's possible the
+interface for the method will change to take an variable set of arguments but
+today it requires a "filter" even if that filter is null.
 
 ## Tools
 
-_Please write me._
+The following tools are included with this package.
 
 ### wof-pip
 

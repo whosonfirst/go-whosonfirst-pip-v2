@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/whosonfirst/go-whosonfirst-index"
-	_ "log"
+	"log"
 	"os"
 	"strings"
 )
@@ -20,6 +20,193 @@ func Parse(fl *flag.FlagSet) {
 	}
 
 	fl.Parse(args)
+
+	err := Validate(fl)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func Validate(fs *flag.FlagSet) error {
+
+	strict, err := BoolVar(fs, "strict")
+
+	if err != nil {
+		return err
+	}
+
+	mode, err := StringVar(fs, "mode")
+
+	if err != nil {
+		return err
+	}
+
+	pip_index, err := StringVar(fs, "index")
+
+	if err != nil {
+		return err
+	}
+
+	pip_cache, err := StringVar(fs, "cache")
+
+	if err != nil {
+		return err
+	}
+
+	spatialite_dsn, err := StringVar(fs, "spatialite-dsn")
+
+	if err != nil {
+		return err
+	}
+
+	if mode == "spatialite" {
+
+		if pip_index != "spatialite" {
+			return errors.New("-mode is spatialite but -index is not")
+		}
+
+		if pip_cache != "sqlite" && pip_cache != "spatialite" {
+			return errors.New("-mode is spatialite but -cache is neither 'sqlite' or 'spatialite'")
+		}
+
+		if spatialite_dsn == "" || spatialite_dsn == ":memory:" {
+			return errors.New("-spatialite-dsn needs to be an actual file on disk")
+		}
+	}
+
+	deprecated_bool := map[string]string{
+		"allow-geojson": "enable-geojson",
+		"candidates":    "enable-candidates",
+		"polylines":     "enable-polylines",
+		"www":           "enable-www",
+	}
+
+	for old, new := range deprecated_bool {
+
+		value, err := BoolVar(fs, old)
+
+		if err != nil {
+			return err
+		}
+
+		if value {
+
+			warning := fmt.Sprintf("deprecated flag -%s used so helpfully assigning -%s flag\n", old, new)
+
+			if strict {
+				warning = fmt.Sprintf("deprecated flag -%s used with -strict flag enabled", old)
+				return errors.New(warning)
+			}
+
+			log.Printf("[WARNING] %s\n", warning)
+			fs.Set(new, fmt.Sprintf("%s", value))
+		}
+	}
+
+	deprecated_string := map[string]string{
+		"mapzen-api-key": "www-api-key",
+	}
+
+	for old, new := range deprecated_string {
+
+		value, err := StringVar(fs, old)
+
+		if err != nil {
+			return err
+		}
+
+		if value != "" {
+
+			warning := fmt.Sprintf("deprecated flag -%s used so helpfully assigning -%s flag\n", old, new)
+
+			if strict {
+				warning := fmt.Sprintf("deprecated flag -%s used with -strict flag enabled", old)
+				return errors.New(warning)
+			}
+
+			log.Printf("[WARNING] %s\n", warning)
+			fs.Set(new, value)
+		}
+	}
+
+	invalid_string := []string{
+		"www-local",
+		"www-local-root",
+		"source-cache-root",
+	}
+
+	for _, old := range invalid_string {
+
+		value, err := StringVar(fs, old)
+
+		if err != nil {
+			return err
+		}
+
+		if value != "" {
+
+			warning := fmt.Sprintf("deprecated flag -%s used but it has no meaning anymore", old)
+
+			if strict {
+				return errors.New(warning)
+			}
+
+			log.Printf("[WARNING] %s\n", warning)
+		}
+	}
+
+	invalid_bool := []string{
+		"cache-all",
+	}
+
+	for _, old := range invalid_bool {
+
+		value, err := BoolVar(fs, old)
+
+		if err != nil {
+			return err
+		}
+
+		if value {
+
+			warning := fmt.Sprintf("deprecated flag -%s used but it has no meaning anymore", old)
+
+			if strict {
+				return errors.New(warning)
+			}
+
+			log.Printf("[WARNING] %s\n", warning)
+		}
+	}
+
+	invalid_int := []string{
+		"lru-cache-size",
+		"lru-cache-trigger",
+		"processes",
+	}
+
+	for _, old := range invalid_int {
+
+		value, err := IntVar(fs, old)
+
+		if err != nil {
+			return err
+		}
+
+		if value != 0 {
+
+			warning := fmt.Sprintf("deprecated flag -%s used but it has no meaning anymore", old)
+
+			if strict {
+				return errors.New(warning)
+			}
+
+			log.Printf("[WARNING] %s\n", warning)
+		}
+	}
+
+	return nil
 }
 
 func Lookup(fl *flag.FlagSet, k string) (interface{}, error) {
@@ -91,7 +278,7 @@ func CommonFlags() (*flag.FlagSet, error) {
 
 	fs.String("mode", "files", desc_modes)
 
-	fs.String("spatialite-dsn", ":memory:", "A valid SQLite DSN for the '-cache spatialite/sqlite' or '-index spatialite' option. As of this writing for the '-index' and '-cache' options share the same '-spatailite' DSN.")
+	fs.String("spatialite-dsn", "", "A valid SQLite DSN for the '-cache spatialite/sqlite' or '-index spatialite' option. As of this writing for the '-index' and '-cache' options share the same '-spatailite' DSN.")
 	fs.String("fs-path", "", "The root directory to look for features if '-cache fs'.")
 
 	fs.Bool("is-wof", true, "Input data is WOF-flavoured GeoJSON. (Pass a value of '0' or 'false' if you need to index non-WOF documents.")
@@ -107,6 +294,7 @@ func CommonFlags() (*flag.FlagSet, error) {
 	fs.Var(&exclude, "exclude", "Exclude (WOF) records based on their existential flags. Valid options are: ceased, deprecated, not-current, superseded.")
 
 	fs.Bool("verbose", false, "Be chatty.")
+	fs.Bool("strict", false, "Be strict about flags (and fail if any deprecated flags are used).")
 
 	fs.Bool("www", false, "This flag is DEPRECATED. Please use the '-enable-www' flag instead.")
 	fs.Bool("polylines", false, "This flag is DEPRECATED. Please use the '-enable-polylines' flag instead.")

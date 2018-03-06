@@ -167,7 +167,18 @@ _Please write me_
 Indexing layers are used to store and query spatial data for performing point in
 polygon lookups.
 
-_SOMETHING SOMETHING SOMETHING `-no-index` FLAG_
+It is important to remember that the indexing layer is populated at (data)
+indexing time and only stores the relevant spatial data. By default the index
+layer is assumed to be separate and decoupled from the source data, or "input"
+layer.
+
+_There is one exception to this rule that is implemented in the `wof-pip*` tools
+bundled with this package. If the tools are invoked with the `-mode spatialite`
+flag then it will be understood that both the caching and indexing layers
+already exist and they will not be pre-populated. This is a piece of
+[package-specific helper
+code](https://github.com/whosonfirst/go-whosonfirst-pip-v2/blob/spatialite/app/pip.go#L82-L123)
+independent of the basic model for creating caches and indices._
 
 ### rtree
 
@@ -212,19 +223,22 @@ the details of which are out of scope for this document._
 The caching layer is used to persist non-spatial data that needs to be returned
 with each result (the SPR) or used to filter queries.
 
-_SOMETHING SOMETHING SOMETHING `-no-index` FLAG_
+It is important to remember that the caching layer is populated at indexing time
+and only stores a feature's `SPR`. By default the caching layer is assumed to be
+separate and decoupled from the source data, or "input" layer.
 
-_At some future date these caches may be replaced with the Cache and Reader
-functionality defined in the
-[go-whosonfirst-readwrite](https://github.com/whosonfirst/go-whosonfirst-readwrite)
-package but not today._
+_There is one exception to this rule that is implemented in the `wof-pip*` tools
+bundled with this package. If the tools are invoked with the `-mode spatialite`
+flag then it will be understood that both the caching and indexing layers
+already exist and they will not be pre-populated. This is a piece of
+[package-specific helper
+code](https://github.com/whosonfirst/go-whosonfirst-pip-v2/blob/spatialite/app/pip.go#L82-L123)
+independent of the basic model for creating caches and indices._
 
 ### fs
 
-This is a filesystem based cache which will read data stored as GeoJSON (and
-following the [Who's On First URI
-conventions](https://github.com/whosonfirst/go-whosonfirst-readwrite#caches) on
-disk.
+This is a filesystem based cache that stores a feature's `SPR` response in files
+on disk, following the [Who's On First URI conventions](https://www.whosonfirst.org/docs/uris/).
 
 ### gocache
 
@@ -448,6 +462,9 @@ The following tools are included with this package.
     	This flag is DEPRECATED and doesn't do anything anymore.
 ```
 
+_If a deprecated flag has a contemporary matching flag the latter will be
+assigned the value of the former._
+
 For example:
 
 _Please write me..._
@@ -527,6 +544,9 @@ _Please write me..._
   -www-path string
     	The URL path for the interactive debug endpoint. (default "/debug")```
 ```
+
+_If a deprecated flag has a contemporary matching flag the latter will be
+assigned the value of the former._
 
 For example, to index [Who's On First data published as a SQLite database](https://whosonfirst.mapzen.com/sqlite) and spinning up a little web server for debugging things you might do something like:
 

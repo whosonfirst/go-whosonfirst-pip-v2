@@ -32,6 +32,7 @@ thing. The main differences between the two packages are:
 * The ability to filter results by placetype or existential flags (is current, is deprecated, etc.)
 * The use of the [go-whosonfirst-geojson-v2](https://github.com/whosonfirst/go-whosonfirst-geojson-v2) package for working with Who's On First documents.
 * The use of the [go-whosonfirst-spr](https://github.com/whosonfirst/go-whosonfirst-spr) package (SPR is an acronym for "standard place response") for handling and generating responses. 
+* The use of the [go-whosonfirst-flags](https://github.com/whosonfirst/go-whosonfirst-flags) package for filtering results. 
 
 ## Example
 
@@ -232,7 +233,7 @@ feature's `SPR` response (see above).
 
 ### spatialite
 
-_This is just an alias of the `sqlite` cache.
+_This is just an alias of the `sqlite` cache._
 
 ### sqlite
 
@@ -259,7 +260,7 @@ _Please write me._
 
 ## Interfaces
 
-This package defines the following interfaces for indexing and cachine layers.
+This package defines the following interfaces for indexing, caching and filtering layers.
 
 ### index.Index
 
@@ -305,6 +306,19 @@ type FeatureCache struct {
 	CacheItem       `json:",omitempty"`
 	FeatureSPR      spr.StandardPlacesResult `json:"spr"`
 	FeaturePolygons []geojson.Polygon        `json:"polygons"`
+}
+```
+
+### filter.Filter
+
+```
+type Filter interface {
+	HasPlacetypes(flags.PlacetypeFlag) bool
+	IsCurrent(flags.ExistentialFlag) bool
+	IsDeprecated(flags.ExistentialFlag) bool
+	IsCeased(flags.ExistentialFlag) bool
+	IsSuperseded(flags.ExistentialFlag) bool
+	IsSuperseding(flags.ExistentialFlag) bool
 }
 ```
 
@@ -749,5 +763,6 @@ Shortest transaction:           0.00
 
 * https://github.com/whosonfirst/go-whosonfirst-geojson-v2
 * https://github.com/whosonfirst/go-whosonfirst-spr
+* https://github.com/whosonfirst/go-whosonfirst-flags
 * https://github.com/whosonfirst/go-whosonfirst-index
 * https://github.com/whosonfirst/go-whosonfirst-pip

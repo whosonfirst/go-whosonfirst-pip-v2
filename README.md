@@ -17,8 +17,8 @@ All of this package's dependencies are bundled with the code in the `vendor` dir
 ## Important
 
 This package lacks normal Go documentation for packages and methods. Also normal
-Go tests. Both are on the list but in the meantime there is documentation (-ish)
-below.
+Go tests. Both are on the list (and contributions for either would be welcome)
+but in the meantime there is documentation (-ish) below.
 
 ## Differences from "v1"
 
@@ -619,7 +619,7 @@ See also: https://github.com/whosonfirst/go-mapzen-valhalla#valhalla-route
 #### Fancy McFancyPants
 
 _Note: As of this writing the [Who's On First API]() is still offline but the
-point – the ability to indexing line-separated GeoJSON by piping it to the
+point – the ability to index line-separated GeoJSON by piping it to the
 `wof-pip-server` – remains the same._
 
 Indexing API results (in this case counties in California) by piping them in to `wof-pip-server` on STDIN:

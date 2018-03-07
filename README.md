@@ -160,7 +160,61 @@ been started with the `-enable-geojson` flag).
 
 ### Extras
 
-_Please write me_
+It is possible to append custom _extra_ parameters to responses with the use of
+a custom "extras" SQLite database. This work has not been formalized yet (like
+does it deserve to have a proper interface) and should still be considered
+experimental.
+
+The code to append extras is defined in the [extras package](extras/extras.go)
+and the first thing to understand is that _it operates on raw JSON bytes_ rather
+than a strictly defined interface like the SPR.
+
+The basic signature for appending extras is: 
+
+```
+func AppendExtras(js []byte, id_map []string, paths []string, extras_db *database.SQLiteDatabase) ([]byte, error) {
+```
+
+As in:
+
+* A JSON-serialized `spr.StandardPlacesResults` blob of bytes that be queried
+* An ordered list of IDs that maps to each item in the `places` list (in the serialized `spr.StandardPlacesResults` blob)
+* A list of paths (in dot notation) to look up for each ID (and append to its corresponding `place` record
+* A valid `database.SQLiteDatabase` with a `geojson` table following the schema defined by the [go-whosonfirst-sqlite-features](https://github.com/whosonfirst/go-whosonfirst-sqlite-features#geojson) package.
+
+There is also a handy `extras.AppendExtrasWithSPRResults` helper method for
+generating the list of IDs required by (and which invokes) the `AppendExtras`
+method.
+
+```
+func AppendExtrasWithSPRResults(js []byte, results spr.StandardPlacesResults, paths []string, extras_db *database.SQLiteDatabase) ([]byte, error) {
+```
+
+For example:
+
+```
+	// index := ...
+	// coord := ...
+	// filter := ...
+
+	results, _ := index.GetIntersectsByCoord(coord, filter)
+	js, _ := json.Marshal(results)
+
+	extras_dsn := "extras.db"
+	extras_db, _ := database.NewDB(extras_dsn)
+
+	extras_paths := []string{
+		"properties.geom:",
+	}
+
+	js, _ = extras.AppendExtrasWithSPRResults(js, results, extras_paths, extras_db)
+```
+
+As of this writing extras are only supported by the `wof-pip-server` tool and
+need to be invoked with the `-enable-extras` flag. The default DSN for the
+extras database (as defined by the `-extras-dsn` flag) is `:tmpfile:` which
+means that a temporary SQLite database will be created and populated at index
+time and then deleted when the program exits.
 
 ## Indexes (indices)
 

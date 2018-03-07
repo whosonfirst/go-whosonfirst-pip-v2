@@ -17,45 +17,41 @@ import (
 
 func main() {
 
-	fl, err := flags.CommonFlags()
+	fs, err := flags.CommonFlags()
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fl.String("host", "localhost", "The hostname to listen for requests on.")
-	fl.Int("port", 8080, "The port number to listen for requests on.")
+	err = flags.AppendWWWFlags(fs)
 
-	fl.Bool("enable-extras", false, "Enable support for 'extras' parameters in queries.")
-	fl.String("extras-dsn", ":tmpfile:", "A valid SQLite DSN for your 'extras' database - if ':tmpfile:' then a temporary database will be created during indexing and deleted when the program exits.")
+	flags.Parse(fs)
 
-	fl.Bool("enable-geojson", false, "Allow users to request GeoJSON FeatureCollection formatted responses.")
-	fl.Bool("enable-candidates", false, "Enable the /candidates endpoint to return candidate bounding boxes (as GeoJSON) for requests.")
-	fl.Bool("enable-polylines", false, "Enable the /polylines endpoint to return hierarchies intersecting a path.")
-	fl.Bool("enable-www", false, "Enable the interactive /debug endpoint to query points and display results.")
+	err = flags.ValidateCommonFlags(fs)
 
-	fl.Int("polylines-max-coords", 100, "The maximum number of points a (/polylines) path may contain before it is automatically paginated.")
-	fl.String("www-path", "/debug", "The URL path for the interactive debug endpoint.")
-	fl.String("www-api-key", "xxxxxx", "A valid Nextzen Map Tiles API key (https://developers.nextzen.org).")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	fl.Bool("allow-extras", false, "This flag is DEPRECATED. Please use the '-enable-extras' flag instead.")
-	fl.String("extras-db", "", "This flag is DEPRECATED. Please use '-extras-dsn' flag instead.")
+	err = flags.ValidateWWWFlags(fs)
 
-	flags.Parse(fl)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	pip, err := app.NewPIPApplication(fl)
+	pip, err := app.NewPIPApplication(fs)
 
 	if err != nil {
 		pip.Logger.Fatal("Failed to create new PIP application, because %s", err)
 	}
 
-	pip_index, _ := flags.StringVar(fl, "index")
-	pip_cache, _ := flags.StringVar(fl, "cache")
-	mode, _ := flags.StringVar(fl, "mode")
+	pip_index, _ := flags.StringVar(fs, "index")
+	pip_cache, _ := flags.StringVar(fs, "cache")
+	mode, _ := flags.StringVar(fs, "mode")
 
 	pip.Logger.Info("index is %s cache is %s mode is %s", pip_index, pip_cache, mode)
 
-	err = pip.IndexPaths(fl.Args())
+	err = pip.IndexPaths(fs.Args())
 
 	if err != nil {
 		pip.Logger.Fatal("Failed to index paths, because %s", err)
@@ -74,18 +70,9 @@ func main() {
 
 	// set up the HTTP endpoint
 
-	enable_www, _ := flags.BoolVar(fl, "enable-www")
-
-	if enable_www {
-		pip.Logger.Status("-enable-www flag is true causing the following flags to also be true: -enable-geojson -enable-candidates")
-
-		fl.Set("enable-geojson", "true")
-		fl.Set("enable-candidates", "true")
-	}
-
 	pip.Logger.Debug("setting up intersects handler")
 
-	enable_geojson, _ := flags.BoolVar(fl, "enable-geojson")
+	enable_geojson, _ := flags.BoolVar(fs, "enable-geojson")
 
 	intersects_opts := http.NewDefaultIntersectsHandlerOptions()
 	intersects_opts.EnableGeoJSON = enable_geojson
@@ -107,8 +94,9 @@ func main() {
 	mux.Handle("/ping", ping_handler)
 	mux.Handle("/", intersects_handler)
 
-	enable_candidates, _ := flags.BoolVar(fl, "enable-candidates")
-	enable_polylines, _ := flags.BoolVar(fl, "enable-polylines")
+	enable_www, _ := flags.BoolVar(fs, "enable-www")
+	enable_candidates, _ := flags.BoolVar(fs, "enable-candidates")
+	enable_polylines, _ := flags.BoolVar(fs, "enable-polylines")
 
 	if enable_candidates {
 
@@ -127,7 +115,7 @@ func main() {
 
 		pip.Logger.Debug("setting up polylines handler")
 
-		poly_coords, _ := flags.IntVar(fl, "polylines-max-coords")
+		poly_coords, _ := flags.IntVar(fs, "polylines-max-coords")
 
 		poly_opts := http.NewDefaultPolylineHandlerOptions()
 		poly_opts.MaxCoords = poly_coords
@@ -144,8 +132,8 @@ func main() {
 
 	if enable_www {
 
-		www_path, _ := flags.StringVar(fl, "www-path")
-		api_key, _ := flags.StringVar(fl, "www-api-key")
+		www_path, _ := flags.StringVar(fs, "www-path")
+		api_key, _ := flags.StringVar(fs, "www-api-key")
 
 		pip.Logger.Debug("setting up www handler at %s", www_path)
 
@@ -207,8 +195,8 @@ func main() {
 		mux.Handle(www_path, rewrite_handler)
 	}
 
-	host, _ := flags.StringVar(fl, "host")
-	port, _ := flags.IntVar(fl, "port")
+	host, _ := flags.StringVar(fs, "host")
+	port, _ := flags.IntVar(fs, "port")
 
 	endpoint := fmt.Sprintf("%s:%d", host, port)
 	pip.Logger.Status("listening for requests on %s", endpoint)

@@ -20,15 +20,9 @@ func Parse(fl *flag.FlagSet) {
 	}
 
 	fl.Parse(args)
-
-	err := Validate(fl)
-
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
-func Validate(fs *flag.FlagSet) error {
+func ValidateCommonFlags(fs *flag.FlagSet) error {
 
 	strict, err := BoolVar(fs, "strict")
 
@@ -75,109 +69,12 @@ func Validate(fs *flag.FlagSet) error {
 		}
 	}
 
-	deprecated_bool := map[string]string{
-		"allow-geojson": "enable-geojson",
-		"candidates":    "enable-candidates",
-		"polylines":     "enable-polylines",
-		"www":           "enable-www",
-	}
-
-	for old, new := range deprecated_bool {
-
-		value, err := BoolVar(fs, old)
-
-		if err != nil {
-			return err
-		}
-
-		if value {
-
-			warning := fmt.Sprintf("deprecated flag -%s used so helpfully assigning -%s flag\n", old, new)
-
-			if strict {
-				warning = fmt.Sprintf("deprecated flag -%s used with -strict flag enabled", old)
-				return errors.New(warning)
-			}
-
-			log.Printf("[WARNING] %s\n", warning)
-			fs.Set(new, fmt.Sprintf("%s", value))
-		}
-	}
-
-	deprecated_string := map[string]string{
-		"mapzen-api-key": "www-api-key",
-	}
-
-	for old, new := range deprecated_string {
-
-		value, err := StringVar(fs, old)
-
-		if err != nil {
-			return err
-		}
-
-		if value != "" {
-
-			warning := fmt.Sprintf("deprecated flag -%s used so helpfully assigning -%s flag\n", old, new)
-
-			if strict {
-				warning := fmt.Sprintf("deprecated flag -%s used with -strict flag enabled", old)
-				return errors.New(warning)
-			}
-
-			log.Printf("[WARNING] %s\n", warning)
-			fs.Set(new, value)
-		}
-	}
-
 	invalid_string := []string{
-		"www-local",
-		"www-local-root",
 		"source-cache-root",
-	}
-
-	for _, old := range invalid_string {
-
-		value, err := StringVar(fs, old)
-
-		if err != nil {
-			return err
-		}
-
-		if value != "" {
-
-			warning := fmt.Sprintf("deprecated flag -%s used but it has no meaning anymore", old)
-
-			if strict {
-				return errors.New(warning)
-			}
-
-			log.Printf("[WARNING] %s\n", warning)
-		}
 	}
 
 	invalid_bool := []string{
 		"cache-all",
-	}
-
-	for _, old := range invalid_bool {
-
-		value, err := BoolVar(fs, old)
-
-		if err != nil {
-			return err
-		}
-
-		if value {
-
-			warning := fmt.Sprintf("deprecated flag -%s used but it has no meaning anymore", old)
-
-			if strict {
-				return errors.New(warning)
-			}
-
-			log.Printf("[WARNING] %s\n", warning)
-		}
 	}
 
 	invalid_int := []string{
@@ -186,24 +83,33 @@ func Validate(fs *flag.FlagSet) error {
 		"processes",
 	}
 
-	for _, old := range invalid_int {
+	err = CheckInvalidFlags(fs, invalid_string, "string", strict)
 
-		value, err := IntVar(fs, old)
+	if err != nil {
+		return err
+	}
 
-		if err != nil {
-			return err
-		}
+	err = CheckInvalidFlags(fs, invalid_bool, "bool", strict)
 
-		if value != 0 {
+	if err != nil {
+		return err
+	}
 
-			warning := fmt.Sprintf("deprecated flag -%s used but it has no meaning anymore", old)
+	err = CheckInvalidFlags(fs, invalid_int, "int", strict)
 
-			if strict {
-				return errors.New(warning)
-			}
+	if err != nil {
+		return err
+	}
 
-			log.Printf("[WARNING] %s\n", warning)
-		}
+	return nil
+}
+
+func ValidateWWWFlags(fs *flag.FlagSet) error {
+
+	strict, err := BoolVar(fs, "strict")
+
+	if err != nil {
+		return err
 	}
 
 	enable_www, err := BoolVar(fs, "enable-www")
@@ -213,6 +119,11 @@ func Validate(fs *flag.FlagSet) error {
 	}
 
 	if enable_www {
+
+		log.Println("-enable-www flag is true causing the following flags to also be true: -enable-geojson -enable-candidates")
+
+		fs.Set("enable-geojson", "true")
+		fs.Set("enable-candidates", "true")
 
 		key, err := StringVar(fs, "www-api-key")
 
@@ -229,6 +140,147 @@ func Validate(fs *flag.FlagSet) error {
 			}
 
 			log.Printf("[WARNING] %s\n", warning)
+		}
+	}
+
+	deprecated_bool := map[string]string{
+		"allow-geojson": "enable-geojson",
+		"candidates":    "enable-candidates",
+		"polylines":     "enable-polylines",
+		"www":           "enable-www",
+	}
+
+	deprecated_string := map[string]string{
+		"mapzen-api-key": "www-api-key",
+	}
+
+	invalid_string := []string{
+		"www-local",
+		"www-local-root",
+	}
+
+	err = CheckDeprecatedFlags(fs, deprecated_bool, "bool", strict)
+
+	if err != nil {
+		return err
+	}
+
+	err = CheckDeprecatedFlags(fs, deprecated_string, "string", strict)
+
+	if err != nil {
+		return err
+	}
+
+	err = CheckInvalidFlags(fs, invalid_string, "string", strict)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func CheckInvalidFlags(fs *flag.FlagSet, invalid []string, target string, strict bool) error {
+
+	for _, old := range invalid {
+
+		var value interface{}
+		var err error
+		var ok bool
+
+		switch target {
+		case "string":
+			value, err = StringVar(fs, old)
+		case "bool":
+			value, err = BoolVar(fs, old)
+		case "int":
+			value, err = IntVar(fs, old)
+		default:
+			err = errors.New("Invalid target")
+		}
+
+		if err != nil {
+			return err
+		}
+
+		switch target {
+		case "string":
+			ok = value.(string) != ""
+		case "bool":
+			ok = value.(bool)
+		case "int":
+			ok = value.(int) != 0
+		default:
+			err = errors.New("Invalid target")
+		}
+
+		if err != nil {
+			return nil
+		}
+
+		if !ok {
+
+			warning := fmt.Sprintf("deprecated flag -%s used but it has no meaning anymore", old)
+
+			if strict {
+				return errors.New(warning)
+			}
+
+			log.Printf("[WARNING] %s\n", warning)
+		}
+	}
+
+	return nil
+}
+
+func CheckDeprecatedFlags(fs *flag.FlagSet, deprecated map[string]string, target string, strict bool) error {
+
+	for old, new := range deprecated {
+
+		var value interface{}
+		var err error
+		var ok bool
+
+		switch target {
+		case "string":
+			value, err = StringVar(fs, old)
+		case "bool":
+			value, err = BoolVar(fs, old)
+		case "int":
+			value, err = IntVar(fs, old)
+		default:
+			err = errors.New("Invalid target")
+		}
+
+		if err != nil {
+			return err
+		}
+
+		switch target {
+		case "string":
+			ok = value.(string) != ""
+		case "bool":
+			ok = value.(bool)
+		case "int":
+			ok = value.(int) != 0
+		default:
+			err = errors.New("Invalid target")
+		}
+
+		if err != nil {
+			return nil
+		}
+
+		if !ok {
+			warning := fmt.Sprintf("deprecated flag -%s used so helpfully assigning -%s flag\n", old, new)
+
+			if strict {
+				warning := fmt.Sprintf("deprecated flag -%s used with -strict flag enabled", old)
+				return errors.New(warning)
+			}
+
+			log.Printf("[WARNING] %s\n", warning)
+			fs.Set(new, fmt.Sprintf("%s", value))
 		}
 	}
 
@@ -320,16 +372,7 @@ func CommonFlags() (*flag.FlagSet, error) {
 	fs.Var(&exclude, "exclude", "Exclude (WOF) records based on their existential flags. Valid options are: ceased, deprecated, not-current, superseded.")
 
 	fs.Bool("verbose", false, "Be chatty.")
-	fs.Bool("strict", false, "Be strict about flags (and fail if any deprecated flags are used).")
-
-	fs.Bool("www", false, "This flag is DEPRECATED. Please use the '-enable-www' flag instead.")
-	fs.Bool("polylines", false, "This flag is DEPRECATED. Please use the '-enable-polylines' flag instead.")
-	fs.Bool("candidates", false, "This flag is DEPRECATED. Please use the '-enable-candidates' flag instead.")
-	fs.Bool("allow-geojson", false, "This flag is DEPRECATED. Please use the '-enable-geojson' flag instead.")
-	fs.String("mapzen-api-key", "", "This flag is DEPRECATED. Please use the '-www-api-key' flag instead.")
-
-	fs.String("www-local", "", "This flag is DEPRECATED and doesn't do anything anymore.")
-	fs.String("www-local-root", "", "This flag is DEPRECATED and doesn't do anything anymore.")
+	fs.Bool("strict", false, "Be strict about flags and fail if any are missing or deprecated flags are used.")
 
 	fs.String("source-cache-root", "", "This flag is DEPRECATED and doesn't do anything anymore. Please use the '-cache fs' and '-fs-path {PATH}' flags instead.")
 
@@ -341,4 +384,36 @@ func CommonFlags() (*flag.FlagSet, error) {
 	fs.Int("processes", 0, "This flag is DEPRECATED and doesn't do anything anymore.")
 
 	return fs, nil
+}
+
+func AppendWWWFlags(fs *flag.FlagSet) error {
+
+	fs.String("host", "localhost", "The hostname to listen for requests on.")
+	fs.Int("port", 8080, "The port number to listen for requests on.")
+
+	fs.Bool("enable-extras", false, "Enable support for 'extras' parameters in queries.")
+	fs.String("extras-dsn", ":tmpfile:", "A valid SQLite DSN for your 'extras' database - if ':tmpfile:' then a temporary database will be created during indexing and deleted when the program exits.")
+
+	fs.Bool("enable-geojson", false, "Allow users to request GeoJSON FeatureCollection formatted responses.")
+	fs.Bool("enable-candidates", false, "Enable the /candidates endpoint to return candidate bounding boxes (as GeoJSON) for requests.")
+	fs.Bool("enable-polylines", false, "Enable the /polylines endpoint to return hierarchies intersecting a path.")
+	fs.Bool("enable-www", false, "Enable the interactive /debug endpoint to query points and display results.")
+
+	fs.Int("polylines-max-coords", 100, "The maximum number of points a (/polylines) path may contain before it is automatically paginated.")
+	fs.String("www-path", "/debug", "The URL path for the interactive debug endpoint.")
+	fs.String("www-api-key", "xxxxxx", "A valid Nextzen Map Tiles API key (https://developers.nextzen.org).")
+
+	fs.Bool("allow-extras", false, "This flag is DEPRECATED. Please use the '-enable-extras' flag instead.")
+	fs.String("extras-db", "", "This flag is DEPRECATED. Please use '-extras-dsn' flag instead.")
+
+	fs.Bool("www", false, "This flag is DEPRECATED. Please use the '-enable-www' flag instead.")
+	fs.Bool("polylines", false, "This flag is DEPRECATED. Please use the '-enable-polylines' flag instead.")
+	fs.Bool("candidates", false, "This flag is DEPRECATED. Please use the '-enable-candidates' flag instead.")
+	fs.Bool("allow-geojson", false, "This flag is DEPRECATED. Please use the '-enable-geojson' flag instead.")
+	fs.String("mapzen-api-key", "", "This flag is DEPRECATED. Please use the '-www-api-key' flag instead.")
+
+	fs.String("www-local", "", "This flag is DEPRECATED and doesn't do anything anymore.")
+	fs.String("www-local-root", "", "This flag is DEPRECATED and doesn't do anything anymore.")
+
+	return nil
 }

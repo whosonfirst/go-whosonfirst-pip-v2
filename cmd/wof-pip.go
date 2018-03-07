@@ -25,6 +25,12 @@ func main() {
 
 	flags.Parse(fl)
 
+	err = flags.ValidateCommonFlags(fl)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	pip, err := app.NewPIPApplication(fl)
 
 	if err != nil {

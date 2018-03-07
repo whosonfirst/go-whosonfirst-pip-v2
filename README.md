@@ -339,7 +339,33 @@ CREATE INDEX geojson_by_lastmod ON geojson (lastmodified);
 
 ## Filters
 
+There are 6 different filters, divided in to two classes, for limiting
+results.
+
+The two classes are: placetypes and existential flags.
+
+There is one placetype flag (called `placetype`) which is defined as a valid
+placetype string and five existential flags: `current`, `deprecated`, `ceased`,
+`superseded` and `superseding`. An existential flag can be defined as true or
+false (`1` or `0` respectively) or unknown (`-1`).
+
 _Please write me._
+
+```
+	filters, err := filter.NewSPRFilterFromQuery(query)
+```
+
+```
+type SPRFilter struct {
+	Filter
+	Placetypes  []flags.PlacetypeFlag
+	Current     []flags.ExistentialFlag
+	Deprecated  []flags.ExistentialFlag
+	Ceased      []flags.ExistentialFlag
+	Superseded  []flags.ExistentialFlag
+	Superseding []flags.ExistentialFlag
+}
+```
 
 ## Interfaces
 

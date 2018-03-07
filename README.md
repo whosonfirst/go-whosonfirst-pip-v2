@@ -419,14 +419,10 @@ The following tools are included with this package.
 
 ```
 ./bin/wof-pip -h
-  -allow-geojson
-    	This flag is DEPRECATED. Please use -enable-geojson instead.
   -cache string
     	Valid options are: gocache, fs, spatialite, sqlite. Note that the spatalite option is just a convenience to mirror the '-index spatialite' option. (default "gocache")
   -cache-all
     	This flag is DEPRECATED and doesn't do anything anymore.
-  -candidates
-    	This flag is DEPRECATED. Please use -enable-candidates instead.
   -exclude value
     	Exclude (WOF) records based on their existential flags. Valid options are: ceased, deprecated, not-current, superseded.
   -failover-cache string
@@ -436,31 +432,23 @@ The following tools are included with this package.
   -index string
     	Valid options are: rtree, spatialite. (default "rtree")
   -is-wof
-    	Input data is WOF-flavoured GeoJSON. (default true)
+    	Input data is WOF-flavoured GeoJSON. (Pass a value of '0' or 'false' if you need to index non-WOF documents. (default true)
   -lru-cache-size int
     	This flag is DEPRECATED and doesn't do anything anymore.
   -lru-cache-trigger int
     	This flag is DEPRECATED and doesn't do anything anymore.
-  -mapzen-api-key string
-    	This flag is DEPRECATED. Please use -www-api-key instead.
   -mode string
-    	Valid modes are: directory, feature, feature-collection, files, geojson-ls, meta, path, repo, sqlite. (default "files")
-  -polylines
-    	This flag is DEPRECATED. Please use -enable-polylines instead.
+    	Valid modes are: directory, feature, feature-collection, files, geojson-ls, meta, path, repo, spatialite, sqlite. (default "files")
   -processes int
     	This flag is DEPRECATED and doesn't do anything anymore.
   -source-cache-root string
-    	This flag is DEPRECATED and doesn't do anything anymore.
+    	This flag is DEPRECATED and doesn't do anything anymore. Please use the '-cache fs' and '-fs-path {PATH}' flags instead.
   -spatialite-dsn string
-    	A valid SQLite DSN for the '-cache spatialite/sqlite' or '-index spatialite' option. As of this writing for the '-index' and '-cache' options share the same '-spatailite' DSN. (default ":memory:")
+    	A valid SQLite DSN for the '-cache spatialite/sqlite' or '-index spatialite' option. As of this writing for the '-index' and '-cache' options share the same '-spatailite' DSN.
+  -strict
+    	Be strict about flags and fail if any are missing or deprecated flags are used.
   -verbose
     	Be chatty.
-  -www
-    	This flag is DEPRECATED. Please use -enable-www instead.
-  -www-local string
-    	This flag is DEPRECATED and doesn't do anything anymore.
-  -www-local-root string
-    	This flag is DEPRECATED and doesn't do anything anymore.
 ```
 
 _If a deprecated flag has a contemporary matching flag the latter will be
@@ -477,15 +465,15 @@ _Please write me..._
 ```
 ./bin/wof-pip-server -h
   -allow-extras
-    	This flag is DEPRECATED. Please use -enable-extras instead.
+    	This flag is DEPRECATED. Please use the '-enable-extras' flag instead.
   -allow-geojson
-    	This flag is DEPRECATED. Please use -enable-geojson instead.
+    	This flag is DEPRECATED. Please use the '-enable-geojson' flag instead.
   -cache string
     	Valid options are: gocache, fs, spatialite, sqlite. Note that the spatalite option is just a convenience to mirror the '-index spatialite' option. (default "gocache")
   -cache-all
     	This flag is DEPRECATED and doesn't do anything anymore.
   -candidates
-    	This flag is DEPRECATED. Please use -enable-candidates instead.
+    	This flag is DEPRECATED. Please use the '-enable-candidates' flag instead.
   -enable-candidates
     	Enable the /candidates endpoint to return candidate bounding boxes (as GeoJSON) for requests.
   -enable-extras
@@ -499,7 +487,7 @@ _Please write me..._
   -exclude value
     	Exclude (WOF) records based on their existential flags. Valid options are: ceased, deprecated, not-current, superseded.
   -extras-db string
-    	This flag is DEPRECATED. Please use -extras-dsn instead.
+    	This flag is DEPRECATED. Please use '-extras-dsn' flag instead.
   -extras-dsn string
     	A valid SQLite DSN for your 'extras' database - if ':tmpfile:' then a temporary database will be created during indexing and deleted when the program exits. (default ":tmpfile:")
   -failover-cache string
@@ -511,17 +499,17 @@ _Please write me..._
   -index string
     	Valid options are: rtree, spatialite. (default "rtree")
   -is-wof
-    	Input data is WOF-flavoured GeoJSON. (default true)
+    	Input data is WOF-flavoured GeoJSON. (Pass a value of '0' or 'false' if you need to index non-WOF documents. (default true)
   -lru-cache-size int
     	This flag is DEPRECATED and doesn't do anything anymore.
   -lru-cache-trigger int
     	This flag is DEPRECATED and doesn't do anything anymore.
   -mapzen-api-key string
-    	This flag is DEPRECATED. Please use -www-api-key instead.
+    	This flag is DEPRECATED. Please use the '-www-api-key' flag instead.
   -mode string
-    	Valid modes are: directory, feature, feature-collection, files, geojson-ls, meta, path, repo, sqlite. (default "files")
+    	Valid modes are: directory, feature, feature-collection, files, geojson-ls, meta, path, repo, spatialite, sqlite. (default "files")
   -polylines
-    	This flag is DEPRECATED. Please use -enable-polylines instead.
+    	This flag is DEPRECATED. Please use the '-enable-polylines' flag instead.
   -polylines-max-coords int
     	The maximum number of points a (/polylines) path may contain before it is automatically paginated. (default 100)
   -port int
@@ -529,13 +517,15 @@ _Please write me..._
   -processes int
     	This flag is DEPRECATED and doesn't do anything anymore.
   -source-cache-root string
-    	This flag is DEPRECATED and doesn't do anything anymore.
+    	This flag is DEPRECATED and doesn't do anything anymore. Please use the '-cache fs' and '-fs-path {PATH}' flags instead.
   -spatialite-dsn string
-    	A valid SQLite DSN for the '-cache spatialite/sqlite' or '-index spatialite' option. As of this writing for the '-index' and '-cache' options share the same '-spatailite' DSN. (default ":memory:")
+    	A valid SQLite DSN for the '-cache spatialite/sqlite' or '-index spatialite' option. As of this writing for the '-index' and '-cache' options share the same '-spatailite' DSN.
+  -strict
+    	Be strict about flags and fail if any are missing or deprecated flags are used.
   -verbose
     	Be chatty.
   -www
-    	This flag is DEPRECATED. Please use -enable-www instead.
+    	This flag is DEPRECATED. Please use the '-enable-www' flag instead.
   -www-api-key string
     	A valid Nextzen Map Tiles API key (https://developers.nextzen.org). (default "xxxxxx")
   -www-local string
@@ -543,7 +533,7 @@ _Please write me..._
   -www-local-root string
     	This flag is DEPRECATED and doesn't do anything anymore.
   -www-path string
-    	The URL path for the interactive debug endpoint. (default "/debug")```
+    	The URL path for the interactive debug endpoint. (default "/debug")
 ```
 
 _If a deprecated flag has a contemporary matching flag the latter will be

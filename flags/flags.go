@@ -7,6 +7,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-index"
 	"log"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -296,7 +297,12 @@ func CommonFlags() (*flag.FlagSet, error) {
 	fs.String("index", "rtree", "Valid options are: rtree, spatialite.")
 	fs.String("cache", "gocache", "Valid options are: gocache, fs, spatialite, sqlite. Note that the spatalite option is just a convenience to mirror the '-index spatialite' option.")
 
-	valid_modes := strings.Join(index.Modes(), ", ")
+	modes := index.Modes()
+	modes = append(modes, "spatialite")
+
+	sort.Strings(modes)
+
+	valid_modes := strings.Join(modes, ", ")
 	desc_modes := fmt.Sprintf("Valid modes are: %s.", valid_modes)
 
 	fs.String("mode", "files", desc_modes)

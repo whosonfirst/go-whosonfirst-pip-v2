@@ -575,7 +575,7 @@ And then:
 16:40:29.562617 [wof-pip-server] STATUS finished indexing
 ```
 
-_Note the part where you need to get a [Nextzen Map Tiles API key](https://www.nextzen.org/developers/) in order for the map-y parts of things to work._
+_Note the part where you need to get a [Nextzen Map Tiles API key](https://developers.nextzen.org/) in order for the map-y parts of things to work._
 
 And finally:
 
@@ -683,10 +683,10 @@ cd water-polygons-split-4326
 ogr2ogr -F GeoJSON water_polygons.geojson water_polygons.shp
 ```
 
-Now we start up the PIP server passing along the `-is-wof false` and `-mode feature-collection` flag:
+Now we start up the PIP server passing along the `-is-wof=false` and `-mode feature-collection` flag:
 
 ```
-./bin/wof-pip-server -port 5555 -is-wof false -enable-www -www-api-key mapzen-xxxxxxx \
+./bin/wof-pip-server -port 5555 -is-wof=false -enable-www -www-api-key mapzen-xxxxxxx \
 	-mode feature-collection /usr/local/water-polygons-split-4326/water_polygons.geojson
 
 10:33:49.735255 [wof-pip-server] STATUS -www flag is true causing the following flags to also be true: -allow-geojson -candidates

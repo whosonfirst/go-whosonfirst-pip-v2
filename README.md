@@ -165,6 +165,23 @@ a custom "extras" SQLite database. This work has not been formalized yet (like
 does it deserve to have a proper interface or a separate standalone package) and
 should still be considered experimental.
 
+As of this writing extras are only supported by the `wof-pip-server` tool and
+need to be invoked with the `-enable-extras` flag. The default DSN for the
+extras database (as defined by the `-extras-dsn` flag) is `:tmpfile:` which
+means that a temporary SQLite database will be created and populated at index
+time and then deleted when the program exits.
+
+To query for extras (when calling the `wof-pip-server`) simply pass along a
+comma-separated list of strings to the `extras` parameter. For example:
+
+```
+http://localhost:8080/?latitude=37.6588&longitude=-122.4979&extras=geom:
+```
+
+Extras themselves can be defined as fully-qualified keys or use a wildcard
+notation of `{PREFIX}:` or `{PREFIX}:*` to retrieve all the keys matching a
+given prefix.
+
 The code to append extras is defined in the [extras package](extras/extras.go)
 and the first thing to understand is that _it operates on raw JSON bytes_ rather
 than a strictly defined interface like the SPR.
@@ -209,23 +226,6 @@ For example:
 
 	js, _ = extras.AppendExtrasWithSPRResults(js, results, extras_paths, extras_db)
 ```
-
-As of this writing extras are only supported by the `wof-pip-server` tool and
-need to be invoked with the `-enable-extras` flag. The default DSN for the
-extras database (as defined by the `-extras-dsn` flag) is `:tmpfile:` which
-means that a temporary SQLite database will be created and populated at index
-time and then deleted when the program exits.
-
-To query for extras (when calling the `wof-pip-server`) simply pass along a
-comma-separated list of strings to the `extras` parameter. For example:
-
-```
-http://localhost:8080/?latitude=37.6588&longitude=-122.4979&extras=geom:
-```
-
-Extras themselves can be defined as fully-qualified keys or use a wildcard
-notation of `{PREFIX}:` or `{PREFIX}:*` to retrieve all the keys matching a
-given prefix.
 
 _Remember "extras" are still considered experimental so comments, suggestions
 and gentle cluebats are welcome and encouraged._

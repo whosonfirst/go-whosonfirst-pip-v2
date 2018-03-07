@@ -69,33 +69,33 @@ func ValidateCommonFlags(fs *flag.FlagSet) error {
 		}
 	}
 
-	invalid_string := []string{
-		"source-cache-root",
+	deprecated_string := map[string]string{
+		"source-cache-root": "",
 	}
 
-	invalid_bool := []string{
-		"cache-all",
+	deprecated_bool := map[string]string{
+		"cache-all": "",
 	}
 
-	invalid_int := []string{
-		"lru-cache-size",
-		"lru-cache-trigger",
-		"processes",
+	deprecated_int := map[string]string{
+		"lru-cache-size":    "",
+		"lru-cache-trigger": "",
+		"processes":         "",
 	}
 
-	err = CheckInvalidFlags(fs, invalid_string, "string", strict)
+	err = CheckDeprecatedFlags(fs, deprecated_string, "string", strict)
 
 	if err != nil {
 		return err
 	}
 
-	err = CheckInvalidFlags(fs, invalid_bool, "bool", strict)
+	err = CheckDeprecatedFlags(fs, deprecated_bool, "bool", strict)
 
 	if err != nil {
 		return err
 	}
 
-	err = CheckInvalidFlags(fs, invalid_int, "int", strict)
+	err = CheckDeprecatedFlags(fs, deprecated_int, "int", strict)
 
 	if err != nil {
 		return err
@@ -152,11 +152,8 @@ func ValidateWWWFlags(fs *flag.FlagSet) error {
 
 	deprecated_string := map[string]string{
 		"mapzen-api-key": "www-api-key",
-	}
-
-	invalid_string := []string{
-		"www-local",
-		"www-local-root",
+		"www-local":      "",
+		"www-local-root": "",
 	}
 
 	err = CheckDeprecatedFlags(fs, deprecated_bool, "bool", strict)
@@ -169,65 +166,6 @@ func ValidateWWWFlags(fs *flag.FlagSet) error {
 
 	if err != nil {
 		return err
-	}
-
-	err = CheckInvalidFlags(fs, invalid_string, "string", strict)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func CheckInvalidFlags(fs *flag.FlagSet, invalid []string, target string, strict bool) error {
-
-	for _, old := range invalid {
-
-		var value interface{}
-		var err error
-		var ok bool
-
-		switch target {
-		case "string":
-			value, err = StringVar(fs, old)
-		case "bool":
-			value, err = BoolVar(fs, old)
-		case "int":
-			value, err = IntVar(fs, old)
-		default:
-			err = errors.New("Invalid target")
-		}
-
-		if err != nil {
-			return err
-		}
-
-		switch target {
-		case "string":
-			ok = value.(string) != ""
-		case "bool":
-			ok = value.(bool)
-		case "int":
-			ok = value.(int) != 0
-		default:
-			err = errors.New("Invalid target")
-		}
-
-		if err != nil {
-			return nil
-		}
-
-		if !ok {
-
-			warning := fmt.Sprintf("deprecated flag -%s used but it has no meaning anymore", old)
-
-			if strict {
-				return errors.New(warning)
-			}
-
-			log.Printf("[WARNING] %s\n", warning)
-		}
 	}
 
 	return nil
@@ -258,11 +196,11 @@ func CheckDeprecatedFlags(fs *flag.FlagSet, deprecated map[string]string, target
 
 		switch target {
 		case "string":
-			ok = value.(string) != ""
+			ok = value.(string) == ""
 		case "bool":
-			ok = value.(bool)
+			ok = value.(bool) == false
 		case "int":
-			ok = value.(int) != 0
+			ok = value.(int) == 0
 		default:
 			err = errors.New("Invalid target")
 		}
@@ -272,15 +210,22 @@ func CheckDeprecatedFlags(fs *flag.FlagSet, deprecated map[string]string, target
 		}
 
 		if !ok {
-			warning := fmt.Sprintf("deprecated flag -%s used so helpfully assigning -%s flag\n", old, new)
+
+			var warning string
+
+			switch new {
+
+			case "":
+				warning = fmt.Sprintf("deprecated flag -%s used but it has no meaning anymore", old)
+			default:
+				warning = fmt.Sprintf("deprecated flag -%s used but has been replaced by the -%s flag\n", old, new)
+			}
 
 			if strict {
-				warning := fmt.Sprintf("deprecated flag -%s used with -strict flag enabled", old)
 				return errors.New(warning)
 			}
 
 			log.Printf("[WARNING] %s\n", warning)
-			fs.Set(new, fmt.Sprintf("%s", value))
 		}
 	}
 

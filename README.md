@@ -162,8 +162,8 @@ been started with the `-enable-geojson` flag).
 
 It is possible to append custom _extra_ parameters to responses with the use of
 a custom "extras" SQLite database. This work has not been formalized yet (like
-does it deserve to have a proper interface) and should still be considered
-experimental.
+does it deserve to have a proper interface or a separate standalone package) and
+should still be considered experimental.
 
 The code to append extras is defined in the [extras package](extras/extras.go)
 and the first thing to understand is that _it operates on raw JSON bytes_ rather
@@ -226,6 +226,9 @@ http://localhost:8080/?latitude=37.6588&longitude=-122.4979&extras=geom:
 Extras themselves can be defined as fully-qualified keys or use a wildcard
 notation of `{PREFIX}:` or `{PREFIX}:*` to retrieve all the keys matching a
 given prefix.
+
+_Remember "extras" are still considered experimental so comments, suggestions
+and gentle cluebats are welcome and encouraged._
 
 ## Indexes (indices)
 

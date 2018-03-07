@@ -360,7 +360,57 @@ window.addEventListener("load", function load(event){
 
 	// END OF hack pending updates to nextzen/mapzen.js
 
-	map.setView([37.7749, -122.4194], 12);
+	// DID I SAY THIS WAS THE END OF THE HACK... IT'S NOT, ALAS
+	// (20180307/thisisaaronland)
+
+	var lat = 37.7749;
+	var lon = -122.4194;
+	var zoom = 12;
+
+	var hash = location.hash;
+	hash = hash.substring(1,)	// remove leading #
+
+	if (hash){
+
+		var params = hash.split("&");
+		var count = params.length;
+
+		for (var i=0; i < count; i++){
+
+		    var kv = params[i].split("=");
+
+		    if (kv.length != 2){
+			console.log("invalid parameter", kv)
+			continue
+		    }
+
+		    if (kv[0] == "lat"){
+			    lat = parseFloat(kv[1]);
+		    }
+
+		    else if (kv[0] == "lng"){
+			    lon = parseFloat(kv[1]);
+		    }
+
+		    else if (kv[0] == "z"){
+			zoom = parseInt(kv[1])
+		    }
+
+		    else {
+			console.log("unsupported parameter", kv)
+		    }
+		}
+
+	}
+
+	map.setView([lat, lon], zoom);
+
+	// I've never understood why I need to setView before invoking the hash thingy
+	// in mapzen.js but it's a thing... (20180307/thisisaaronland)
+
+	L.Mapzen.hash({
+		map: map
+	});
 
 	slippymap.crosshairs.init(map);
 	

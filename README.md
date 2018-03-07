@@ -340,12 +340,12 @@ CREATE INDEX geojson_by_lastmod ON geojson (lastmodified);
 ## Filters
 
 There are 6 different filters, divided in to two classes, for limiting
-results.
-
-The two classes are: placetypes and existential flags.
+results. The two classes are: placetypes and existential flags.
 
 There is one placetype flag (called `placetype`) which is defined as a valid
-placetype string and five existential flags: `current`, `deprecated`, `ceased`,
+placetype string. 
+
+There are five existential flags: `current`, `deprecated`, `ceased`,
 `superseded` and `superseding`. An existential flag can be defined as true or
 false (`1` or `0` respectively) or unknown (`-1`).
 

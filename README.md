@@ -179,7 +179,7 @@ As in:
 
 * A JSON-serialized `spr.StandardPlacesResults` blob of bytes that be queried
 * An ordered list of IDs that maps to each item in the `places` list (in the serialized `spr.StandardPlacesResults` blob)
-* A list of paths (in dot notation) to look up for each ID (and append to its corresponding `place` record
+* A list of paths (in dot notation) to look up for each ID (and append to its corresponding `place` record) in a GeoJSON properties dictionary
 * A valid `database.SQLiteDatabase` with a `geojson` table following the schema defined by the [go-whosonfirst-sqlite-features](https://github.com/whosonfirst/go-whosonfirst-sqlite-features#geojson) package.
 
 There is also a handy `extras.AppendExtrasWithSPRResults` helper method for
@@ -204,7 +204,7 @@ For example:
 	extras_db, _ := database.NewDB(extras_dsn)
 
 	extras_paths := []string{
-		"properties.geom:",
+		"geom:",
 	}
 
 	js, _ = extras.AppendExtrasWithSPRResults(js, results, extras_paths, extras_db)
@@ -215,6 +215,17 @@ need to be invoked with the `-enable-extras` flag. The default DSN for the
 extras database (as defined by the `-extras-dsn` flag) is `:tmpfile:` which
 means that a temporary SQLite database will be created and populated at index
 time and then deleted when the program exits.
+
+To query for extras (when calling the `wof-pip-server`) simply pass along a
+comma-separated list of strings to the `extras` parameter. For example:
+
+```
+http://localhost:8080/?latitude=37.6588&longitude=-122.4979&extras=geom:
+```
+
+Extras themselves can be defined as fully-qualified keys or use a wildcard
+notation of `{PREFIX}:` or `{PREFIX}:*` to retrieve all the keys matching a
+given prefix.
 
 ## Indexes (indices)
 

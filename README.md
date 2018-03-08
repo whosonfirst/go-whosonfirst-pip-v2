@@ -342,18 +342,43 @@ CREATE INDEX geojson_by_lastmod ON geojson (lastmodified);
 There are 6 different filters, divided in to two classes, for limiting
 results. The two classes are: placetypes and existential flags.
 
-There is one placetype flag (called `placetype`) which is defined as a valid
-placetype string. 
+There is one placetype flag (called `placetype`) which is defined as any
+placetype string.
 
 There are five existential flags: `current`, `deprecated`, `ceased`,
 `superseded` and `superseding`. An existential flag can be defined as true or
 false (`1` or `0` respectively) or unknown (`-1`).
 
-_Please write me._
+To filter your query (when calling the `wof-pip-server`) simply pass along one
+of more of the following parameters:
+
+* `placetype={PLACETYPE}`
+* `is_current={EXISTENTIAL_FLAG}`
+* `is_deprecated={EXISTENTIAL_FLAG}`
+* `is_ceased={EXISTENTIAL_FLAG}`
+* `is_superseded={EXISTENTIAL_FLAG}`
+* `is_superseding={EXISTENTIAL_FLAG}`
+
+For example:
 
 ```
+http://localhost:8080/?latitude=37.6588&longitude=-122.4979&placetype=locality&is_current=1,-1:
+```
+
+Under the hood the code is creating a `filter.SPRFilter` thingy (which implements
+the `filter.Filter` interface described below) derived from HTTP query
+parameters. The details of that process are pretty boring so there is a handy
+wrapper method that looks like this:
+
+```
+	// req is a *gohttp.Request
+
+	query := req.URL.Query()
 	filters, err := filter.NewSPRFilterFromQuery(query)
 ```
+
+Which produces something that looks like and which this (and is passed to the
+`GetIntersectsByCoord` method to limit results):
 
 ```
 type SPRFilter struct {
@@ -384,6 +409,11 @@ type Index interface {
 }
 ```
 
+`spr.StandardPlacesResult` and `geojson.Feature` are defined as part of the
+[go-whosonfirst-spr](https://github.com/whosonfirst/go-whosonfirst-flags) and
+[go-whosonfirst-geojson-v2](https://github.com/whosonfirst/go-whosonfirst-geojson-v2)
+packages respectively.
+
 ### cache.Cache
 
 ```
@@ -408,6 +438,16 @@ type CacheItem interface {
 }
 ```
 
+`spr.StandardPlacesResult` and `geojson.Polygon` are defined as part of the
+[go-whosonfirst-spr](https://github.com/whosonfirst/go-whosonfirst-flags) and
+[go-whosonfirst-geojson-v2](https://github.com/whosonfirst/go-whosonfirst-geojson-v2)
+packages respectively.
+
+`pip.GeoJSONGeometry` is not an interface but rather a local struct defined in
+the [pip.go](pip.go) file. A discussion of the many different ways to model
+GeoJSON in Go is outside the scope of this document. There are many ways. This
+one is ours. It would be awesome if we didn't have to do this...
+
 ### cache.FeatureCache
 
 ```
@@ -417,6 +457,11 @@ type FeatureCache struct {
 	FeaturePolygons []geojson.Polygon        `json:"polygons"`
 }
 ```
+
+`spr.StandardPlacesResult` and `geojson.Polygon` are defined as part of the
+[go-whosonfirst-spr](https://github.com/whosonfirst/go-whosonfirst-flags) and
+[go-whosonfirst-geojson-v2](https://github.com/whosonfirst/go-whosonfirst-geojson-v2)
+packages respectively.
 
 ### filter.Filter
 
@@ -431,7 +476,13 @@ type Filter interface {
 }
 ```
 
+`flags.ExistentialFlag` and `flags.PlacetypeFlag` are both defined as part of
+the [go-whosonfirst-flags](https://github.com/whosonfirst/go-whosonfirst-flags)
+package.
+
 ## Example
+
+### Basic
 
 ```
 package main
@@ -876,3 +927,4 @@ Shortest transaction:           0.00
 * https://github.com/whosonfirst/go-whosonfirst-flags
 * https://github.com/whosonfirst/go-whosonfirst-index
 * https://github.com/whosonfirst/go-whosonfirst-pip
+* https://github.com/whosonfirst/go-whosonfirst-placetypes

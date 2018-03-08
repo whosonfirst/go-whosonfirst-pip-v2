@@ -68,6 +68,30 @@ func ValidateCommonFlags(fs *flag.FlagSet) error {
 		if spatialite_dsn == "" || spatialite_dsn == ":memory:" {
 			return errors.New("-spatialite-dsn needs to be an actual file on disk")
 		}
+
+		enable_extras, err := BoolVar(fs, "enable-extras")
+
+		if err != nil {
+			return err
+		}
+
+		if enable_extras {
+
+			extras_dsn, err := StringVar(fs, "extras-dsn")
+
+			if err != nil {
+				return err
+			}
+
+			if extras_dsn == ":tmpfile:" {
+				log.Println("-mode is spatialite so assigning the value of -spatialite-dsn to -extras-dsn")
+				fs.Set("extras-dsn", spatialite_dsn)
+			} else if extras_dsn != spatialite_dsn {
+				return errors.New("-mode is spatialite so -extras-dsn needs to be the same as -spatialite-dsn")
+			} else {
+				// pass
+			}
+		}
 	}
 
 	deprecated_string := map[string]string{

@@ -175,7 +175,47 @@ To query for extras (when calling the `wof-pip-server`) simply pass along a
 comma-separated list of strings to the `extras` parameter. For example:
 
 ```
-http://localhost:8080/?latitude=37.6588&longitude=-122.4979&extras=geom:
+// ./bin/wof-pip-server -index spatialite -cache spatialite -spatialite-dsn \
+//   /usr/local/data/whosonfirst-data-constituency-us-latest.db -enable-www \
+//   -enable-extras -extras-db /usr/local/data/whosonfirst-data-constituency-us-latest.db \
+//   -mode spatialite
+
+curl 'http://localhost:8080/?latitude=37.6588&longitude=-122.4979&extras=geom:'
+
+{
+  "places": [
+    {
+      "geom:area": 0.152975,
+      "geom:area_square_m": 1499191981.266914,
+      "geom:bbox": "-123.173825,37.311653,-122.081473,37.823058",
+      "geom:latitude": 37.573675,
+      "geom:longitude": -122.495153,
+      "mz:is_ceased": -1,
+      "mz:is_current": -1,
+      "mz:is_deprecated": 0,
+      "mz:is_superseded": 0,
+      "mz:is_superseding": 0,
+      "mz:latitude": 37.573675,
+      "mz:longitude": -122.495153,
+      "mz:max_latitude": 37.823058,
+      "mz:max_longitude": -122.081473,
+      "mz:min_latitude": 37.311653,
+      "mz:min_longitude": -123.173825,
+      "mz:uri": "https://data.whosonfirst.org/110/873/834/7/1108738347.geojson",
+      "wof:country": "us",
+      "wof:id": 1108738347,
+      "wof:lastmodified": 1493955495,
+      "wof:name": "California Congressional District 14",
+      "wof:parent_id": 85688637,
+      "wof:path": "110/873/834/7/1108738347.geojson",
+      "wof:placetype": "constituency",
+      "wof:repo": "whosonfirst-data-constituency-us",
+      "wof:superseded_by": [],
+      "wof:supersedes": []
+    },
+    ... and so on
+   ]
+}
 ```
 
 Extras themselves can be defined as fully-qualified keys or use a wildcard
@@ -227,8 +267,21 @@ For example:
 	js, _ = extras.AppendExtrasWithSPRResults(js, results, extras_paths, extras_db)
 ```
 
-_Remember "extras" are still considered experimental so comments, suggestions
-and gentle cluebats are welcome and encouraged._
+A few things to note about "extras":
+
+* Remember: "extras" are still considered experimental. Comments, suggestions
+  and gentle cluebats are welcome and encouraged but understand that it's all
+  still wet paint.
+
+* This may get replaced by a generic [S3
+  Select](https://github.com/whosonfirst/go-whosonfirst-select) -like interface
+  which would allow filtering across arbritrary properties. Today that is not
+  possible.
+
+* If you are using one of the command line tools and indexing documents using
+  `-mode spatialite` then the path for the `-extras-dsn` flag needs to be the same as
+  the path for `-spatialite-dsn` flag. You can also just leave the default value
+  (`:tmpfile:`) of the `-extras-dsn` flag and the code will update it accordingly.
 
 ## Indexes (indices)
 

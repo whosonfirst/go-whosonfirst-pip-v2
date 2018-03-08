@@ -18,7 +18,7 @@ import (
 	"github.com/tidwall/sjson"
 	"github.com/whosonfirst/go-whosonfirst-spr"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
-	"log"
+	_ "log"
 	"strings"
 	"sync"
 )
@@ -90,6 +90,10 @@ func AppendExtras(js []byte, id_map []string, paths []string, extras_db *databas
 					return
 				}
 
+				if updated == nil {
+					return
+				}
+
 				var spr interface{}
 				err = json.Unmarshal(updated, &spr)
 
@@ -117,7 +121,6 @@ func AppendExtras(js []byte, id_map []string, paths []string, extras_db *databas
 		case <-done_ch:
 			remaining -= 1
 		case err := <-error_ch:
-			log.Println(err)
 			return nil, err
 		case up := <-update_ch:
 
@@ -139,6 +142,11 @@ func AppendExtras(js []byte, id_map []string, paths []string, extras_db *databas
 	return js, nil
 }
 
+// there appears to be a bug in here (I think?) that prevents the CLI tools from exiting on a
+// control-C event if we are using an extras DB that is a tempfile and that hasn't been indexed
+// (for example if things were started using -mode spatialite) - I'm still not entirely sure
+// about the cause... just the symptoms (20180308/thisisaaronland)
+
 func AppendExtrasToSPRBytes(spr []byte, id string, extras []string, conn *sql.DB) ([]byte, error) {
 
 	// apparently JSON_EXTRACT isn't available in go-sqlite yet?
@@ -154,7 +162,7 @@ func AppendExtrasToSPRBytes(spr []byte, id string, extras []string, conn *sql.DB
 
 	switch {
 	case err == sql.ErrNoRows:
-		return nil, err
+		return nil, nil
 	case err != nil:
 		return nil, err
 	default:

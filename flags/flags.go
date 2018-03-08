@@ -11,16 +11,41 @@ import (
 	"strings"
 )
 
-func Parse(fl *flag.FlagSet) {
+func Parse(fs *flag.FlagSet) {
 
 	args := os.Args[1:]
 
 	if len(args) > 0 && args[0] == "-h" {
-		fl.Usage()
+		fs.Usage()
 		os.Exit(0)
 	}
 
-	fl.Parse(args)
+	if len(args) > 0 && args[0] == "-setenv" {
+		SetFromEnv(fs)
+	}
+
+	fs.Parse(args)
+}
+
+func SetFromEnv(fs *flag.FlagSet) {
+
+	fs.VisitAll(func(fl *flag.Flag) {
+
+		name := fl.Name
+		env := name
+
+		env = strings.ToUpper(env)
+		env = strings.Replace(env, "-", "_", -1)
+		env = fmt.Sprintf("WOF_%s", env)
+
+		val, ok := os.LookupEnv(env)
+
+		if ok {
+			log.Printf("set -%s flag (%s) from %s environment variable\n", name, val, env)
+			fs.Set(name, val)
+		}
+
+	})
 }
 
 func ValidateCommonFlags(fs *flag.FlagSet) error {
@@ -346,6 +371,7 @@ func CommonFlags() (*flag.FlagSet, error) {
 	var exclude Exclude
 	fs.Var(&exclude, "exclude", "Exclude (WOF) records based on their existential flags. Valid options are: ceased, deprecated, not-current, superseded.")
 
+	fs.Bool("setenv", false, "Set flags from environment variables")
 	fs.Bool("verbose", false, "Be chatty.")
 	fs.Bool("strict", false, "Be strict about flags and fail if any are missing or deprecated flags are used.")
 

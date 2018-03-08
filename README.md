@@ -611,6 +611,37 @@ today it requires a "filter" even if that filter is null.
 
 The following tools are included with this package.
 
+#### Command line flags versus environment variables
+
+If you pass the `-setenv` flag to any of the tools below all the flags defined
+will be checked for a corresponding environment variable and set
+accordingly. Given a flag the rules for mapping it an to environment variables are:
+
+* Upper string the name
+* Replace all instances of `-` with `_`
+* Prefix the new string with `WOF_`
+
+For example the `-index` and `-spatialite-dsn` flags becomes `WOF_INDEX` and
+`WOF_SPATIALITE_DSN` respectively. Like this:
+
+```
+$> setenv WOF_INDEX spatialite
+$> setenv WOF_CACHE spatialite
+$> setenv WOF_SPATIALITE_DSN /usr/local/data/whosonfirst-data-constituency-us-latest.db
+$> setenv WOF_ENABLE_WWW true
+$. setenv WOF_MODE spatialite
+
+$> ./bin/wof-pip-server -setenv
+2018/03/08 10:59:23 set -cache flag (spatialite) from WOF_CACHE environment variable
+2018/03/08 10:59:23 set -enable-www flag (true) from WOF_ENABLE_WWW environment variable
+2018/03/08 10:59:23 set -index flag (spatialite) from WOF_INDEX environment variable
+2018/03/08 10:59:23 set -mode flag (spatialite) from WOF_MODE environment variable
+2018/03/08 10:59:23 set -spatialite-dsn flag (/usr/local/data/whosonfirst-data-constituency-us-latest.db) from WOF_SPATIALITE_DSN environment variable
+2018/03/08 10:59:23 -enable-www flag is true causing the following flags to also be true: -enable-geojson -enable-candidates
+2018/03/08 10:59:23 [WARNING] -enable-www flag is set but -www-api-key is empty
+10:59:23.543821 [wof-pip-server] STATUS listening for requests on localhost:8080
+```
+
 ### wof-pip
 
 `wof-pip` is an interactive tool for querying a set of Who's On First (or GeoJSON) documents.
@@ -639,6 +670,8 @@ The following tools are included with this package.
     	Valid modes are: directory, feature, feature-collection, files, geojson-ls, meta, path, repo, spatialite, sqlite. (default "files")
   -processes int
     	This flag is DEPRECATED and doesn't do anything anymore.
+  -setenv
+	Set flags from environment variables.
   -source-cache-root string
     	This flag is DEPRECATED and doesn't do anything anymore. Please use the '-cache fs' and '-fs-path {PATH}' flags instead.
   -spatialite-dsn string
@@ -712,6 +745,8 @@ For example:
     	The port number to listen for requests on. (default 8080)
   -processes int
     	This flag is DEPRECATED and doesn't do anything anymore.
+  -setenv
+	Set flags from environment variables.
   -source-cache-root string
     	This flag is DEPRECATED and doesn't do anything anymore. Please use the '-cache fs' and '-fs-path {PATH}' flags instead.
   -spatialite-dsn string

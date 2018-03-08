@@ -654,8 +654,6 @@ assigned the value of the former._
 
 For example:
 
-_Please write me..._
-
 ### wof-pip-server
 
 `wof-pip-server` is an HTTP daemon for querying Who's On First (or GeoJSON) documents.

@@ -177,7 +177,7 @@ comma-separated list of strings to the `extras` parameter. For example:
 ```
 // ./bin/wof-pip-server -index spatialite -cache spatialite -spatialite-dsn \
 //   /usr/local/data/whosonfirst-data-constituency-us-latest.db -enable-www \
-//   -enable-extras -extras-db /usr/local/data/whosonfirst-data-constituency-us-latest.db \
+//   -enable-extras -extras-dsn /usr/local/data/whosonfirst-data-constituency-us-latest.db \
 //   -mode spatialite
 
 curl 'http://localhost:8080/?latitude=37.6588&longitude=-122.4979&extras=geom:'

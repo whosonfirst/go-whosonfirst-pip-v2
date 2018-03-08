@@ -3,10 +3,10 @@
 
 # docker build -t wof-pip-server .
 
-# $> docker run -it -p 6161:8080 -e HOST='0.0.0.0' -e EXTRAS='allow' -e MODE='sqlite' -e SOURCES='microhood-20171212.db' wof-pip-server
+# $> docker run -it -p 6161:8080 -e WOF_HOST='0.0.0.0' -e WOF_ENABLE_EXTRAS='true' -e WOF_MODE='sqlite' -e FIXME_SOURCES='microhood-20171212.db' wof-pip-server
 #
 # fetch https://whosonfirst.mapzen.com/sqlite/microhood-20171212.db
-# /go-whosonfirst-pip-v2/bin/wof-pip-server -host 0.0.0.0 -allow-extras -mode sqlite /usr/local/data/microhood-20171212.db
+# /go-whosonfirst-pip-v2/bin/wof-pip-server -host 0.0.0.0 -enable-extras=true -mode sqlite /usr/local/data/microhood-20171212.db
 # 23:05:42.065812 [wof-pip-server] STATUS create temporary extras database '/tmp/pip-extras558496578'
 # 23:05:42.067233 [wof-pip-server] STATUS listening on 0.0.0.0:8080
 # 23:05:43.068415 [wof-pip-server] STATUS indexing 385 records indexed
@@ -41,9 +41,8 @@ VOLUME /usr/local/data
 WORKDIR /go-whosonfirst-pip-v2/bin/
 
 COPY --from=build-env /go-whosonfirst-pip-v2/bin/wof-pip-server /go-whosonfirst-pip-v2/bin/wof-pip-server
-COPY --from=build-env /go-whosonfirst-pip-v2/docker/entrypoint.sh /go-whosonfirst-pip-v2/bin/entrypoint.sh
 
 EXPOSE 8080
 
-ENTRYPOINT /go-whosonfirst-pip-v2/bin/entrypoint.sh
+ENTRYPOINT /go-whosonfirst-pip-v2/bin/wof-pip-server -setenv
 

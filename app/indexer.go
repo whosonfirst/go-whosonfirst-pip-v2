@@ -15,17 +15,24 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"io"
-	_ "log"
+	"log"
 	"strings"
 	"sync"
 )
 
 func NewApplicationIndexer(fl *flag.FlagSet, appindex index.Index, appextras *database.SQLiteDatabase) (*wof_index.Indexer, error) {
 
-	index_extras := true // FIX ME...
-
 	mode, _ := flags.StringVar(fl, "mode")
 	is_wof, _ := flags.BoolVar(fl, "is-wof")
+
+	index_extras := false
+
+	if appextras != nil {
+
+		if mode != "spatialite" {
+			index_extras = true
+		}
+	}
 
 	include_deprecated := true
 	include_superseded := true

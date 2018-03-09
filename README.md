@@ -808,6 +808,8 @@ And you should see something like this:
 
 ![](docs/images/wof-pip-sqlite.png)
 
+_See the way that screenshot uses the old deprecated flags? We'll fix that soon..._
+
 #### Fancy
 
 Indexing results and then fetching all the places that intersect a polyline:

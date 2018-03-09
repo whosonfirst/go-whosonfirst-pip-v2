@@ -15,7 +15,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"io"
-	"log"
+	_ "log"
 	"strings"
 	"sync"
 )

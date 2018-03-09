@@ -958,7 +958,7 @@ docker build -t wof-pip-server .
 ```
 
 To start the image you do the usual `docker run` dance passing one or more
-`WOF_` environment variables ([as described above]()).
+`WOF_` environment variables ([as described above](#command-line-flags-versus-environment-variables)).
 
 ### sqlite
 
@@ -979,32 +979,36 @@ fetch https://dist.whosonfirst.org/sqlite/whosonfirst-data-constituency-ca-lates
 15:57:59.274145 [wof-pip-server] STATUS indexing 52 records indexed
 15:58:00.204993 [wof-pip-server] STATUS indexing 60 records indexed
 
-curl -s 'localhost:6161/?latitude=49.314573&longitude=-123.077469&extras=geom:' | jq
 {
   "places": [
     {
-      "wof:id": 1108962851,
-      "wof:parent_id": -1,
-      "wof:name": "North Vancouver-Lonsdale",
-      "wof:placetype": "constituency",
-      "wof:country": "CA",
-      "wof:repo": "whosonfirst-data-constituency-ca",
-      "wof:path": "110/896/285/1/1108962851.geojson",
-      "wof:superseded_by": [],
-      "wof:supersedes": [],
-      "mz:uri": "https://data.whosonfirst.org/110/896/285/1/1108962851.geojson",
-      "mz:latitude": 49.314573,
-      "mz:longitude": -123.077469,
-      "mz:min_latitude": 49.29462420121845,
-      "mz:min_longitude": -123.1480248934407,
-      "mz:max_latitude": 49.33571158121562,
-      "mz:max_longitude": -123.01943355128094,
-      "mz:is_current": -1,
+      "geom:area": 0.003125,
+      "geom:area_square_m": 25188051.658008,
+      "geom:bbox": "-123.148024893,49.2946242012,-123.019433551,49.3357115812",
+      "geom:latitude": 49.314573,
+      "geom:longitude": -123.077469,
       "mz:is_ceased": -1,
+      "mz:is_current": -1,
       "mz:is_deprecated": 0,
       "mz:is_superseded": 0,
       "mz:is_superseding": 0,
-      "wof:lastmodified": 1494447496
+      "mz:latitude": 49.314573,
+      "mz:longitude": -123.077469,
+      "mz:max_latitude": 49.33571158121562,
+      "mz:max_longitude": -123.01943355128094,
+      "mz:min_latitude": 49.29462420121845,
+      "mz:min_longitude": -123.1480248934407,
+      "mz:uri": "https://data.whosonfirst.org/110/896/285/1/1108962851.geojson",
+      "wof:country": "CA",
+      "wof:id": 1108962851,
+      "wof:lastmodified": 1494447496,
+      "wof:name": "North Vancouver-Lonsdale",
+      "wof:parent_id": -1,
+      "wof:path": "110/896/285/1/1108962851.geojson",
+      "wof:placetype": "constituency",
+      "wof:repo": "whosonfirst-data-constituency-ca",
+      "wof:superseded_by": [],
+      "wof:supersedes": []
     }
   ]
 }
@@ -1026,7 +1030,7 @@ But when we actually try to load it (in our Go code) it fails with the following
 Failed to create new PIP application, because shaxbee/go-spatialite: spatialite extension not found.
 ```
 
-It is unclear to me what the problem is...
+It is unclear to me what the problem is, but it should work like this (modulo the errors):
 
 ---
 

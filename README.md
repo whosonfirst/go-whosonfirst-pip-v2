@@ -974,7 +974,7 @@ We should make this "less weird" going forward but today it is "weird".
 ## Docker
 
 [Yes](Dockerfile), although it's still early days and should still be considered
-experimental.The biggest open question is how to manage data files which can be
+experimental. The biggest open question is how to manage data files which can be
 very large.
 
 Currently the `Dockerfile` itself simply sets up dependencies and creates a

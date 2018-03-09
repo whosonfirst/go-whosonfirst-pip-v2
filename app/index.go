@@ -28,6 +28,7 @@ func NewApplicationIndex(fl *flag.FlagSet, appcache cache.Cache) (index.Index, e
 		}
 
 		return index.NewSpatialiteIndex(db, appcache)
+
 	default:
 		return nil, errors.New("Invalid engine")
 	}

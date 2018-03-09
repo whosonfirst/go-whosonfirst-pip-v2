@@ -71,7 +71,7 @@ curl -s 'http://localhost:8000/?latitude=37.794906&longitude=-122.395229&placety
             "mz:max_longitude": -122.39310801029,
             "mz:min_latitude": 37.792339744389,
             "mz:min_longitude": -122.39753901958,
-            "mz:uri": "https://whosonfirst.mapzen.com/data/420/561/633/420561633.geojson",
+            "mz:uri": "https://data.whosonfirst.org/420/561/633/420561633.geojson",
             "wof:country": "US",
             "wof:id": 420561633,
             "wof:lastmodified": 1501284302,
@@ -770,10 +770,10 @@ For example:
 _If a deprecated flag has a contemporary matching flag the latter will be
 assigned the value of the former._
 
-For example, to index [Who's On First data published as a SQLite database](https://whosonfirst.mapzen.com/sqlite) and spinning up a little web server for debugging things you might do something like:
+For example, to index [Who's On First data published as a SQLite database](https://dist.whosonfirst.org/sqlite) and spinning up a little web server for debugging things you might do something like:
 
 ```
-wget https://whosonfirst.mapzen.com/sqlite/region-20171212.db.bz2
+wget https://dist.whosonfirst.org/sqlite/region-20171212.db.bz2
 bunzip2 region-20171212.db.bz2
 ```
 
@@ -909,7 +909,7 @@ ogr2ogr -F GeoJSON water_polygons.geojson water_polygons.shp
 Now we start up the PIP server passing along the `-is-wof=false` and `-mode feature-collection` flag:
 
 ```
-./bin/wof-pip-server -port 5555 -is-wof=false -enable-www -www-api-key mapzen-xxxxxxx \
+./bin/wof-pip-server -port 5555 -is-wof=false -enable-www -www-api-key xxxxxxx \
 	-mode feature-collection /usr/local/water-polygons-split-4326/water_polygons.geojson
 
 10:33:49.735255 [wof-pip-server] STATUS -www flag is true causing the following flags to also be true: -allow-geojson -candidates
@@ -936,6 +936,46 @@ curl 'http://localhost:5555/?latitude=54.793624&longitude=-79.948933&format=geoj
 ```
 
 ![](docs/images/wof-pip-water-polygons.png)
+
+### Fancy
+
+If you want to get fancy about things you could also do something like this:
+
+```
+./bin/wof-pip-server -index spatialite -cache spatialite -spatialite-dsn water.db -port 5555 -is-wof=false -enable-www -www-api-key xxxxxx \
+   -mode feature-collection water-polygons-split-4326/water_polygons.geojson
+
+...time passes...
+
+12:08:12.171701 [wof-pip-server] STATUS finished indexing in 20m4.457747712s
+```
+
+Which tells `wof-pip-server` to use a Spatialite index and cache (defined by
+`-spatialite-dsn water.db` flag) to store all the data indexed from GeoJSON
+files (as defined by the `-mode feature-collection` and
+`water-polygons-split-4326/water_polygons.geojson` flags).
+
+That means that the next time you want to start `wof-pip-server` you can _skip
+the indexing stage_ and simply do this instead:
+
+```
+./bin/wof-pip-server -index spatialite -cache spatialite -spatialite-dsn water.db \
+   -port 5555 -enable-www -www-api-key xxxxxx -mode spatialite`
+
+...time passes faster (because there is no indexing phase)...
+```
+
+### Caveats
+
+If you're using plain-old GeoJSON you should expect filters (for both placetypes and existential fields) to be weird. For example:
+
+```
+2018/03/09 12:09:17 Unable to parse placetype (multipolygon) for ID 5590284368062970320, because 'Invalid placetype' - skipping placetype filters
+2018/03/09 12:09:19 Unable to parse placetype (multipolygon) for ID 5589424534403940352, because 'Invalid placetype' - skipping placetype filters
+2018/03/09 12:09:19 Unable to parse placetype (multipolygon) for ID 5590284368062970320, because 'Invalid placetype' - skipping placetype filters
+```
+
+We should make this "less weird" going forward but today it is "weird".
 
 ## Docker
 

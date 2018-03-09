@@ -5,6 +5,8 @@ import (
 	"github.com/mmcloughlin/geohash"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	"github.com/whosonfirst/go-whosonfirst-hash"
+	_ "log"
+	"strconv"
 )
 
 func GeohashFeature(f geojson.Feature) (string, error) {
@@ -21,8 +23,17 @@ func GeohashFeature(f geojson.Feature) (string, error) {
 	lat := center.Y
 	lon := center.X
 
-	gh := geohash.Encode(lat, lon)
-	return gh, nil
+	// see what's going on here? we're encoding the geohash as an int
+	// and then returning a string - that's so we can satisfy both the
+	// SPR requirement that Id() be a string _and_ have something that
+	// will allow us to index non-WOF documents using the standard WOF
+	// SQLite "feature" tables which all assume a numeric ID - which
+	// means that we are relying on SQLite to cast the string back to
+	// an int and yes the opportunity for hilarity... exists
+	// (20180309/thisisaaronland)
+
+	gh := geohash.EncodeInt(lat, lon)
+	return strconv.FormatInt(int64(gh), 10), nil
 }
 
 func HashFeature(f geojson.Feature) (string, error) {

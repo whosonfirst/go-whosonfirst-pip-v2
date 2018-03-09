@@ -283,6 +283,61 @@ A few things to note about "extras":
   the path for `-spatialite-dsn` flag. You can also just leave the default value
   (`:tmpfile:`) of the `-extras-dsn` flag and the code will update it accordingly.
 
+## Filters
+
+There are 6 different filters, divided in to two classes, for limiting
+results. The two classes are: placetypes and existential flags.
+
+There is one placetype flag (called `placetype`) which is defined as any
+placetype string.
+
+There are five existential flags: `current`, `deprecated`, `ceased`,
+`superseded` and `superseding`. An existential flag can be defined as true or
+false (`1` or `0` respectively) or unknown (`-1`).
+
+To filter your query (when calling the `wof-pip-server`) simply pass along one
+of more of the following parameters:
+
+* `placetype={PLACETYPE}`
+* `is_current={EXISTENTIAL_FLAG}`
+* `is_deprecated={EXISTENTIAL_FLAG}`
+* `is_ceased={EXISTENTIAL_FLAG}`
+* `is_superseded={EXISTENTIAL_FLAG}`
+* `is_superseding={EXISTENTIAL_FLAG}`
+
+For example:
+
+```
+http://localhost:8080/?latitude=37.6588&longitude=-122.4979&placetype=locality&is_current=1,-1:
+```
+
+Under the hood the code is creating a `filter.SPRFilter` thingy (which implements
+the `filter.Filter` interface described below) derived from HTTP query
+parameters. The details of that process are pretty boring so there is a handy
+wrapper method that looks like this:
+
+```
+	// req is a *gohttp.Request
+
+	query := req.URL.Query()
+	filters, err := filter.NewSPRFilterFromQuery(query)
+```
+
+Which produces something that looks like and which this (and is passed to the
+`GetIntersectsByCoord` method to limit results):
+
+```
+type SPRFilter struct {
+	Filter
+	Placetypes  []flags.PlacetypeFlag
+	Current     []flags.ExistentialFlag
+	Deprecated  []flags.ExistentialFlag
+	Ceased      []flags.ExistentialFlag
+	Superseded  []flags.ExistentialFlag
+	Superseding []flags.ExistentialFlag
+}
+```
+
 ## Indexes (indices)
 
 Indexing layers are used to store and query spatial data for performing point in
@@ -388,61 +443,6 @@ CREATE TABLE geojson (
 );
 
 CREATE INDEX geojson_by_lastmod ON geojson (lastmodified);
-```
-
-## Filters
-
-There are 6 different filters, divided in to two classes, for limiting
-results. The two classes are: placetypes and existential flags.
-
-There is one placetype flag (called `placetype`) which is defined as any
-placetype string.
-
-There are five existential flags: `current`, `deprecated`, `ceased`,
-`superseded` and `superseding`. An existential flag can be defined as true or
-false (`1` or `0` respectively) or unknown (`-1`).
-
-To filter your query (when calling the `wof-pip-server`) simply pass along one
-of more of the following parameters:
-
-* `placetype={PLACETYPE}`
-* `is_current={EXISTENTIAL_FLAG}`
-* `is_deprecated={EXISTENTIAL_FLAG}`
-* `is_ceased={EXISTENTIAL_FLAG}`
-* `is_superseded={EXISTENTIAL_FLAG}`
-* `is_superseding={EXISTENTIAL_FLAG}`
-
-For example:
-
-```
-http://localhost:8080/?latitude=37.6588&longitude=-122.4979&placetype=locality&is_current=1,-1:
-```
-
-Under the hood the code is creating a `filter.SPRFilter` thingy (which implements
-the `filter.Filter` interface described below) derived from HTTP query
-parameters. The details of that process are pretty boring so there is a handy
-wrapper method that looks like this:
-
-```
-	// req is a *gohttp.Request
-
-	query := req.URL.Query()
-	filters, err := filter.NewSPRFilterFromQuery(query)
-```
-
-Which produces something that looks like and which this (and is passed to the
-`GetIntersectsByCoord` method to limit results):
-
-```
-type SPRFilter struct {
-	Filter
-	Placetypes  []flags.PlacetypeFlag
-	Current     []flags.ExistentialFlag
-	Deprecated  []flags.ExistentialFlag
-	Ceased      []flags.ExistentialFlag
-	Superseded  []flags.ExistentialFlag
-	Superseding []flags.ExistentialFlag
-}
 ```
 
 ## Interfaces

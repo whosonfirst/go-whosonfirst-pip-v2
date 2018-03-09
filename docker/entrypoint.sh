@@ -1,56 +1,27 @@
 #!/bin/sh
 
-# This assumes 'ADD . /go-whosonfirst-pip-v2' which is defined in the Dockerfile
-
-PIP_SERVER="/go-whosonfirst-pip-v2/bin/wof-pip-server"
-ARGS=""
+PIP_SERVER="/bin/wof-pip-server"
+PIP_ARGS=""
 
 DATA="/usr/local/data"
 
 CURL=`which curl`
 BUNZIP2=`which bunzip2`
 
-if [ "${HOST}" != "" ]
-then
-    ARGS="${ARGS} -host ${HOST}"
-fi
-
-if [ "${EXTRAS}" != "" ]
-then
-    ARGS="${ARGS} -allow-extras"
-fi
-
-if [ "${PROCESSES}" != "" ]
-then
-    ARGS="${ARGS} -processes ${PROCESSES}"
-fi
-
-if [ "${WWW}" != "" ]
-then
-    ARGS="${ARGS} -www"
-
-    if [ "${MAPZEN_APIKEY}" != "" ]
-    then
-	ARGS="${ARGS} -mapzen-apikey ${MAPZEN_APIKEY}"
-    fi
-fi
-    
-if [ "${MODE}" = "sqlite" ]
+if [ "${WOF_MODE}" = "sqlite" ]
 then
 
-    ARGS="${ARGS} -mode ${MODE}"
-    
-    for DB in $(echo ${SOURCES} | sed "s/,/ /g")
+    for DB in $(echo ${SQLITE_DATABASES} | sed "s/,/ /g")
     do
 	
-	REMOTE="https://whosonfirst.mapzen.com/sqlite/${DB}"
+	REMOTE="https://dist.whosonfirst.org/sqlite/${DB}"
 	LOCAL="${DATA}/${DB}"
 	
 	if [ ! -f ${LOCAL} ]
 	then
 	    echo "fetch ${REMOTE}.bz2"
 	    
-	    ${CURL} -s -o ${LOCAL}.bz2 ${REMOTE}.bz2
+	    ${CURL} -o ${LOCAL}.bz2 ${REMOTE}.bz2
 	    
 	    if [ $? -ne 0 ]
 	    then
@@ -68,18 +39,50 @@ then
 	    
 	fi
 	
-	ARGS="${ARGS} ${LOCAL}"    
+	PIP_ARGS="${PIP_ARGS} ${LOCAL}"    
     done
+
+elif [ "${WOF_MODE}" = "spatialite" ]
+then
+
+    REMOTE="https://dist.whosonfirst.org/sqlite/${SPATIALITE_DATABASE}"
+    LOCAL="${DATA}/${SPATIALITE_DATABASE}"
+	
+    if [ ! -f ${LOCAL} ]
+    then
+	echo "fetch ${REMOTE}.bz2 as ${LOCAL}.bz2"
+	
+	${CURL} -o ${LOCAL}.bz2 ${REMOTE}.bz2
+	
+	if [ $? -ne 0 ]
+	then
+	    echo "failed to fetch remote source ${REMOTE}.bz2"
+	    exit 0
+	fi
+	
+	${BUNZIP2} ${LOCAL}.bz2
+	
+	if [ $? -ne 0 ]
+	then
+	    echo "failed to uncompress local source"
+	    exit 0
+	fi
+	
+    fi
+    
+    export WOF_SPATIALITE_DSN="${LOCAL}"
+    export LD_LIBRARY_PATH=".:/lib:/usr/lib:/usr/local/lib"
+  
 else
-    echo "only MODE=sqlite is supported right now"
+    echo "only '-mode sqlite' or '-mode spatialite' are supported right now"
+    exit 1
 fi
 
-echo ${PIP_SERVER} ${ARGS}
-${PIP_SERVER} ${ARGS}
+${PIP_SERVER} -setenv ${PIP_ARGS}
 
 if [ $? -ne 0 ]
 then
-   echo "command '${PIP_SERVER} ${ARGS}' failed"
+   echo "command '${PIP_SERVER} ${PIP_ARGS}' failed"
    exit 1
 fi
 

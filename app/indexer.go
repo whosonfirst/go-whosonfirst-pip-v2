@@ -2,79 +2,84 @@ package app
 
 import (
 	"context"
+	"flag"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/feature"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/geometry"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/whosonfirst"
-	"github.com/whosonfirst/go-whosonfirst-index"
-	pip "github.com/whosonfirst/go-whosonfirst-pip/index"
-	pip_utils "github.com/whosonfirst/go-whosonfirst-pip/utils"
+	wof_index "github.com/whosonfirst/go-whosonfirst-index"
+	"github.com/whosonfirst/go-whosonfirst-pip/flags"
+	"github.com/whosonfirst/go-whosonfirst-pip/index"
+	"github.com/whosonfirst/go-whosonfirst-pip/utils"
 	"github.com/whosonfirst/go-whosonfirst-sqlite"
+	"github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
-	"github.com/whosonfirst/go-whosonfirst-sqlite/tables"
 	"io"
-	"log"
+	_ "log"
+	"strings"
 	"sync"
 )
 
-type ApplicationIndexerOptions struct {
-	IndexMode         string
-	IsWOF             bool
-	IncludeDeprecated bool
-	IncludeSuperseded bool
-	IncludeCeased     bool
-	IncludeNotCurrent bool
-	IndexExtras       bool
-	ExtrasDB          string
-}
+func NewApplicationIndexer(fl *flag.FlagSet, appindex index.Index, appextras *database.SQLiteDatabase) (*wof_index.Indexer, error) {
 
-func DefaultApplicationIndexerOptions() (ApplicationIndexerOptions, error) {
+	mode, _ := flags.StringVar(fl, "mode")
+	is_wof, _ := flags.BoolVar(fl, "is-wof")
 
-	opts := ApplicationIndexerOptions{
-		IndexMode:         "",
-		IsWOF:             true,
-		IncludeDeprecated: true,
-		IncludeSuperseded: true,
-		IncludeCeased:     true,
-		IncludeNotCurrent: true,
-		IndexExtras:       false,
-		ExtrasDB:          "",
+	index_extras := false
+
+	if appextras != nil {
+
+		if mode != "spatialite" {
+			index_extras = true
+		}
 	}
 
-	return opts, nil
-}
+	include_deprecated := true
+	include_superseded := true
+	include_ceased := true
+	include_notcurrent := true
 
-func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (*index.Indexer, error) {
+	exclude_fl := fl.Lookup("exclude")
+
+	if exclude_fl != nil {
+
+		// ugh... Go - why do I have to do this... I am willing
+		// to believe I am "doing it wrong" (obviously) but for
+		// the life of me I can't figure out how to do it "right"
+		// (20180301/thisisaaronland)
+
+		exclude := strings.Split(exclude_fl.Value.String(), " ")
+
+		for _, e := range exclude {
+
+			switch e {
+			case "deprecated":
+				include_deprecated = false
+			case "ceased":
+				include_ceased = false
+			case "superseded":
+				include_superseded = false
+			case "not-current":
+				include_notcurrent = false
+			default:
+				continue
+			}
+		}
+	}
 
 	var wg *sync.WaitGroup
 	var mu *sync.Mutex
 	var gt sqlite.Table
 
-	if opts.IndexExtras {
+	if index_extras {
 
-		db, err := database.NewDB(opts.ExtrasDB)
-
-		if err != nil {
-			return nil, err
-		}
-
-		defer db.Close()
-
-		err = db.LiveHardDieFast() // otherwise indexing will be brutally slow with large datasets
+		t, err := tables.NewGeoJSONTable()
 
 		if err != nil {
 			return nil, err
 		}
 
-		// see also:
-		// https://github.com/whosonfirst/go-whosonfirst-pip-v2/issues/19
-
-		gt, err = tables.NewGeoJSONTableWithDatabase(db)
-
-		if err != nil {
-			return nil, err
-		}
-
+		gt = t
 		wg = new(sync.WaitGroup)
 		mu = new(sync.Mutex)
 	}
@@ -83,9 +88,9 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 
 		var f geojson.Feature
 
-		if opts.IsWOF {
+		if is_wof {
 
-			ok, err := pip_utils.IsValidRecord(fh, ctx)
+			ok, err := utils.IsValidRecord(fh, ctx)
 
 			if err != nil {
 				return err
@@ -101,7 +106,7 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 				return err
 			}
 
-			if !opts.IncludeNotCurrent {
+			if !include_notcurrent {
 
 				fl, err := whosonfirst.IsCurrent(tmp)
 
@@ -114,7 +119,7 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 				}
 			}
 
-			if !opts.IncludeDeprecated {
+			if !include_deprecated {
 
 				fl, err := whosonfirst.IsDeprecated(tmp)
 
@@ -127,7 +132,7 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 				}
 			}
 
-			if !opts.IncludeCeased {
+			if !include_ceased {
 
 				fl, err := whosonfirst.IsCeased(tmp)
 
@@ -140,7 +145,7 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 				}
 			}
 
-			if !opts.IncludeSuperseded {
+			if !include_superseded {
 
 				fl, err := whosonfirst.IsSuperseded(tmp)
 
@@ -184,7 +189,7 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 		// an error signal - maybe we want to do that? maybe not...?
 		// (20171218/thisisaaronland)
 
-		if opts.IndexExtras {
+		if index_extras {
 
 			wg.Add(1)
 
@@ -192,18 +197,9 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 
 				defer wg.Done()
 
-				db, err := database.NewDB(opts.ExtrasDB)
-
-				if err != nil {
-					log.Println(err)
-					return err
-				}
-
-				defer db.Close()
-
 				mu.Lock()
 
-				err = gt.IndexFeature(db, f)
+				err = gt.IndexRecord(appextras, f)
 
 				mu.Unlock()
 
@@ -219,9 +215,9 @@ func NewApplicationIndexer(appindex pip.Index, opts ApplicationIndexerOptions) (
 		return nil
 	}
 
-	idx, err := index.NewIndexer(opts.IndexMode, cb)
+	idx, err := wof_index.NewIndexer(mode, cb)
 
-	if opts.IndexExtras {
+	if index_extras {
 		wg.Wait()
 	}
 

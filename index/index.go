@@ -12,6 +12,7 @@ import (
 type Index interface {
 	IndexFeature(geojson.Feature) error
 	Cache() cache.Cache
+	Close() error
 	GetIntersectsByCoord(geom.Coord, filter.Filter) (spr.StandardPlacesResults, error)
 	GetCandidatesByCoord(geom.Coord) (*pip.GeoJSONFeatureCollection, error)
 	GetIntersectsByPath(geom.Path, filter.Filter) ([]spr.StandardPlacesResults, error)

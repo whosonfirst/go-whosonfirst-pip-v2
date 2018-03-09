@@ -9,25 +9,14 @@ self:   prep rmdeps
 	mkdir src
 	cp -r vendor/* src/
 
-build:	maps assets
-
-assets:	self
-	if test ! -d bin; then mkdir bin; fi
-	@GOPATH=$(GOPATH) go build -o bin/go-bindata ./vendor/github.com/jteeuwen/go-bindata/go-bindata/
-	@GOPATH=$(GOPATH) go build -o bin/go-bindata-assetfs vendor/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs/main.go
-	rm -f www/*~ www/css/*~ www/javascript/*~ www/tangram/*~
-	@PATH=$(PATH):$(CWD)/bin bin/go-bindata-assetfs -pkg mapzenjs www www/javascript www/css www/tangram
-	mv bindata_assetfs.go mapzenjs_assets.go
-
 rmdeps:
 	if test -d src; then rm -rf src; fi 
 
-build:	fmt bin
-
 deps:
-	@GOPATH=$(GOPATH) go get -u "github.com/jteeuwen/go-bindata/"
+	@GOPATH=$(GOPATH) go get -u "github.com/zendesk/go-bindata/"
 	@GOPATH=$(GOPATH) go get -u "github.com/elazarl/go-bindata-assetfs/"
 	@GOPATH=$(GOPATH) go get -u "golang.org/x/net/html"
+	rm -rf src/github.com/zendesk/go-bindata/testdata
 
 fmt:
 	go fmt *.go
@@ -38,7 +27,23 @@ vendor-deps: rmdeps deps
 	find vendor -name '.git' -print -type d -exec rm -rf {} +
 	rm -rf src
 
-maps: wwwdirs mapzenjs tangram styles
+build:
+	@make maps
+	@make assets
+
+maps:
+	@make wwwdirs
+	@make mapzenjs
+	@make tangram
+	@make styles
+
+assets:	self
+	if test ! -d bin; then mkdir bin; fi
+	@GOPATH=$(GOPATH) go build -o bin/go-bindata ./vendor/github.com/zendesk/go-bindata/go-bindata/
+	@GOPATH=$(GOPATH) go build -o bin/go-bindata-assetfs vendor/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs/main.go
+	rm -f www/*~ www/css/*~ www/javascript/*~ www/tangram/*~
+	@PATH=$(PATH):$(CWD)/bin bin/go-bindata-assetfs -pkg mapzenjs www www/javascript www/css www/tangram
+	mv bindata.go assets.go
 
 wwwdirs:
 	if test ! -d www/javascript; then mkdir www/javascript; fi
@@ -46,18 +51,20 @@ wwwdirs:
 	if test ! -d www/tangram; then mkdir www/tangram; fi
 
 tangram:
-	curl -s -o www/javascript/tangram.js https://mapzen.com/tangram/tangram.debug.js
-	curl -s -o www/javascript/tangram.min.js https://mapzen.com/tangram/tangram.min.js
+	curl -s -o www/javascript/tangram.js https://www.nextzen.org/tangram/tangram.debug.js
+	curl -s -o www/javascript/tangram.min.js https://www.nextzen.org/tangram/tangram.min.js
 
 styles: refill walkabout
 
 refill:
-	curl -s -o www/tangram/refill-style.zip https://mapzen.com/carto/refill-style/refill-style.zip
+	curl -s -o www/tangram/refill-style.zip https://www.nextzen.org/carto/refill-style/10/refill-style.zip
+	curl -s -o www/tangram/refill-style-themes-label.zip https://www.nextzen.org/carto/refill-style/10/themes/label-10.zip
 
 walkabout:
-	curl -s -o www/tangram/walkabout-style.zip https://mapzen.com/carto/refill-style/walkabout-style.zip
+	curl -s -o www/tangram/walkabout-style.zip https://www.nextzen.org/carto/refill-style/walkabout-style.zip
 
 mapzenjs:
-	curl -s -o www/css/mapzen.js.css https://mapzen.com/js/mapzen.css
-	curl -s -o www/javascript/mapzen.js https://mapzen.com/js/mapzen.js
-	curl -s -o www/javascript/mapzen.min.js https://mapzen.com/js/mapzen.min.js
+	@echo "waiting for nextzen.js..."
+	# curl -s -o www/css/mapzen.js.css https://mapzen.com/js/mapzen.css
+	# curl -s -o www/javascript/mapzen.js https://mapzen.com/js/mapzen.js
+	# curl -s -o www/javascript/mapzen.min.js https://mapzen.com/js/mapzen.min.js

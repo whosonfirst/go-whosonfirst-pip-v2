@@ -54,15 +54,43 @@ func EnsureWOFFeature(body []byte) error {
 		"properties.wof:name",
 		"properties.wof:repo",
 		"properties.wof:placetype",
-		"properties.geom:latitude",
-		"properties.geom:longitude",
-		"properties.geom:bbox",
+		// we used to handle these like this but we
+		// do some jiggling below to account for the
+		// fact that we might working with an SPR...
+		// "properties.geom:latitude",
+		// "properties.geom:longitude",
+		// "properties.geom:bbox",
 	}
 
 	err := utils.EnsureProperties(body, required)
 
 	if err != nil {
 		return err
+	}
+
+	// strictly speaking we probably want to ensure all if the spr_geom
+	// properties if we have to test one of them but let's see how this
+	// works first... (20180223/thisisaaronland)
+
+	required_geom := map[string][]string{
+		"properties.geom:latitude":  []string{"properties.mz:latitude"},
+		"properties.geom:longitude": []string{"properties.mz:latitude"},
+		"properties.geom:bbox":      []string{"properties.mz:min_latitude", "properties.mz:min_longitude", "properties.mz:max_latitude", "properties.mz:max_longitude"},
+	}
+
+	for wof_geom, spr_geom := range required_geom {
+
+		err = utils.EnsureProperties(body, []string{wof_geom})
+
+		if err == nil {
+			continue
+		}
+
+		err = utils.EnsureProperties(body, spr_geom)
+
+		if err != nil {
+			return err
+		}
 	}
 
 	pt := utils.StringProperty(body, []string{"properties.wof:placetype"}, "")
@@ -153,7 +181,7 @@ func (f *WOFFeature) SPR() (spr.StandardPlacesResult, error) {
 		return nil, err
 	}
 
-	uri, err := uri.Id2AbsPath("https://whosonfirst.mapzen.com/data", id)
+	uri, err := uri.Id2AbsPath("https://data.whosonfirst.org", id)
 
 	if err != nil {
 		return nil, err

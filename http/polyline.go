@@ -3,7 +3,6 @@ package http
 import (
 	"encoding/json"
 	"github.com/skelterjohn/geom"
-	geojson_utils "github.com/whosonfirst/go-whosonfirst-geojson-v2/utils"
 	"github.com/whosonfirst/go-whosonfirst-index"
 	"github.com/whosonfirst/go-whosonfirst-pip"
 	"github.com/whosonfirst/go-whosonfirst-pip/filter"
@@ -39,15 +38,15 @@ type PolylineResultsUnique struct {
 // }
 
 type PolylineHandlerOptions struct {
-	AllowGeoJSON bool
-	MaxCoords    int
+	EnableGeoJSON bool
+	MaxCoords     int
 }
 
 func NewDefaultPolylineHandlerOptions() *PolylineHandlerOptions {
 
 	opts := PolylineHandlerOptions{
-		AllowGeoJSON: false,
-		MaxCoords:    100,
+		EnableGeoJSON: false,
+		MaxCoords:     100,
 	}
 
 	return &opts
@@ -83,7 +82,7 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 			return
 		}
 
-		if str_format == "geojson" && !opts.AllowGeoJSON {
+		if str_format == "geojson" && !opts.EnableGeoJSON {
 			gohttp.Error(rsp, "Invalid format", gohttp.StatusBadRequest)
 			return
 		}
@@ -132,29 +131,21 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 
 		if str_precision != "" {
 
-			precision, err := strconv.Atoi(str_precision)
+			f, err := pip_utils.StringPrecisionToFactor(str_precision)
 
 			if err != nil {
-				gohttp.Error(rsp, err.Error(), gohttp.StatusBadRequest)
-				return
-			}
-
-			switch precision {
-			case 5:
-				// pass, already set above
-			case 6:
-				poly_factor = 1.0e6
-			default:
 				gohttp.Error(rsp, "Invalid precision value", gohttp.StatusBadRequest)
 				return
 			}
+
+			poly_factor = f
 		}
 
 		if str_unique != "" {
 			unique = true
 		}
 
-		path, err := DecodePolyline(str_polyline, poly_factor)
+		path, err := pip_utils.DecodePolyline(str_polyline, poly_factor)
 
 		if err != nil {
 			gohttp.Error(rsp, err.Error(), gohttp.StatusBadRequest)
@@ -326,67 +317,4 @@ func PolylineHandler(i pip_index.Index, idx *index.Indexer, opts *PolylineHandle
 
 	h := gohttp.HandlerFunc(fn)
 	return h, nil
-}
-
-// the DecodePolyline function is cribbed from Paul Mach's NewPathFromEncoding function here:
-// https://github.com/paulmach/go.geo/blob/master/path.go
-//
-// We don't need to import the rest of the package just the code that can handle decoding
-// plain-vanilla GOOG 5-decimal point polylines as well as Valhalla's 6-decimal point lines
-// defined here: https://mapzen.com/documentation/mobility/decoding/
-//
-// see also: https://developers.google.com/maps/documentation/utilities/polylineutility
-// (20170927/thisisaaronland)
-
-func DecodePolyline(encoded string, f float64) (*geom.Path, error) {
-
-	var count, index int
-
-	tempLatLng := [2]int{0, 0}
-
-	path := geom.Path{}
-
-	for index < len(encoded) {
-		var result int
-		var b = 0x20
-		var shift uint
-
-		for b >= 0x20 {
-			b = int(encoded[index]) - 63
-			index++
-
-			result |= (b & 0x1f) << shift
-			shift += 5
-		}
-
-		// sign dection
-		if result&1 != 0 {
-			result = ^(result >> 1)
-		} else {
-			result = result >> 1
-		}
-
-		if count%2 == 0 {
-			result += tempLatLng[0]
-			tempLatLng[0] = result
-		} else {
-			result += tempLatLng[1]
-			tempLatLng[1] = result
-
-			lon := float64(tempLatLng[1]) / f
-			lat := float64(tempLatLng[0]) / f
-
-			coord, err := geojson_utils.NewCoordinateFromLatLons(lat, lon)
-
-			if err != nil {
-				return nil, err
-			}
-
-			path.AddVertex(coord)
-		}
-
-		count++
-	}
-
-	return &path, nil
 }

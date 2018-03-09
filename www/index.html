@@ -1,10 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-    		<title>mapzen.whosonfirst.pip</title>
+    		<title>go-whosonfirst-pip</title>
 
 		<link rel="stylesheet" href="/css/mapzen.js.css">
 		<script src="/javascript/mapzen.min.js"></script>
+
+		<!--
+		    we should not need to do this (load tangram.js) but pending updates
+		    to mapzen.js we do see notes in javascript/mapzen.whosonfirst.pip.js
+		    for details (20180304/thisisaaronland)
+		  -->
+		
+		<script src="/javascript/tangram.js"></script>
 		
 		<script src="/javascript/slippymap.crosshairs.js"></script>
 		

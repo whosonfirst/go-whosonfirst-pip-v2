@@ -3,211 +3,190 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"flag"
 	"fmt"
-	"github.com/skelterjohn/geom"
-	"github.com/whosonfirst/go-whosonfirst-geojson-v2/utils"
-	"github.com/whosonfirst/go-whosonfirst-log"
+	geojson_utils "github.com/whosonfirst/go-whosonfirst-geojson-v2/utils"
 	"github.com/whosonfirst/go-whosonfirst-pip/app"
 	"github.com/whosonfirst/go-whosonfirst-pip/filter"
-	pip "github.com/whosonfirst/go-whosonfirst-pip/index"
+	"github.com/whosonfirst/go-whosonfirst-pip/flags"
+	"github.com/whosonfirst/go-whosonfirst-pip/utils"
+	log "log"
 	"os"
-	"runtime"
 	"strconv"
 	"strings"
-	"time"
 )
-
-func PIPLatLon(i pip.Index, lat float64, lon float64, f filter.Filter, logger *log.WOFLogger) error {
-
-	c, err := utils.NewCoordinateFromLatLons(lat, lon)
-
-	if err != nil {
-		return err
-	}
-
-	return PIP(i, c, f, logger)
-}
-
-func PIP(i pip.Index, c geom.Coord, f filter.Filter, logger *log.WOFLogger) error {
-
-	t1 := time.Now()
-
-	r, err := i.GetIntersectsByCoord(c, f)
-
-	t2 := time.Since(t1)
-
-	if err != nil {
-		return err
-	}
-
-	logger.Status("time to count %d records: %v\n", len(r.Results()), t2)
-
-	body, err := json.Marshal(r)
-
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(string(body))
-	return nil
-}
 
 func main() {
 
-	var interactive = flag.Bool("interactive", false, "")
-
-	var lat = flag.Float64("latitude", 0.0, "")
-	var lon = flag.Float64("longitude", 0.0, "")
-	var point = flag.String("point", "", "")
-
-	var mode = flag.String("mode", "files", "")
-	var procs = flag.Int("processes", runtime.NumCPU()*2, "")
-
-	var source_cache_enable = flag.Bool("source-cache", false, "")
-	var source_cache_root = flag.String("source-cache-data-root", "/usr/local/data", "")
-
-	var lru_cache_enable = flag.Bool("lru-cache", false, "")
-	var lru_cache_size = flag.Int("lru-cache-size", 0, "")
-	var lru_cache_trigger = flag.Int("lru-cache-trigger", 0, "")
-
-	var failover_cache_enable = flag.Bool("failover-cache", false, "")
-
-	flag.Parse()
-
-	runtime.GOMAXPROCS(*procs)
-
-	logger := log.SimpleWOFLogger()
-
-	if *point != "" {
-
-		parts := strings.Split(*point, ",")
-
-		if len(parts) != 2 {
-			logger.Fatal("Can not parse point")
-		}
-
-		str_lat := strings.Trim(parts[0], " ")
-		str_lon := strings.Trim(parts[1], " ")
-
-		fl_lat, err := strconv.ParseFloat(str_lat, 64)
-
-		if err != nil {
-			logger.Fatal("Can not parse point because %s", err)
-		}
-
-		fl_lon, err := strconv.ParseFloat(str_lon, 64)
-
-		if err != nil {
-			logger.Fatal("Can not parse point because %s", err)
-		}
-
-		*lat = fl_lat
-		*lon = fl_lon
-	}
-
-	appcache_opts, err := app.DefaultApplicationCacheOptions()
+	fl, err := flags.CommonFlags()
 
 	if err != nil {
-		logger.Fatal("Failed to creation application cache options, because %s", err)
+		log.Fatal(err)
 	}
 
-	appcache_opts.IndexMode = *mode
-	appcache_opts.IndexPaths = flag.Args()
+	flags.Parse(fl)
 
-	appcache_opts.FailoverCache = *failover_cache_enable
-
-	appcache_opts.LRUCache = *lru_cache_enable
-	appcache_opts.LRUCacheSize = *lru_cache_size
-	appcache_opts.LRUCacheTriggerSize = *lru_cache_trigger
-
-	appcache_opts.SourceCache = *source_cache_enable
-	appcache_opts.SourceCacheRoot = *source_cache_root
-
-	appcache, err := app.ApplicationCache(appcache_opts)
+	err = flags.ValidateCommonFlags(fl)
 
 	if err != nil {
-		logger.Fatal("Failed to creation application cache, because %s", err)
+		log.Fatal(err)
 	}
 
-	appindex, err := app.ApplicationIndex(appcache)
+	pip, err := app.NewPIPApplication(fl)
 
 	if err != nil {
-		logger.Fatal("failed to create index because %s", err)
+		log.Fatal("Failed to create new PIP application, because", err)
 	}
 
-	indexer_opts, err := app.DefaultApplicationIndexerOptions()
+	pip_index, _ := flags.StringVar(fl, "index")
+	pip_cache, _ := flags.StringVar(fl, "cache")
+	mode, _ := flags.StringVar(fl, "mode")
+
+	pip.Logger.Info("index is %s cache is %s mode is %s", pip_index, pip_cache, mode)
+
+	err = pip.IndexPaths(fl.Args())
 
 	if err != nil {
-		logger.Fatal("failed to create indexer options because %s", err)
+		pip.Logger.Fatal("Failed to index paths, because %s", err)
 	}
-
-	indexer_opts.IndexMode = *mode
-
-	indexer, err := app.NewApplicationIndexer(appindex, indexer_opts)
-
-	err = indexer.IndexPaths(flag.Args())
-
-	if err != nil {
-		logger.Fatal("failed to index paths because %s", err)
-	}
-
-	logger.Status("cache size: %d evictions: %d", appcache.Size(), appcache.Evictions())
 
 	f, err := filter.NewSPRFilter()
 
 	if err != nil {
-		logger.Fatal("failed to create filter because %s", err)
+		pip.Logger.Fatal("Failed to create SPR filter, because %s", err)
 	}
 
-	if *interactive {
+	// ADD WAIT FOR INDEXER CODE HERE
 
-		scanner := bufio.NewScanner(os.Stdin)
+	fmt.Println("ready to query")
 
-		for scanner.Scan() {
+	appindex := pip.Index
 
-			input := scanner.Text()
-			logger.Status(input)
+	scanner := bufio.NewScanner(os.Stdin)
 
-			parts := strings.Split(input, ",")
+	for scanner.Scan() {
 
-			if len(parts) != 2 {
-				logger.Warning("Invalid input")
-				continue
-			}
+		input := scanner.Text()
+		pip.Logger.Status("# %s", input)
 
-			str_lat := strings.Trim(parts[0], " ")
-			str_lon := strings.Trim(parts[1], " ")
+		parts := strings.Split(input, " ")
+
+		if len(parts) == 0 {
+			pip.Logger.Warning("Invalid input")
+			continue
+		}
+
+		var command string
+
+		switch parts[0] {
+
+		case "candidates":
+			command = parts[0]
+		case "pip":
+			command = parts[0]
+		case "polyline":
+			command = parts[0]
+		default:
+			pip.Logger.Warning("Invalid command")
+			continue
+		}
+
+		var results interface{}
+
+		if command == "pip" || command == "candidates" {
+
+			str_lat := strings.Trim(parts[1], " ")
+			str_lon := strings.Trim(parts[2], " ")
 
 			lat, err := strconv.ParseFloat(str_lat, 64)
 
 			if err != nil {
-				logger.Warning("Invalid latitude, %s", err)
+				pip.Logger.Warning("Invalid latitude, %s", err)
 				continue
 			}
 
 			lon, err := strconv.ParseFloat(str_lon, 64)
 
 			if err != nil {
-				logger.Warning("Invalid longitude, %s", err)
+				pip.Logger.Warning("Invalid longitude, %s", err)
 				continue
 			}
 
-			err = PIPLatLon(appindex, lat, lon, f, logger)
+			c, err := geojson_utils.NewCoordinateFromLatLons(lat, lon)
 
 			if err != nil {
-				logger.Warning("Failed to PIP, %s", err)
+				pip.Logger.Warning("Invalid latitude, longitude, %s", err)
 				continue
 			}
+
+			if command == "pip" {
+
+				intersects, err := appindex.GetIntersectsByCoord(c, f)
+
+				if err != nil {
+					pip.Logger.Warning("Unable to get intersects, because %s", err)
+					continue
+				}
+
+				results = intersects
+
+			} else {
+
+				candidates, err := appindex.GetCandidatesByCoord(c)
+
+				if err != nil {
+					pip.Logger.Warning("Unable to get candidates, because %s", err)
+					continue
+				}
+
+				results = candidates
+			}
+
+		} else if command == "polyline" {
+
+			poly := parts[1]
+			factor := 1.0e5
+
+			if len(parts) > 2 {
+
+				f, err := utils.StringPrecisionToFactor(parts[2])
+
+				if err != nil {
+					pip.Logger.Warning("Unable to parse precision because %s", err)
+					continue
+				}
+
+				factor = f
+			}
+
+			path, err := utils.DecodePolyline(poly, factor)
+
+			if err != nil {
+				pip.Logger.Warning("Unable to decode polyline because %s", err)
+				continue
+			}
+
+			intersects, err := appindex.GetIntersectsByPath(*path, f)
+
+			if err != nil {
+				pip.Logger.Warning("Unable to get candidates, because %s", err)
+				continue
+			}
+
+			results = intersects
+
+		} else {
+			pip.Logger.Warning("Invalid command")
+			continue
 		}
 
-	} else {
-
-		err = PIPLatLon(appindex, *lat, *lon, f, logger)
+		body, err := json.Marshal(results)
 
 		if err != nil {
-			logger.Fatal("Failed to PIP, %s", err)
+			pip.Logger.Warning("Failed to marshal results, because %s", err)
+			continue
 		}
+
+		fmt.Println(string(body))
 	}
 
 	os.Exit(0)

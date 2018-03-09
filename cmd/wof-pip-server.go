@@ -42,7 +42,7 @@ func main() {
 	pip, err := app.NewPIPApplication(fs)
 
 	if err != nil {
-		pip.Logger.Fatal("Failed to create new PIP application, because %s", err)
+		log.Fatal(fmt.Sprintf("Failed to create new PIP application, because %s", err))
 	}
 
 	pip_index, _ := flags.StringVar(fs, "index")

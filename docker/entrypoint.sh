@@ -21,7 +21,7 @@ then
 	then
 	    echo "fetch ${REMOTE}.bz2"
 	    
-	    ${CURL} -s -o ${LOCAL}.bz2 ${REMOTE}.bz2
+	    ${CURL} -o ${LOCAL}.bz2 ${REMOTE}.bz2
 	    
 	    if [ $? -ne 0 ]
 	    then
@@ -52,7 +52,7 @@ then
     then
 	echo "fetch ${REMOTE}.bz2 as ${LOCAL}.bz2"
 	
-	${CURL} -s -o ${LOCAL}.bz2 ${REMOTE}.bz2
+	${CURL} -o ${LOCAL}.bz2 ${REMOTE}.bz2
 	
 	if [ $? -ne 0 ]
 	then
@@ -77,7 +77,7 @@ else
     exit 1
 fi
 
-echo ${PIP_SERVER} -setenv ${PIP_ARGS}
+${PIP_SERVER} -setenv ${PIP_ARGS}
 
 if [ $? -ne 0 ]
 then

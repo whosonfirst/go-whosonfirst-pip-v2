@@ -1012,6 +1012,24 @@ curl -s 'localhost:6161/?latitude=49.314573&longitude=-123.077469&extras=geom:' 
 
 ### spatialite
 
+_IMPORTANT - THIS DOESN'T ACTUALLY WORK YET AND I AM INCLUDING IT HERE IN THE HOPES THAT SOMEONE CAN TELL ME WHAT I AM DOING WRONG._
+
+Specifically in the [Dockerfile](Dockerfile) we are using Alpine Linux and trying to install the spatialiate library like this:
+
+```
+RUN apk add --update --repository http://dl-3.alpinelinux.org/alpine/edge/testing/ libspatialite
+```
+
+But when we actually try to load it (in our Go code) it fails with the following error which is invoked [over here](https://github.com/whosonfirst/go-whosonfirst-sqlite/blob/master/vendor/github.com/whosonfirst/go-spatialite/spatialite.go):
+
+```
+Failed to create new PIP application, because shaxbee/go-spatialite: spatialite extension not found.
+```
+
+It is unclear to me what the problem is...
+
+---
+
 If your `WOF_MODE` environment variable is `spatialite` then you need to also
 set a `WOF_SPATIALITE_DATABASE` containing the name of a (WOF) SQLite database
 name (including the trailing `.db`) to fetch and index.

@@ -38,11 +38,15 @@ FROM alpine
 
 RUN apk add --update bzip2 curl
 
-RUN apk add --update --repository http://dl-3.alpinelinux.org/alpine/edge/testing/ libspatialite
+# PLEASE HELP ME FIGURE OUT WHY THIS DOESN'T WORK (20180309/thisisaaronland)
+# SPECIFICALLY BY THE TIME WE TRY TO LOAD libspatialite IT FAILS WITH THE FOLLOWING ERROR:
+# Failed to create new PIP application, because shaxbee/go-spatialite: spatialite extension not found.
+# WHICH IS TRIGGERED HERE:
+# https://github.com/whosonfirst/go-whosonfirst-sqlite/blob/master/vendor/github.com/whosonfirst/go-spatialite/spatialite.go
+#
+# RUN apk add --update --repository http://dl-3.alpinelinux.org/alpine/edge/testing/ libspatialite
 
 VOLUME /usr/local/data
-
-# ADD data/ /usr/local/data
 
 WORKDIR /bin/
 

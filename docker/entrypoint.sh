@@ -71,6 +71,7 @@ then
     fi
     
     export WOF_SPATIALITE_DSN="${LOCAL}"
+    export LD_LIBRARY_PATH=".:/lib:/usr/lib:/usr/local/lib"
   
 else
     echo "only '-mode sqlite' or '-mode spatialite' are supported right now"

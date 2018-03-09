@@ -937,53 +937,115 @@ curl 'http://localhost:5555/?latitude=54.793624&longitude=-79.948933&format=geoj
 
 ## Docker
 
-[Yes](Dockerfile), although it's still early days and not terribly sophisticated yet (for example it only works with [SQLite](https://whosonfirst.mapzen.com/sqlite) databases right now).
+[Yes](Dockerfile), although it's still early days and should still be considered
+experimental.The biggest open question is how to manage data files which can be
+very large.
+
+Currently the `Dockerfile` itself simply sets up dependencies and creates a
+volume named `/usr/local/data` and then hands everything off to a
+[docker/entrypoint.sh](docker/entrypoint.sh) shell script that looks for things
+to download and index from [dist.whosonfirst.org](https://dist.whosonfirst.org)
+_when the Docker instance is started_.
+
+Currently the approach only works with the Who's On First SQLite
+databases. Bundles and other remote download sources are _not supported_
+yet.
+
+To build the Docker image you do the usual `docker build` dance like this:
 
 ```
 docker build -t wof-pip-server .
+```
 
-docker run -p 6161:8080 -e HOST='0.0.0.0' -e EXTRAS='allow' -e MODE='sqlite' -e SOURCES='timezone-20171212' wof-pip-server
-fetch https://whosonfirst.mapzen.com/sqlite/timezone-20171212.db
-/go-whosonfirst-pip-v2/bin/wof-pip-server -host 0.0.0.0 -allow-extras -mode sqlite /usr/local/data/timezone-20171212.db
-00:08:41.764637 [wof-pip-server] STATUS create temporary extras database '/tmp/pip-extras738521352'
-00:08:41.766112 [wof-pip-server] STATUS listening on 0.0.0.0:8080
-00:08:42.777847 [wof-pip-server] STATUS indexing 11 records indexed
-00:08:43.777756 [wof-pip-server] STATUS indexing 24 records indexed
-... time passes ...
-00:08:58.777526 [wof-pip-server] STATUS indexing 331 records indexed
-00:08:59.777888 [wof-pip-server] STATUS indexing 355 records indexed
-00:09:00.310773 [wof-pip-server] STATUS finished indexing
+To start the image you do the usual `docker run` dance passing one or more
+`WOF_` environment variables ([as described above]()).
 
-curl -s 'http://localhost:6161/?latitude=37.794906&longitude=-122.395229' | python -mjson.tool
+### sqlite
+
+If your `WOF_MODE` environment variable is `sqlite` then you need to also set a
+`SQLITE_DATABASES` environment variable containing a comma-separated list of
+(WOF) SQLite database names (including the trailing `.db`) to fetch and index.
+
+```
+> docker run -it -p 6161:8080 -e WOF_HOST='0.0.0.0' -e WOF_ENABLE_EXTRAS='true' -e WOF_MODE='sqlite' -e SQLITE_DATABASES='whosonfirst-data-constituency-ca-latest.db' wof-pip-server
+fetch https://dist.whosonfirst.org/sqlite/whosonfirst-data-constituency-ca-latest.db.bz2
+2018/03/09 15:57:56 set -enable-extras flag (true) from WOF_ENABLE_EXTRAS environment variable
+2018/03/09 15:57:56 set -host flag (0.0.0.0) from WOF_HOST environment variable
+2018/03/09 15:57:56 set -mode flag (sqlite) from WOF_MODE environment variable
+15:57:56.155541 [wof-pip-server] STATUS listening for requests on 0.0.0.0:8080
+15:57:56.863973 [wof-pip-server] STATUS finished indexing in 708.871526ms
+15:57:57.317221 [wof-pip-server] STATUS indexing 42 records indexed
+15:57:58.350197 [wof-pip-server] STATUS indexing 47 records indexed
+15:57:59.274145 [wof-pip-server] STATUS indexing 52 records indexed
+15:58:00.204993 [wof-pip-server] STATUS indexing 60 records indexed
+
+curl -s 'localhost:6161/?latitude=49.314573&longitude=-123.077469&extras=geom:' | jq
 {
-    "places": [
-        {
-            "mz:is_ceased": -1,
-            "mz:is_current": -1,
-            "mz:is_deprecated": 0,
-            "mz:is_superseded": 0,
-            "mz:is_superseding": 0,
-            "mz:latitude": 38.27008,
-            "mz:longitude": -118.219968,
-            "mz:max_latitude": 49.002892,
-            "mz:max_longitude": -114.039345,
-            "mz:min_latitude": 32.534622,
-            "mz:min_longitude": -124.733253,
-            "mz:uri": "https://whosonfirst.mapzen.com/data/102/047/421/102047421.geojson",
-            "wof:country": "",
-            "wof:id": 102047421,
-            "wof:lastmodified": 1466627377,
-            "wof:name": "America/Los_Angeles",
-            "wof:parent_id": 85633793,
-            "wof:path": "102/047/421/102047421.geojson",
-            "wof:placetype": "timezone",
-            "wof:repo": "whosonfirst-data",
-            "wof:superseded_by": [],
-            "wof:supersedes": []
-        }
-    ]
+  "places": [
+    {
+      "wof:id": 1108962851,
+      "wof:parent_id": -1,
+      "wof:name": "North Vancouver-Lonsdale",
+      "wof:placetype": "constituency",
+      "wof:country": "CA",
+      "wof:repo": "whosonfirst-data-constituency-ca",
+      "wof:path": "110/896/285/1/1108962851.geojson",
+      "wof:superseded_by": [],
+      "wof:supersedes": [],
+      "mz:uri": "https://data.whosonfirst.org/110/896/285/1/1108962851.geojson",
+      "mz:latitude": 49.314573,
+      "mz:longitude": -123.077469,
+      "mz:min_latitude": 49.29462420121845,
+      "mz:min_longitude": -123.1480248934407,
+      "mz:max_latitude": 49.33571158121562,
+      "mz:max_longitude": -123.01943355128094,
+      "mz:is_current": -1,
+      "mz:is_ceased": -1,
+      "mz:is_deprecated": 0,
+      "mz:is_superseded": 0,
+      "mz:is_superseding": 0,
+      "wof:lastmodified": 1494447496
+    }
+  ]
 }
 ```
+
+### spatialite
+
+If your `WOF_MODE` environment variable is `spatialite` then you need to also
+set a `WOF_SPATIALITE_DATABASE` containing the name of a (WOF) SQLite database
+name (including the trailing `.db`) to fetch and index.
+
+```
+> docker run -it -p 6161:8080 -e WOF_HOST='0.0.0.0' -e WOF_INDEX='spatialite' -e WOF_CACHE='spatialite' -e WOF_MODE='spatialite' -e SPATIALITE_DATABASE='whosonfirst-data-constituency-us-latest.db' wof-pip-server
+fetch https://dist.whosonfirst.org/sqlite/whosonfirst-data-constituency-us-latest.db.bz2 as /usr/local/data/whosonfirst-data-constituency-us-latest.db.bz2
+2018/03/09 15:50:53 set -cache flag (spatialite) from WOF_CACHE environment
+variable
+2018/03/09 15:50:53 set -host flag (0.0.0.0) from WOF_HOST environment variable
+2018/03/09 15:50:53 set -index flag (spatialite) from WOF_INDEX environment variable
+2018/03/09 15:50:53 set -mode flag (spatialite) from WOF_MODE environment variable
+2018/03/09 15:50:53 set -spatialite-dsn flag (/usr/local/data/whosonfirst-data-constituency-us-latest.db) from WOF_SPATIALITE_DSN environment variable 
+2018/03/09 15:50:53 Failed to create new PIP application, because shaxbee/go-spatialite: spatialite extension not found.
+command '/bin/wof-pip-server ' failed
+```
+
+### Caveats
+
+Consider this approach a generic proof-of-concept. If you know what data you're
+going to be working with ahead of time it probably makes more sense for you to
+clone the existing `Dockerfile` and change this:
+
+```
+VOLUME /usr/local/data
+```
+
+To something like this:
+
+```
+ADD your-data /usr/local/data
+```
+
+And then update the `ENTRYPOINT` command accordingly to point to the relevant data.
 
 ## Performance
 

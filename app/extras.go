@@ -94,13 +94,5 @@ func NewApplicationExtras(fl *flag.FlagSet) (*database.SQLiteDatabase, error) {
 		return nil, err
 	}
 
-	db.Close()
-
-	db, err = database.NewDB(extras_dsn)
-
-	if err != nil {
-		return nil, err
-	}
-
 	return db, nil
 }

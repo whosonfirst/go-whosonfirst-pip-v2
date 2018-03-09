@@ -38,6 +38,8 @@ FROM alpine
 
 RUN apk add --update bzip2 curl
 
+RUN apk add --update --repository http://dl-3.alpinelinux.org/alpine/edge/testing/ libspatialite
+
 VOLUME /usr/local/data
 
 # ADD data/ /usr/local/data

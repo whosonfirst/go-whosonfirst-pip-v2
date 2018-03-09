@@ -682,9 +682,6 @@ $> ./bin/wof-pip-server -setenv
     	Be chatty.
 ```
 
-_If a deprecated flag has a contemporary matching flag the latter will be
-assigned the value of the former._
-
 For example:
 
 ### wof-pip-server
@@ -766,9 +763,6 @@ For example:
   -www-path string
     	The URL path for the interactive debug endpoint. (default "/debug")
 ```
-
-_If a deprecated flag has a contemporary matching flag the latter will be
-assigned the value of the former._
 
 For example, to index [Who's On First data published as a SQLite database](https://dist.whosonfirst.org/sqlite) and spinning up a little web server for debugging things you might do something like:
 

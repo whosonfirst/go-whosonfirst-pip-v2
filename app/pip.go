@@ -47,7 +47,7 @@ func NewPIPApplication(fl *flag.FlagSet) (*PIPApplication, error) {
 		return nil, err
 	}
 
-	indexer, err := NewApplicationIndexer(fl, appindex)
+	indexer, err := NewApplicationIndexer(fl, appindex, appextras)
 
 	if err != nil {
 		return nil, err

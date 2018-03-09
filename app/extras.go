@@ -1,7 +1,9 @@
 package app
 
 import (
+	"errors"
 	"flag"
+	"fmt"
 	"github.com/whosonfirst/go-whosonfirst-pip/flags"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
@@ -35,21 +37,23 @@ func NewApplicationExtras(fl *flag.FlagSet) (*database.SQLiteDatabase, error) {
 
 		extras_dsn = tmpnam
 
-		cleanup := func() {
+		cleanup := func() error {
 
 			err := db.Close()
 
 			if err != nil {
-				log.Printf("Failed to close extras database (%s) because %s\n", extras_dsn, err)
-				return
+				msg := fmt.Sprintf("Failed to close extras database (%s) because %s\n", extras_dsn, err)
+				return errors.New(msg)
 			}
 
 			err = os.Remove(extras_dsn)
 
 			if err != nil {
-				log.Printf("Failed to close extras database (%s) because %s\n", extras_dsn, err)
-				return
+				msg := fmt.Sprintf("Failed to close extras database (%s) because %s\n", extras_dsn, err)
+				return errors.New(msg)
 			}
+
+			return nil
 		}
 
 		signal_ch := make(chan os.Signal, 1)
@@ -57,7 +61,13 @@ func NewApplicationExtras(fl *flag.FlagSet) (*database.SQLiteDatabase, error) {
 
 		go func() {
 			<-signal_ch
-			cleanup()
+			err := cleanup()
+
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			os.Exit(0)
 		}()
 	}
 

@@ -12,8 +12,8 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-pip/index"
 	"github.com/whosonfirst/go-whosonfirst-pip/utils"
 	"github.com/whosonfirst/go-whosonfirst-sqlite"
-	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
+	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"io"
 	_ "log"
 	"strings"
@@ -22,7 +22,7 @@ import (
 
 func NewApplicationIndexer(fl *flag.FlagSet, appindex index.Index, appextras *database.SQLiteDatabase) (*wof_index.Indexer, error) {
 
-     	index_extras := true	// FIX ME...
+	index_extras := true // FIX ME...
 
 	mode, _ := flags.StringVar(fl, "mode")
 	is_wof, _ := flags.BoolVar(fl, "is-wof")

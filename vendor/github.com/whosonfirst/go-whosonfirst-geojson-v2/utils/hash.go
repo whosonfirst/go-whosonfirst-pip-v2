@@ -32,6 +32,8 @@ func GeohashFeature(f geojson.Feature) (string, error) {
 	// an int and yes the opportunity for hilarity... exists
 	// (20180309/thisisaaronland)
 
+	// see also: https://github.com/whosonfirst/go-whosonfirst-sqlite-features/tree/master/tables
+
 	gh := geohash.EncodeInt(lat, lon)
 	return strconv.FormatInt(int64(gh), 10), nil
 }

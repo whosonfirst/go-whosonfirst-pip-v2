@@ -18,6 +18,7 @@
 # and then:
 # $> curl 'http://localhost:6161/?latitude=37.794906&longitude=-122.395229&extras=name:,edtf:' | python -mjson.tool
 
+# or with spatialite stuff
 # $> docker run -it -p 6161:8080 -e WOF_HOST='0.0.0.0' -e WOF_INDEX='spatialite' -e WOF_CACHE='spatialite' -e WOF_MODE='spatialite' -e SPATIALITE_DATABASE='whosonfirst-data-constituency-us-latest.db' wof-pip-server
 
 # build phase - see also:
@@ -31,6 +32,7 @@ RUN apk add --update make libc-dev gcc
 ADD . /go-whosonfirst-pip-v2
 RUN cd /go-whosonfirst-pip-v2; make bin
 
+# what follows is a modified version of this:
 # https://github.com/terranodo/spatialite-docker/blob/master/Dockerfile
 
 RUN echo "@edge http://nl.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories

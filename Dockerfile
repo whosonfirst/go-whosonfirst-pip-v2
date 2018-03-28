@@ -26,29 +26,40 @@
 
 FROM golang:alpine AS build-env
 
-# https://github.com/gliderlabs/docker-alpine/issues/24
-
-RUN apk add --update alpine-sdk
+RUN apk add --update make libc-dev gcc
 
 ADD . /go-whosonfirst-pip-v2
-
 RUN cd /go-whosonfirst-pip-v2; make bin
+
+# https://github.com/terranodo/spatialite-docker/blob/master/Dockerfile
+
+RUN echo "@edge http://nl.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
+RUN echo "@edge-testing http://nl.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
+RUN apk update
+
+RUN apk add wget gcc make libc-dev sqlite-dev zlib-dev libxml2-dev "proj4-dev@edge-testing" "geos-dev@edge-testing" "gdal-dev@edge-testing" "gdal@edge-testing" expat-dev readline-dev ncurses-dev ncurses-static libc6-compat
+
+RUN wget "http://www.gaia-gis.it/gaia-sins/freexl-sources/freexl-1.0.5.tar.gz" && tar zxvf freexl-1.0.5.tar.gz && cd freexl-1.0.5 && ./configure && make && make install
+
+RUN wget "http://www.gaia-gis.it/gaia-sins/libspatialite-4.3.0a.tar.gz" && tar zxvf libspatialite-4.3.0a.tar.gz && cd libspatialite-4.3.0a && ./configure && make && make install
+
+RUN wget "http://www.gaia-gis.it/gaia-sins/readosm-1.1.0.tar.gz" && tar zxvf readosm-1.1.0.tar.gz && cd readosm-1.1.0 && ./configure && make && make install
+
+RUN wget "http://www.gaia-gis.it/gaia-sins/spatialite-tools-4.3.0.tar.gz" && tar zxvf spatialite-tools-4.3.0.tar.gz && cd spatialite-tools-4.3.0 && ./configure && make && make install
+
+RUN cp /usr/local/bin/* /usr/bin/
+RUN cp -R /usr/local/lib/* /usr/lib/
 
 FROM alpine
 
 RUN apk add --update bzip2 curl
 
-# PLEASE HELP ME FIGURE OUT WHY THIS DOESN'T WORK (20180309/thisisaaronland)
-# SPECIFICALLY BY THE TIME WE TRY TO LOAD libspatialite IT FAILS WITH THE FOLLOWING ERROR:
-# Failed to create new PIP application, because shaxbee/go-spatialite: spatialite extension not found.
-# WHICH IS TRIGGERED HERE:
-# https://github.com/whosonfirst/go-whosonfirst-sqlite/blob/master/vendor/github.com/whosonfirst/go-spatialite/spatialite.go
-#
-# RUN apk add --update --repository http://dl-3.alpinelinux.org/alpine/edge/testing/ libspatialite
-
 VOLUME /usr/local/data
 
 WORKDIR /bin/
+
+COPY --from=build-env /usr/lib/ /usr/lib
+COPY --from=build-env /usr/bin/ /usr/bin
 
 COPY --from=build-env /go-whosonfirst-pip-v2/bin/wof-pip-server /bin/wof-pip-server
 COPY --from=build-env /go-whosonfirst-pip-v2/docker/entrypoint.sh /bin/entrypoint.sh

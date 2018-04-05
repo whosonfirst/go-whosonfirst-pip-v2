@@ -14,8 +14,9 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-sqlite"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
+	"github.com/whosonfirst/warning"
 	"io"
-	_ "log"
+	"log"
 	"strings"
 	"sync"
 )
@@ -103,7 +104,19 @@ func NewApplicationIndexer(fl *flag.FlagSet, appindex index.Index, appextras *da
 			tmp, err := feature.LoadWOFFeatureFromReader(fh)
 
 			if err != nil {
-				return err
+
+				// it's still not clear (to me) what the expected or desired
+				// behaviour is / in this instance we might be issuing a warning
+				// from the geojson-v2 package because a feature might have a
+				// placetype defined outside of "core" (in the go-whosonfirst-placetypes)
+				// package but that shouldn't necessarily trigger a fatal error
+				// (20180405/thisisaaronland)
+
+				if !warning.IsWarning(err) {
+					return err
+				}
+
+				log.Printf("Feature ID %s triggered the following warning: %s\n", tmp.Id(), err)
 			}
 
 			if !include_notcurrent {
@@ -162,7 +175,7 @@ func NewApplicationIndexer(fl *flag.FlagSet, appindex index.Index, appextras *da
 
 		} else {
 
-			tmp, err := feature.LoadFeatureFromReader(fh)
+			tmp, err := feature.LoadGeoJSONFeatureFromReader(fh)
 
 			if err != nil {
 				return err

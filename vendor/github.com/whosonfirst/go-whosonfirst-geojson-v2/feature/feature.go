@@ -65,6 +65,28 @@ func LoadWOFFeatureFromFile(path string) (geojson.Feature, error) {
 	return NewWOFFeature(body)
 }
 
+func LoadGeoJSONFeatureFromReader(fh io.Reader) (geojson.Feature, error) {
+
+	body, err := UnmarshalFeatureFromReader(fh)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return NewGeoJSONFeature(body)
+}
+
+func LoadGeoJSONFeatureFromFile(path string) (geojson.Feature, error) {
+
+	body, err := UnmarshalFeatureFromFile(path)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return NewGeoJSONFeature(body)
+}
+
 func UnmarshalFeature(body []byte) ([]byte, error) {
 
 	var stub interface{}

@@ -33,7 +33,7 @@ func main() {
 	names := flag.Bool("names", false, "Index the 'names' table")
 	search := flag.Bool("search", false, "Index the 'search' table (using SQLite FTS4 full-text indexer)")
 	spr := flag.Bool("spr", false, "Index the 'spr' table")
-	live_hard := flag.Bool("live-hard-die-fast", false, "Enable various performance-related pragmas at the expense of possible (unlikely) database corruption")
+	live_hard := flag.Bool("live-hard-die-fast", true, "Enable various performance-related pragmas at the expense of possible (unlikely) database corruption")
 	timings := flag.Bool("timings", false, "Display timings during and after indexing")
 	// liberal := flag.Bool("liberal", false, "Do not trigger errors for records that can not be processed, for whatever reason")
 	var procs = flag.Int("processes", (runtime.NumCPU() * 2), "The number of concurrent processes to index data with")

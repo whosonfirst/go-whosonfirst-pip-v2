@@ -5,7 +5,7 @@ self:	prep
 	if test -d src/github.com/whosonfirst/go-whosonfirst-crawl; then rm -rf src/github.com/whosonfirst/go-whosonfirst-crawl; fi
 	mkdir -p src/github.com/whosonfirst/go-whosonfirst-crawl
 	cp crawl.go src/github.com/whosonfirst/go-whosonfirst-crawl/crawl.go
-	cp -r vendor/src/* src/
+	cp -r vendor/* src/
 
 rmdeps:
 	if test -d src; then rm -rf src; fi 
@@ -17,8 +17,8 @@ deps:
 
 vendor-deps: rmdeps deps
 	if test ! -d vendor; then mkdir vendor; fi
-	if test -d vendor/src; then rm -rf vendor/src; fi
-	cp -r src vendor/src
+	if test -d vendor; then rm -rf vendor; fi
+	cp -r src vendor
 	find vendor -name '.git' -print -type d -exec rm -rf {} +
 	rm -rf src
 

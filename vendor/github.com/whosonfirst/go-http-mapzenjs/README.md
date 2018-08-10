@@ -12,6 +12,126 @@ make bin
 
 All of this package's dependencies are bundled with the code in the `vendor` directory.
 
+## A word about "Mapzen" and naming things
+
+[Mapzen is no more](https://mapzen.com/blog/shutdown/). As I write this I am not really sure what the state of
+[nextzen.js](https://github.com/nextzen/nextzen.js) (formerly `mapzen.js`)
+is. To top it off all the map vector tiles are now called _Tilezen_ but are
+hosted under the [Nextzen](https://www.nextzen.org/) domain. The same is true of
+[tangram.js](https://github.com/tangrams/tangram).
+ 
+It's a bit confusing but so is life.
+
+So while this package bundles and exposes a copy of the old `mapzen.js` it
+_won't work_ as you'd normally expect, like this:
+
+```
+
+	// remember this data attribute is squirted in to the source via
+	// the MapzenJSHandler (.go) handler
+
+	var body = document.body;
+	var api_key = body.getAttribute("data-mapzen-api-key");
+
+	L.Mapzen.apiKey = api_key;
+			
+	var map_opts = { tangramOptions: {
+		scene: L.Mapzen.BasemapStyles.Refill
+	}};
+			
+	map = L.Mapzen.map('map', map_opts);
+```
+
+Or at least I'm _not sure_ it will, as I write this. Instead what I (currently)
+do is this:
+
+```
+
+	// remember this data attribute is squirted in to the source via
+	// the MapzenJSHandler (.go) handler
+
+	var body = document.body;
+	var api_key = body.getAttribute("data-mapzen-api-key");
+
+	var sources = {
+	    mapzen: {
+		url: 'https://{s}.tile.nextzen.org/tilezen/vector/v1/512/all/{z}/{x}/{y}.topojson',
+		url_subdomains: ['a', 'b', 'c', 'd'],
+		url_params: {
+		    api_key: api_key	// not clear this actually works... ?
+		},
+		tile_size: 512,
+		max_zoom: 15
+	    }
+	};
+			
+	var scene = {
+	    import: [
+		     "/tangram/refill-style.zip",
+		     "/tangram/refill-style-themes-label.zip",
+		     ],
+	    sources: sources,
+	    global: {
+		sdk_mapzen_api_key: api_key,
+	    },
+	};
+			
+	var attributions = {
+	    "Tangram": "https://github.com/tangrams/",
+	    "© OSM contributors": "http://www.openstreetmap.org/",
+	    "Who\"s On First": "http://www.whosonfirst.org/",
+	    "Nextzen": "https://nextzen.org/",
+	};
+			
+	var attrs = [];
+			
+	for (var label in attributions){
+			    
+	    var link = attrs[label];
+			    
+	    if (! link){
+		attrs.push(label);
+		continue;
+	    }
+			    
+	    var anchor = '<a href="' + link + '" target="_blank">' + enc_label + '</a>';
+	    attrs.push(anchor);
+	}
+			
+	var str_attributions = attrs.join(" | ");
+			
+	// waiting for nextzen.js to be updated to do all the things - that said it's
+	// not entirely clear we need all of (map/next)zen.js and could probably get
+	// away with leaflet + tangram but for now we'll just keep on as-is...
+	// (20180304/thisisaaronland)
+			
+	L.Mapzen.apiKey = api_key;
+			
+	var map_opts = {
+	    tangramOptions: {
+		scene: scene,
+		attribution: attributions,
+	    }
+	};
+	
+	map = L.Mapzen.map('map', map_opts);
+```			
+
+Which, you know, arguably could be wrapped in a helper function/library exposed
+by the `MapzenJSAssetsHandler` handler but presumably `nextzen.js` will (has
+been) updated to point to all the new Nextzen things, right?
+
+To further confuse matters it's on my list to update this package to bundle and
+expose plain vanilla [Leaflet](https://leafletjs.com) support for Tangram and
+Tilezen stuff but that hasn't happened yet.
+
+So maybe this package should be called `go-http-nextzen`... but it
+isn't... yet... probably.
+
+We'll figure it out soon but honestly, it's kind of a wonder _anyone_ figured
+out how to use our (Mapzen) stuff at all. Which is why everything in this
+package is still called "mapzen".
+
 ## Handlers
 
 ### MapzenJSHandler(http.Handler, MapzenJSOptions) (http.Handler, error)

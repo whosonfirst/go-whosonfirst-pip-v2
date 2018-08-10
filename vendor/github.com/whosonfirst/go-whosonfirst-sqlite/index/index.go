@@ -139,6 +139,9 @@ func (idx *SQLiteIndexer) IndexPaths(mode string, paths []string) error {
 			}
 		}()
 
+		defer func() {
+			done_ch <- true
+		}()
 	}
 
 	err = indexer.IndexPaths(paths)
@@ -146,9 +149,6 @@ func (idx *SQLiteIndexer) IndexPaths(mode string, paths []string) error {
 	if err != nil {
 		return err
 	}
-
-	done_ch <- true
-	show_timings()
 
 	return nil
 }

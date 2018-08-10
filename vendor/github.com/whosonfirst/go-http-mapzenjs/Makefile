@@ -20,6 +20,7 @@ deps:
 
 fmt:
 	go fmt *.go
+	go fmt utils/*.go
 
 vendor-deps: rmdeps deps
 	if test -d vendor; then rm -rf vendor; fi

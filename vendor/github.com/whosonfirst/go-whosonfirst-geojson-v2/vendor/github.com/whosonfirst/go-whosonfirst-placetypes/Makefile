@@ -19,6 +19,14 @@ self:   prep
 	cp placetypes/*.go src/github.com/whosonfirst/go-whosonfirst-placetypes/placetypes/
 
 deps:   self
+	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/warning"
+
+vendor-deps: rmdeps deps
+	if test ! -d vendor; then mkdir vendor; fi
+	if test -d vendor; then rm -rf vendor; fi
+	cp -r src vendor
+	find vendor -name '.git' -print -type d -exec rm -rf {} +
+	rm -rf src
 
 fmt:
 	go fmt *.go

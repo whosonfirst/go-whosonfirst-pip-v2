@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"github.com/whosonfirst/go-whosonfirst-sqlite"
 	_ "log"
 	"os"
@@ -10,29 +9,22 @@ import (
 
 var re_mem *regexp.Regexp
 var re_file *regexp.Regexp
-var lookup_table map[string]bool
 
 func init() {
 	re_mem = regexp.MustCompile(`^(file\:)?\:memory\:.*`)
 	re_file = regexp.MustCompile(`^file\:([^\?]+)(?:\?.*)?$`)
-
-	lookup_table = make(map[string]bool)
 }
 
 func HasTable(db sqlite.Database, table string) (bool, error) {
 
+	// you might be thinking it would be a good idea to cache this lookup
+	// I know I did... and I was wrong (20180713/thisisaaronland)
+	// https://github.com/whosonfirst/go-whosonfirst-sqlite/issues/11
+
 	dsn := db.DSN()
 
-	lookup_key := fmt.Sprintf("%s#%s", dsn, table)
-
-	has_table, ok := lookup_table[lookup_key]
-
-	if ok {
-		return has_table, nil
-	}
-
 	check_tables := true
-	has_table = false
+	has_table := false
 
 	if !re_mem.MatchString(dsn) {
 
@@ -88,8 +80,6 @@ func HasTable(db sqlite.Database, table string) (bool, error) {
 			}
 		}
 	}
-
-	lookup_table[lookup_key] = has_table
 
 	return has_table, nil
 }

@@ -1,28 +1,57 @@
+// +build go1.7
+
 package geohash
 
-import "testing"
+import (
+	"strconv"
+	"testing"
+)
 
-func randomPoints(n int) [][2]float64 {
-	var points [][2]float64
-	for i := 0; i < n; i++ {
-		lat, lon := RandomPoint()
-		points = append(points, [2]float64{lat, lon})
+func BenchmarkEncodeInt(b *testing.B) {
+	points := RandomPoints(1024)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		EncodeInt(points[i%1024][0], points[i%1024][1])
 	}
-	return points
 }
 
 func BenchmarkEncode(b *testing.B) {
-	points := randomPoints(b.N)
+	points := RandomPoints(1024)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Encode(points[i][0], points[i][1])
+		Encode(points[i%1024][0], points[i%1024][1])
 	}
 }
 
-func BenchmarkEncodeInt(b *testing.B) {
-	points := randomPoints(b.N)
+func BenchmarkEncodeWithPrecision(b *testing.B) {
+	points := RandomPoints(1024)
+	for chars := uint(1); chars <= 12; chars++ {
+		name := strconv.FormatUint(uint64(chars), 10)
+		b.Run(name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				EncodeWithPrecision(points[i%1024][0], points[i%1024][1], chars)
+			}
+		})
+	}
+}
+
+func BenchmarkDecodeInt(b *testing.B) {
+	geohashes := RandomIntGeohashes(1024)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		EncodeInt(points[i][0], points[i][1])
+		DecodeInt(geohashes[i%1024])
+	}
+}
+
+func BenchmarkDecode(b *testing.B) {
+	for chars := uint(1); chars <= 12; chars++ {
+		name := strconv.FormatUint(uint64(chars), 10)
+		b.Run(name, func(b *testing.B) {
+			geohashes := RandomStringGeohashesWithPrecision(1024, chars)
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				Decode(geohashes[i%1024])
+			}
+		})
 	}
 }

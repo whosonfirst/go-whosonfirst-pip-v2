@@ -13,7 +13,6 @@ import (
 	"time"
 	"unicode/utf16"
 	"unicode/utf8"
-	"unsafe"
 
 	"github.com/tidwall/match"
 )
@@ -78,7 +77,20 @@ func (t Result) String() string {
 	case False:
 		return "false"
 	case Number:
-		return strconv.FormatFloat(t.Num, 'f', -1, 64)
+		if len(t.Raw) == 0 {
+			// calculated result
+			return strconv.FormatFloat(t.Num, 'f', -1, 64)
+		}
+		var i int
+		if t.Raw[0] == '-' {
+			i++
+		}
+		for ; i < len(t.Raw); i++ {
+			if t.Raw[i] < '0' || t.Raw[i] > '9' {
+				return strconv.FormatFloat(t.Num, 'f', -1, 64)
+			}
+		}
+		return t.Raw
 	case String:
 		return t.Str
 	case JSON:
@@ -1289,7 +1301,7 @@ func parseArray(c *parseContext, i int, path string) (int, bool) {
 					if rp.alogok {
 						break
 					}
-					c.value.Raw = val
+					c.value.Raw = ""
 					c.value.Type = Number
 					c.value.Num = float64(h - 1)
 					c.calcd = true
@@ -1385,64 +1397,14 @@ func Get(json, path string) Result {
 			}
 		}
 	}
-	if len(c.value.Raw) > 0 && !c.calcd {
-		jhdr := *(*reflect.StringHeader)(unsafe.Pointer(&json))
-		rhdr := *(*reflect.StringHeader)(unsafe.Pointer(&(c.value.Raw)))
-		c.value.Index = int(rhdr.Data - jhdr.Data)
-		if c.value.Index < 0 || c.value.Index >= len(json) {
-			c.value.Index = 0
-		}
-	}
+	fillIndex(json, c)
 	return c.value
-}
-func fromBytesGet(result Result) Result {
-	// safely get the string headers
-	rawhi := *(*reflect.StringHeader)(unsafe.Pointer(&result.Raw))
-	strhi := *(*reflect.StringHeader)(unsafe.Pointer(&result.Str))
-	// create byte slice headers
-	rawh := reflect.SliceHeader{Data: rawhi.Data, Len: rawhi.Len}
-	strh := reflect.SliceHeader{Data: strhi.Data, Len: strhi.Len}
-	if strh.Data == 0 {
-		// str is nil
-		if rawh.Data == 0 {
-			// raw is nil
-			result.Raw = ""
-		} else {
-			// raw has data, safely copy the slice header to a string
-			result.Raw = string(*(*[]byte)(unsafe.Pointer(&rawh)))
-		}
-		result.Str = ""
-	} else if rawh.Data == 0 {
-		// raw is nil
-		result.Raw = ""
-		// str has data, safely copy the slice header to a string
-		result.Str = string(*(*[]byte)(unsafe.Pointer(&strh)))
-	} else if strh.Data >= rawh.Data &&
-		int(strh.Data)+strh.Len <= int(rawh.Data)+rawh.Len {
-		// Str is a substring of Raw.
-		start := int(strh.Data - rawh.Data)
-		// safely copy the raw slice header
-		result.Raw = string(*(*[]byte)(unsafe.Pointer(&rawh)))
-		// substring the raw
-		result.Str = result.Raw[start : start+strh.Len]
-	} else {
-		// safely copy both the raw and str slice headers to strings
-		result.Raw = string(*(*[]byte)(unsafe.Pointer(&rawh)))
-		result.Str = string(*(*[]byte)(unsafe.Pointer(&strh)))
-	}
-	return result
 }
 
 // GetBytes searches json for the specified path.
 // If working with bytes, this method preferred over Get(string(data), path)
 func GetBytes(json []byte, path string) Result {
-	var result Result
-	if json != nil {
-		// unsafe cast to string
-		result = Get(*(*string)(unsafe.Pointer(&json)), path)
-		result = fromBytesGet(result)
-	}
-	return result
+	return getBytes(json, path)
 }
 
 // runeit returns the rune from the the \uXXXX
@@ -1865,8 +1827,14 @@ func validobject(data []byte, i int) (outi int, ok bool) {
 			if data[i] == '}' {
 				return i + 1, true
 			}
+			i++
 			for ; i < len(data); i++ {
-				if data[i] == '"' {
+				switch data[i] {
+				default:
+					return i, false
+				case ' ', '\t', '\n', '\r':
+					continue
+				case '"':
 					goto key
 				}
 			}
@@ -2055,6 +2023,20 @@ func validnull(data []byte, i int) (outi int, ok bool) {
 //
 func Valid(json string) bool {
 	_, ok := validpayload([]byte(json), 0)
+	return ok
+}
+
+// ValidBytes returns true if the input is valid json.
+//
+//  if !gjson.Valid(json) {
+//  	return errors.New("invalid json")
+//  }
+//  value := gjson.Get(json, "name.last")
+//
+// If working with bytes, this method preferred over Valid(string(data))
+//
+func ValidBytes(json []byte) bool {
+	_, ok := validpayload(json, 0)
 	return ok
 }
 

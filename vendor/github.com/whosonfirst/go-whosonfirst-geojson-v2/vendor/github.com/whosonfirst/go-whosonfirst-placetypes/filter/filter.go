@@ -3,6 +3,7 @@ package filter
 import (
 	"errors"
 	"github.com/whosonfirst/go-whosonfirst-placetypes"
+	"github.com/whosonfirst/warning"
 )
 
 type PlacetypesFilter struct {
@@ -72,7 +73,7 @@ func (f *PlacetypesFilter) AllowFromString(pt_str string) (bool, error) {
 	pt, err := placetypes.GetPlacetypeByName(pt_str)
 
 	if err != nil {
-		return false, err
+		return true, warning.New(err.Error())
 	}
 
 	return f.Allow(pt)

@@ -2,7 +2,7 @@ package app
 
 import (
 	"flag"
-	"github.com/whosonfirst/go-whosonfirst-pip/flags"
+	"github.com/whosonfirst/go-whosonfirst-pip-v2/flags"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 )
 

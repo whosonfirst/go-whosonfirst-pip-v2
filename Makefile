@@ -10,13 +10,13 @@ fmt:
 	go fmt utils/*.go
 	go fmt *.go
 
-bin:
+tools:
 	go build -mod vendor -o bin/wof-pip cmd/wof-pip/main.go
 	go build -mod vendor -o bin/wof-pip-server cmd/wof-pip-server/main.go
 
 assets:
-	go build -o bin/go-bindata ./vendor/github.com/whosonfirst/go-bindata/go-bindata/
-	go build -o bin/go-bindata-assetfs vendor/github.com/whosonfirst/go-bindata-assetfs/go-bindata-assetfs/main.go
+	go build -o bin/go-bindata ./vendor/github.com/whosonfirst/go-bindata/cmd/go-bindata/
+	go build -o bin/go-bindata-assetfs vendor/github.com/whosonfirst/go-bindata-assetfs/cmd/go-bindata-assetfs/main.go
 	rm -f www/*~ www/css/*~ www/javascript/*~
 	@PATH=$(PATH):$(CWD)/bin bin/go-bindata-assetfs -pkg http www www/javascript www/css www/tangram
 	mv bindata.go http/assets.go

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/utils"
 	wof "github.com/whosonfirst/go-whosonfirst-index"
-	pip "github.com/whosonfirst/go-whosonfirst-pip/index"
+	pip "github.com/whosonfirst/go-whosonfirst-pip-v2/index"
 	_ "log"
 	gohttp "net/http"
 	"strconv"

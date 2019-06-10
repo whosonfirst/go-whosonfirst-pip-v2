@@ -3,7 +3,7 @@ package cache
 import (
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/geometry"
-	"github.com/whosonfirst/go-whosonfirst-pip"
+	"github.com/whosonfirst/go-whosonfirst-pip-v2"
 	"github.com/whosonfirst/go-whosonfirst-spr"
 )
 

@@ -3,8 +3,8 @@ package app
 import (
 	"errors"
 	"flag"
-	"github.com/whosonfirst/go-whosonfirst-pip/cache"
-	"github.com/whosonfirst/go-whosonfirst-pip/flags"
+	"github.com/whosonfirst/go-whosonfirst-pip-v2/cache"
+	"github.com/whosonfirst/go-whosonfirst-pip-v2/flags"
 )
 
 func NewApplicationCache(fl *flag.FlagSet) (cache.Cache, error) {

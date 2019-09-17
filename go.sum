@@ -1,10 +1,13 @@
 github.com/DATA-DOG/go-sqlmock v1.3.2/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
+github.com/MichaelTJones/walk v0.0.0-20161122175330-4748e29d5718 h1:FSsoaa1q4jAaeiAUxf9H0PgFP7eA/UL6c3PdJH+nMN4=
 github.com/MichaelTJones/walk v0.0.0-20161122175330-4748e29d5718/go.mod h1:VVwKsx9Dc8rNG55BWqogoJzGubjKnRoXdUvpGbWqeCc=
 github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5/go.mod h1:lmUJ/7eu/Q8D7ML55dXQrVaamCz2vxCfdQBasLZfHKk=
 github.com/cenkalti/backoff v2.1.1+incompatible/go.mod h1:90ReRw6GdpyfrHakVjL/QHaoyV4aDUVVkXQJJJ3NXXM=
 github.com/containerd/continuity v0.0.0-20181203112020-004b46473808/go.mod h1:GL3xCUCBDV3CZiTSEKksMWbLE66hEyuu9qyDOOqM47Y=
+github.com/d4l3k/messagediff v1.2.1 h1:ZcAIMYsUg0EAp9X+tt8/enBE/Q8Yd5kzPynLyKptt9U=
 github.com/d4l3k/messagediff v1.2.1/go.mod h1:Oozbb1TVXFac9FtSIxHBMnBCq2qeH/2KkEQxENCrlLo=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dhconnelly/rtreego v0.0.0-20180422000000-3fb2815d35b271e8c46328dbd6ca22f548ceb6dc h1:fmTEjDlqcJ+psvJtl5bGcgI+hBMWybYzxSDx+e1j9Tw=
 github.com/dhconnelly/rtreego v0.0.0-20180422000000-3fb2815d35b271e8c46328dbd6ca22f548ceb6dc/go.mod h1:yTUzNYMQuJ9abDiYcwHYImSD992rGw+/RP5J9cQx720=
@@ -32,8 +35,11 @@ github.com/ory/dockertest v3.3.4+incompatible/go.mod h1:1vX4m9wsvi00u5bseYwXaSnh
 github.com/patrickmn/go-cache v2.1.0+incompatible h1:HRMgzkcYKYpi3C8ajMPV8OFXaaRUnok+kx1WdO15EQc=
 github.com/patrickmn/go-cache v2.1.0+incompatible/go.mod h1:3Qf8kWWT7OJRJbdiICTKqZju1ZixQ/KpMGzzAfe6+WQ=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
+github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
+github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+github.com/shaxbee/go-spatialite v0.0.0-20180425212100-9b4c81899e0e h1:61v08FVpeA7foksKH9uEygA+q4YlGYAZCTsqixaH9rU=
 github.com/shaxbee/go-spatialite v0.0.0-20180425212100-9b4c81899e0e/go.mod h1:tRDdwai9gBsMVwqexZx2+O5F9QY49MxJFo1zlI/MdkU=
 github.com/sirupsen/logrus v1.4.1/go.mod h1:ni0Sbl8bgC9z8RoU9G6nDWqqs/fq4eDPysMBDgk/93Q=
 github.com/skelterjohn/geom v0.0.0-20180103000000-96f3e8a219c5f4276b0dda3568d80c4e02a50116 h1:3viuBF2tRGd2HlEs/uL4LLmdjOj8kAO6Y2c8Ii4H0oI=
@@ -43,8 +49,8 @@ github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a/go.mod h1:s
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
+github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0Q=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
-github.com/tidwall/gjson v1.1.4/go.mod h1:c/nTNbUr0E0OrXEhq1pwa8iEgc2DOt4ZZqAt1HtCkPA=
 github.com/tidwall/gjson v1.2.1 h1:j0efZLrZUvNerEf6xqoi0NjWMK5YlLrR7Guo/dxY174=
 github.com/tidwall/gjson v1.2.1/go.mod h1:c/nTNbUr0E0OrXEhq1pwa8iEgc2DOt4ZZqAt1HtCkPA=
 github.com/tidwall/match v1.0.1 h1:PnKP62LPNxHKTwvHHZZzdOAOCtsJTjo6dZLCwpKm5xc=
@@ -57,8 +63,6 @@ github.com/twpayne/go-geom v1.0.5 h1:XZBfc3Wx0dj4p17ZfmzqxnU9fTTa3pY4YG5RngKsVNI
 github.com/twpayne/go-geom v1.0.5/go.mod h1:gO3i8BeAvZuihwwXcw8dIOWXebCzTmy3uvXj9dZG2RA=
 github.com/twpayne/go-kml v1.0.0/go.mod h1:LlvLIQSfMqYk2O7Nx8vYAbSLv4K9rjMvLlEdUKWdjq0=
 github.com/twpayne/go-polyline v1.0.0/go.mod h1:ICh24bcLYBX8CknfvNPKqoTbe+eg+MX1NPyJmSBo7pU=
-github.com/whosonfirst/go-bindata v0.1.0/go.mod h1:qaBkVepgCeknoVuYsUXTJpnlxqrEcZzaIaqZ6XaK+Hk=
-github.com/whosonfirst/go-bindata-assetfs v1.0.1/go.mod h1:ZCQnq9roYYk19IAwLQyMnDPSmE+lns9K85+85JSQ4DI=
 github.com/whosonfirst/go-http-mapzenjs v0.0.0-20180429000000-3d9284bd66cec0b6a0fe54af8b25a7be25a9ce89 h1:CEUUmRkAgXdqnwZcudXIGmjnyWGB0nd082gfrEm2U8U=
 github.com/whosonfirst/go-http-mapzenjs v0.0.0-20180429000000-3d9284bd66cec0b6a0fe54af8b25a7be25a9ce89/go.mod h1:Ddv2HnfmdSK3USFdfCzR1fEQ2eqwjeyZeS11N+sAELM=
 github.com/whosonfirst/go-http-rewrite v0.0.0-20170922000000-18b1c50538dd054132aaf1c02a79287553e69100 h1:1w5qXiLU+GlhQLKAVLXxq4Ch995TeEiTEmVOP9N4lGw=

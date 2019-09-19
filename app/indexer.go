@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	"errors"
 	"flag"
+	"fmt"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/feature"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/geometry"
@@ -25,6 +27,10 @@ func NewApplicationIndexer(fl *flag.FlagSet, appindex index.Index, appextras *da
 
 	mode, _ := flags.StringVar(fl, "mode")
 	is_wof, _ := flags.BoolVar(fl, "is-wof")
+
+	// something something something, just keep going if indexing
+	// a given record fails (20190919/thisisaaronland)
+	// strict, _ := flags.BoolVar(fl, "strict")
 
 	index_extras := false
 
@@ -193,7 +199,13 @@ func NewApplicationIndexer(fl *flag.FlagSet, appindex index.Index, appextras *da
 		err := appindex.IndexFeature(f)
 
 		if err != nil {
-			return err
+
+			// something something something wrapping errors in Go 1.13
+			// something something something waiting to see if the GOPROXY is
+			// disabled by default in Go > 1.13 (20190919/thisisaaronland)
+
+			msg := fmt.Sprintf("Failed to index %s (%s), %s", f.Id(), f.Name(), err)
+			return errors.New(msg)
 		}
 
 		// see also: http/intersects.go (20171217/thisisaaronland)

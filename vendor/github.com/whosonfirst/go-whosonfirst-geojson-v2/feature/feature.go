@@ -10,15 +10,20 @@ import (
 	"os"
 )
 
+// Feature
+
 func LoadFeature(body []byte) (geojson.Feature, error) {
 
-	wofid := gjson.GetBytes(body, "properties.wof:id")
+	is_wof := isWOF(body)
+	is_alt := isAlt(body)
 
-	if wofid.Exists() {
+	if is_wof && is_alt {
+		return NewWOFAltFeature(body)
+	} else if is_wof {
 		return NewWOFFeature(body)
+	} else {
+		return NewGeoJSONFeature(body)
 	}
-
-	return NewGeoJSONFeature(body)
 }
 
 func LoadFeatureFromReader(fh io.Reader) (geojson.Feature, error) {
@@ -43,6 +48,8 @@ func LoadFeatureFromFile(path string) (geojson.Feature, error) {
 	return LoadFeature(body)
 }
 
+// WOF
+
 func LoadWOFFeatureFromReader(fh io.Reader) (geojson.Feature, error) {
 
 	body, err := UnmarshalFeatureFromReader(fh)
@@ -64,6 +71,30 @@ func LoadWOFFeatureFromFile(path string) (geojson.Feature, error) {
 
 	return NewWOFFeature(body)
 }
+
+func LoadWOFAltFeatureFromReader(fh io.Reader) (geojson.Feature, error) {
+
+	body, err := UnmarshalFeatureFromReader(fh)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return NewWOFAltFeature(body)
+}
+
+func LoadWOFAltFeatureFromFile(path string) (geojson.Feature, error) {
+
+	body, err := UnmarshalFeatureFromFile(path)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return NewWOFAltFeature(body)
+}
+
+// GeoJSON
 
 func LoadGeoJSONFeatureFromReader(fh io.Reader) (geojson.Feature, error) {
 
@@ -134,4 +165,14 @@ func UnmarshalFeatureFromFile(path string) ([]byte, error) {
 	defer fh.Close()
 
 	return UnmarshalFeatureFromReader(fh)
+}
+
+func isWOF(body []byte) bool {
+	wofid := gjson.GetBytes(body, "properties.wof:id")
+	return wofid.Exists()
+}
+
+func isAlt(body []byte) bool {
+	alt_label := gjson.GetBytes(body, "properties.src:alt_label")
+	return alt_label.Exists()
 }

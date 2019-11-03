@@ -1,4 +1,4 @@
-# github.com/dhconnelly/rtreego v0.0.0-20180422000000-3fb2815d35b271e8c46328dbd6ca22f548ceb6dc
+# github.com/dhconnelly/rtreego v1.0.0
 github.com/dhconnelly/rtreego
 # github.com/elazarl/go-bindata-assetfs v1.0.0
 github.com/elazarl/go-bindata-assetfs
@@ -6,19 +6,19 @@ github.com/elazarl/go-bindata-assetfs
 github.com/hashicorp/errwrap
 # github.com/hashicorp/go-multierror v0.0.0-20171204182908-b7773ae21874
 github.com/hashicorp/go-multierror
-# github.com/mattn/go-sqlite3 v1.10.0
+# github.com/mattn/go-sqlite3 v1.11.0
 github.com/mattn/go-sqlite3
 # github.com/mmcloughlin/geohash v0.9.0
 github.com/mmcloughlin/geohash
 # github.com/patrickmn/go-cache v2.1.0+incompatible
 github.com/patrickmn/go-cache
-# github.com/skelterjohn/geom v0.0.0-20180103000000-96f3e8a219c5f4276b0dda3568d80c4e02a50116
+# github.com/skelterjohn/geom v0.0.0-20180103142417-96f3e8a219c5
 github.com/skelterjohn/geom
-# github.com/tidwall/gjson v1.2.1
+# github.com/tidwall/gjson v1.3.4
 github.com/tidwall/gjson
 # github.com/tidwall/match v1.0.1
 github.com/tidwall/match
-# github.com/tidwall/pretty v0.0.0-20190325153808-1166b9ac2b65
+# github.com/tidwall/pretty v1.0.0
 github.com/tidwall/pretty
 # github.com/tidwall/sjson v1.0.4
 github.com/tidwall/sjson
@@ -26,23 +26,19 @@ github.com/tidwall/sjson
 github.com/twpayne/go-geom
 github.com/twpayne/go-geom/encoding/geojson
 github.com/twpayne/go-geom/encoding/wkt
-# github.com/whosonfirst/go-http-mapzenjs v0.0.0-20180429000000-3d9284bd66cec0b6a0fe54af8b25a7be25a9ce89
+# github.com/whosonfirst/go-http-mapzenjs v0.0.0-20190722193037-4ed59e932ab4
 github.com/whosonfirst/go-http-mapzenjs
-# github.com/whosonfirst/go-http-rewrite v0.0.0-20170922000000-18b1c50538dd054132aaf1c02a79287553e69100
+# github.com/whosonfirst/go-http-rewrite v0.0.0-20170922163152-18b1c50538dd
 github.com/whosonfirst/go-http-rewrite
 # github.com/whosonfirst/go-rfc-5646 v0.1.0
 github.com/whosonfirst/go-rfc-5646
-# github.com/whosonfirst/go-spatialite v0.0.0-20180220171945-cb1d9ed624a8
+# github.com/whosonfirst/go-spatialite v0.1.0
 github.com/whosonfirst/go-spatialite
-# github.com/whosonfirst/go-whosonfirst-crawl v0.1.0
-github.com/whosonfirst/go-whosonfirst-crawl
-# github.com/whosonfirst/go-whosonfirst-csv v0.1.0
-github.com/whosonfirst/go-whosonfirst-csv
 # github.com/whosonfirst/go-whosonfirst-flags v0.1.0
 github.com/whosonfirst/go-whosonfirst-flags
 github.com/whosonfirst/go-whosonfirst-flags/existential
 github.com/whosonfirst/go-whosonfirst-flags/placetypes
-# github.com/whosonfirst/go-whosonfirst-geojson-v2 v0.10.2
+# github.com/whosonfirst/go-whosonfirst-geojson-v2 v0.12.0
 github.com/whosonfirst/go-whosonfirst-geojson-v2
 github.com/whosonfirst/go-whosonfirst-geojson-v2/feature
 github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/geometry
@@ -51,7 +47,7 @@ github.com/whosonfirst/go-whosonfirst-geojson-v2/geometry
 github.com/whosonfirst/go-whosonfirst-geojson-v2/utils
 # github.com/whosonfirst/go-whosonfirst-hash v0.1.0
 github.com/whosonfirst/go-whosonfirst-hash
-# github.com/whosonfirst/go-whosonfirst-index v0.1.2
+# github.com/whosonfirst/go-whosonfirst-index v0.2.2
 github.com/whosonfirst/go-whosonfirst-index
 # github.com/whosonfirst/go-whosonfirst-log v0.1.0
 github.com/whosonfirst/go-whosonfirst-log
@@ -66,19 +62,17 @@ github.com/whosonfirst/go-whosonfirst-sources
 github.com/whosonfirst/go-whosonfirst-sources/sources
 # github.com/whosonfirst/go-whosonfirst-spr v0.1.0
 github.com/whosonfirst/go-whosonfirst-spr
-# github.com/whosonfirst/go-whosonfirst-sqlite v0.1.0
+# github.com/whosonfirst/go-whosonfirst-sqlite v0.1.4
 github.com/whosonfirst/go-whosonfirst-sqlite
 github.com/whosonfirst/go-whosonfirst-sqlite/database
 github.com/whosonfirst/go-whosonfirst-sqlite/utils
-# github.com/whosonfirst/go-whosonfirst-sqlite-features v0.2.0
+# github.com/whosonfirst/go-whosonfirst-sqlite-features v0.2.4
 github.com/whosonfirst/go-whosonfirst-sqlite-features/tables
 github.com/whosonfirst/go-whosonfirst-sqlite-features
 # github.com/whosonfirst/go-whosonfirst-uri v0.1.0
 github.com/whosonfirst/go-whosonfirst-uri
-# github.com/whosonfirst/walk v0.0.0-20160802000000-c0a349674b73681a7272f5ce6ade8ea28055059f
-github.com/whosonfirst/walk
 # github.com/whosonfirst/warning v0.1.0
 github.com/whosonfirst/warning
-# golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
+# golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
 golang.org/x/net/html
 golang.org/x/net/html/atom

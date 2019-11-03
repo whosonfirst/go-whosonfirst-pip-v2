@@ -79,6 +79,12 @@ func (t *AncestorsTable) IndexRecord(db sqlite.Database, i interface{}) error {
 
 func (t *AncestorsTable) IndexFeature(db sqlite.Database, f geojson.Feature) error {
 
+	is_alt := whosonfirst.IsAlt(f)
+
+	if is_alt {
+		return nil
+	}
+
 	conn, err := db.Conn()
 
 	if err != nil {

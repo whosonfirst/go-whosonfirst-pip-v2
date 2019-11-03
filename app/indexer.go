@@ -91,7 +91,7 @@ func NewApplicationIndexer(fl *flag.FlagSet, appindex index.Index, appextras *da
 		mu = new(sync.Mutex)
 	}
 
-	cb := func(fh io.Reader, ctx context.Context, args ...interface{}) error {
+	cb := func(ctx context.Context, fh io.Reader, args ...interface{}) error {
 
 		var f geojson.Feature
 

@@ -101,6 +101,12 @@ func (t *NamesTable) IndexRecord(db sqlite.Database, i interface{}) error {
 
 func (t *NamesTable) IndexFeature(db sqlite.Database, f geojson.Feature) error {
 
+	is_alt := whosonfirst.IsAlt(f)
+
+	if is_alt {
+		return nil
+	}
+
 	conn, err := db.Conn()
 
 	if err != nil {

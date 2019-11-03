@@ -66,3 +66,20 @@ func StringProperty(body []byte, possible []string, d string) string {
 
 	return d
 }
+
+func HasProperty(body []byte, possible []string) bool {
+
+	has_property := false
+
+	for _, path := range possible {
+
+		v := gjson.GetBytes(body, path)
+
+		if v.Exists() {
+			has_property = true
+			break
+		}
+	}
+
+	return has_property
+}

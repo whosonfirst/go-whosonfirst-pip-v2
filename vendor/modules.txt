@@ -34,6 +34,8 @@ github.com/whosonfirst/go-http-rewrite
 github.com/whosonfirst/go-rfc-5646
 # github.com/whosonfirst/go-spatialite v0.1.1
 github.com/whosonfirst/go-spatialite
+# github.com/whosonfirst/go-whosonfirst-crawl v0.2.1
+github.com/whosonfirst/go-whosonfirst-crawl
 # github.com/whosonfirst/go-whosonfirst-flags v0.1.0
 github.com/whosonfirst/go-whosonfirst-flags
 github.com/whosonfirst/go-whosonfirst-flags/existential
@@ -49,6 +51,7 @@ github.com/whosonfirst/go-whosonfirst-geojson-v2/utils
 github.com/whosonfirst/go-whosonfirst-hash
 # github.com/whosonfirst/go-whosonfirst-index v0.3.2
 github.com/whosonfirst/go-whosonfirst-index
+github.com/whosonfirst/go-whosonfirst-index/fs
 # github.com/whosonfirst/go-whosonfirst-log v0.1.0
 github.com/whosonfirst/go-whosonfirst-log
 # github.com/whosonfirst/go-whosonfirst-names v0.1.0
@@ -71,6 +74,8 @@ github.com/whosonfirst/go-whosonfirst-sqlite-features
 github.com/whosonfirst/go-whosonfirst-sqlite-features/tables
 # github.com/whosonfirst/go-whosonfirst-uri v0.2.0
 github.com/whosonfirst/go-whosonfirst-uri
+# github.com/whosonfirst/walk v0.0.1
+github.com/whosonfirst/walk
 # github.com/whosonfirst/warning v0.1.1
 github.com/whosonfirst/warning
 # golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e

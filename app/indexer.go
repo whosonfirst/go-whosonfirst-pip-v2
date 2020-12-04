@@ -10,6 +10,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/geometry"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/whosonfirst"
 	wof_index "github.com/whosonfirst/go-whosonfirst-index"
+	_ "github.com/whosonfirst/go-whosonfirst-index/fs"
 	"github.com/whosonfirst/go-whosonfirst-pip-v2/flags"
 	"github.com/whosonfirst/go-whosonfirst-pip-v2/index"
 	"github.com/whosonfirst/go-whosonfirst-pip-v2/utils"

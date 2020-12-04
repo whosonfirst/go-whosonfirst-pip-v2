@@ -346,15 +346,21 @@ func CommonFlags() (*flag.FlagSet, error) {
 	fs.String("index", "rtree", "Valid options are: rtree, spatialite.")
 	fs.String("cache", "gocache", "Valid options are: gocache, fs, spatialite, sqlite. Note that the spatalite option is just a convenience to mirror the '-index spatialite' option.")
 
-	modes := index.Modes()
-	modes = append(modes, "spatialite")
+	modes := make([]string, 0)
+
+	modes = append(modes, "spatialite://")
+
+	for _, m := range index.Modes() {
+		scheme := fmt.Sprintf("%s://", m)
+		modes = append(modes, scheme)
+	}
 
 	sort.Strings(modes)
 
 	valid_modes := strings.Join(modes, ", ")
 	desc_modes := fmt.Sprintf("Valid modes are: %s.", valid_modes)
 
-	fs.String("mode", "files", desc_modes)
+	fs.String("mode", "directory://", desc_modes)
 
 	fs.String("spatialite-dsn", "", "A valid SQLite DSN for the '-cache spatialite/sqlite' or '-index spatialite' option. As of this writing for the '-index' and '-cache' options share the same '-spatailite' DSN.")
 	fs.String("fs-path", "", "The root directory to look for features if '-cache fs'.")

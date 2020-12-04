@@ -81,7 +81,7 @@ func (p *PIPApplication) Close() error {
 
 func (p *PIPApplication) IndexPaths(paths []string) error {
 
-	if p.mode != "spatialite" {
+	if p.mode != "spatialite://" {
 
 		go func() {
 

@@ -4,6 +4,8 @@ An in-memory point-in-polygon (reverse geocoding) package for GeoJSON data, prin
 
 _This package supersedes the [go-whosonfirst-pip](https://github.com/whosonfirst/go-whosonfirst-pip) package which is no longer maintained._
 
+_This package is not officially deprecated yet but is in the process of being superseded by the [go-whosonfirst-spatial-*](https://github.com/whosonfirst?q=go-whosonfirst-spatial-&type=&language=) packages._
+
 ## Install
 
 You will need to have both `Go` (specifically a version of Go more recent than 1.7 so let's just assume you need [Go 1.9](https://golang.org/dl/) or higher) and the `make` programs installed on your computer. Assuming you do just type:
@@ -38,10 +40,10 @@ thing. The main differences between the two packages are:
 
 ### wof-pip-server
 
-To run as an HTTP based point-in-polygon (PIP) server indexing Who's On First documents from a local disk, specify "-mode directory" and give the data directory as the first (non optional) argument.
+To run as an HTTP based point-in-polygon (PIP) server indexing Who's On First documents from a local disk, specify "-mode directory://" and give the data directory as the first (non optional) argument.
 
 ```
-./bin/wof-pip-server -mode directory /usr/local/data/whosonfirst-data/data
+./bin/wof-pip-server -mode directory:// /usr/local/data/whosonfirst-data/data
 12:25:55.267986 [wof-pip-server] STATUS listening on localhost:8080
 12:25:56.272296 [wof-pip-server] STATUS indexing 3023 records indexed
 12:25:57.271904 [wof-pip-server] STATUS indexing 6554 records indexed
@@ -56,7 +58,7 @@ _You can index any valid "mode" as defined by the [go-whosonfirst-index](https:/
 Your PIP server will now be answering requests on `localhost:8000`. For example:
 
 ```
-curl -s 'http://localhost:8000/?latitude=37.794906&longitude=-122.395229&placetype=microhood' | python -mjson.tool
+curl -s 'http://localhost:8080/?latitude=37.794906&longitude=-122.395229&placetype=microhood' | python -mjson.tool
 {
     "places": [
         {
@@ -178,7 +180,7 @@ comma-separated list of strings to the `extras` parameter. For example:
 // ./bin/wof-pip-server -index spatialite -cache spatialite -spatialite-dsn \
 //   /usr/local/data/whosonfirst-data-constituency-us-latest.db -enable-www \
 //   -enable-extras -extras-dsn /usr/local/data/whosonfirst-data-constituency-us-latest.db \
-//   -mode spatialite
+//   -mode spatialite://
 
 curl 'http://localhost:8080/?latitude=37.6588&longitude=-122.4979&extras=geom:'
 
@@ -279,7 +281,7 @@ A few things to note about "extras":
   possible.
 
 * If you are using one of the command line tools and indexing documents using
-  `-mode spatialite` then the path for the `-extras-dsn` flag needs to be the same as
+  `-mode spatialite://` then the path for the `-extras-dsn` flag needs to be the same as
   the path for `-spatialite-dsn` flag. You can also just leave the default value
   (`:tmpfile:`) of the `-extras-dsn` flag and the code will update it accordingly.
 
@@ -404,7 +406,7 @@ and only stores a feature's `SPR`. By default the caching layer is assumed to be
 separate and decoupled from the source data, or "input" layer.
 
 _There is one exception to this rule that is implemented in the `wof-pip*` tools
-bundled with this package. If the tools are invoked with the `-mode spatialite`
+bundled with this package. If the tools are invoked with the `-mode spatialite://`
 flag then it will be understood that both the caching and indexing layers
 already exist and they will not be pre-populated. This is a piece of
 [package-specific helper
@@ -667,7 +669,7 @@ $> ./bin/wof-pip-server -setenv
   -lru-cache-trigger int
     	This flag is DEPRECATED and doesn't do anything anymore.
   -mode string
-    	Valid modes are: directory, feature, feature-collection, files, geojson-ls, meta, path, repo, spatialite, sqlite. (default "files")
+        Valid modes are: directory://, featurecollection://, file://, filelist://, geojsonl://, repo://, spatialite://. (default "directory://")
   -processes int
     	This flag is DEPRECATED and doesn't do anything anymore.
   -setenv
@@ -733,7 +735,7 @@ For example:
   -mapzen-api-key string
     	This flag is DEPRECATED. Please use the '-www-api-key' flag instead.
   -mode string
-    	Valid modes are: directory, feature, feature-collection, files, geojson-ls, meta, path, repo, spatialite, sqlite. (default "files")
+        Valid modes are: directory://, featurecollection://, file://, filelist://, geojsonl://, repo://, spatialite://. (default "directory://")  
   -polylines
     	This flag is DEPRECATED. Please use the '-enable-polylines' flag instead.
   -polylines-max-coords int
@@ -774,7 +776,7 @@ bunzip2 region-20171212.db.bz2
 And then:
 
 ```
-./bin/wof-pip-server -index spatialite -cache spatialite -spatialite-dsn region-20171212.db -enable-www -www-api-key **** -mode spatialite
+./bin/wof-pip-server -index spatialite -cache spatialite -spatialite-dsn region-20171212.db -enable-www -www-api-key **** -mode spatialite://
 16:37:25.490337 [wof-pip-server] STATUS -enable-www flag is true causing the following flags to also be true: -enable-geojson -enable-candidates
 16:37:25.490562 [wof-pip-server] STATUS listening on localhost:8080
 16:37:26.491416 [wof-pip-server] STATUS indexing 33 records indexed

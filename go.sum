@@ -104,6 +104,7 @@ github.com/whosonfirst/go-spatialite v0.1.1/go.mod h1:bm85HPhtlhMAEVKxouadrsGy3N
 github.com/whosonfirst/go-whosonfirst-cli v0.1.0/go.mod h1:Edy+amD+fMq1QS1yxB3u8maA8I93q/LG7JRNh+fsdfc=
 github.com/whosonfirst/go-whosonfirst-crawl v0.1.0 h1:HD8xJcPME3nWoJH58SXT84q0tjBCF3Oc5jrmk5eIriQ=
 github.com/whosonfirst/go-whosonfirst-crawl v0.1.0/go.mod h1:ZIYj6wdjduyJkWHwg4P3gNeLgWMW9uHZOn04eusRnLI=
+github.com/whosonfirst/go-whosonfirst-crawl v0.2.1 h1:nNG7r7/4MaII/NM8Df2oqgfgVNBDoIKlseleoX1vw1Q=
 github.com/whosonfirst/go-whosonfirst-crawl v0.2.1/go.mod h1:MTD1TCgAkXlAtysPU98ylrz9Y5+ZCfRrsrBnRyiH/t8=
 github.com/whosonfirst/go-whosonfirst-csv v0.1.0 h1:ootWwNZNxXRGrWVQt17NFtcyukpWrgWsgKxbELLF8Sg=
 github.com/whosonfirst/go-whosonfirst-csv v0.1.0/go.mod h1:jhAZLURSWJN7mEpdQeXeSQnmLJq+FkTL2Q32iV0170I=
@@ -147,6 +148,7 @@ github.com/whosonfirst/go-whosonfirst-uri v0.2.0 h1:iODHdyvW+8IXqHZTixZ/9GEZy1dV
 github.com/whosonfirst/go-whosonfirst-uri v0.2.0/go.mod h1:8eaDVcc4v+HHHEDaRbApdmhPwM4/JQllw2PktvZcPVs=
 github.com/whosonfirst/walk v0.0.0-20160802000000-c0a349674b73681a7272f5ce6ade8ea28055059f h1:hvKIIx2IuWmRtOdpDk29quD+t7GowpHZxz8bCfIGE58=
 github.com/whosonfirst/walk v0.0.0-20160802000000-c0a349674b73681a7272f5ce6ade8ea28055059f/go.mod h1:U/1VXxlMzNZbyylg18AzEeHkGi1RXiBCMKpaM2XR+tQ=
+github.com/whosonfirst/walk v0.0.1 h1:t0QrqGwOdPMSeovFZSXfiS0GIGHrRXK3Wb9z5Uhs2bg=
 github.com/whosonfirst/walk v0.0.1/go.mod h1:1KtP/VeooSlFOI61p+THc/C16Ra8Z5MjpjI0tsd3c1M=
 github.com/whosonfirst/warning v0.1.0 h1:NgMa6a6Xv7FdDNgpqK5j/FDo6qrcFzFtidAExDqPfC0=
 github.com/whosonfirst/warning v0.1.0/go.mod h1:cAez7FpC/UEUrbiOXZO15v2JM8eijtFHQlN93AGFy1k=

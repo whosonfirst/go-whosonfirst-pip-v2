@@ -66,7 +66,7 @@ func GeometryForFeature(f geojson.Feature) (*geojson.Geometry, error) {
 	g := gjson.GetBytes(f.Bytes(), "geometry")
 
 	var geom geojson.Geometry
-	err := gjson.Unmarshal([]byte(g.Raw), &geom)
+	err := json.Unmarshal([]byte(g.Raw), &geom)
 
 	if err != nil {
 		return nil, err

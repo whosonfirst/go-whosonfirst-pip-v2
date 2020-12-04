@@ -3,6 +3,7 @@ package tables
 import (
 	"fmt"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
+	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/whosonfirst"
 	"github.com/whosonfirst/go-whosonfirst-sqlite"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/utils"
@@ -122,6 +123,12 @@ func (t *SPRTable) IndexRecord(db sqlite.Database, i interface{}) error {
 }
 
 func (t *SPRTable) IndexFeature(db sqlite.Database, f geojson.Feature) error {
+
+	is_alt := whosonfirst.IsAlt(f)
+
+	if is_alt {
+		return nil
+	}
 
 	spr, err := f.SPR()
 

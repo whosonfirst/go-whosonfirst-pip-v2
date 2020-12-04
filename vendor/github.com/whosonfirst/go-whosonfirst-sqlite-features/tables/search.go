@@ -70,6 +70,12 @@ func (t *SearchTable) IndexRecord(db sqlite.Database, i interface{}) error {
 
 func (t *SearchTable) IndexFeature(db sqlite.Database, f geojson.Feature) error {
 
+	is_alt := whosonfirst.IsAlt(f)
+
+	if is_alt {
+		return nil
+	}
+
 	is_current, err := whosonfirst.IsCurrent(f)
 
 	if err != nil {

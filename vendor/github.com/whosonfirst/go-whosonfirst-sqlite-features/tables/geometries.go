@@ -14,9 +14,23 @@ import (
 	_ "log"
 )
 
+type GeometriesTableOptions struct {
+	IndexAltFiles bool
+}
+
+func DefaultGeometriesTableOptions() (*GeometriesTableOptions, error) {
+
+	opts := GeometriesTableOptions{
+		IndexAltFiles: false,
+	}
+
+	return &opts, nil
+}
+
 type GeometriesTable struct {
 	features.FeatureTable
-	name string
+	name    string
+	options *GeometriesTableOptions
 }
 
 type GeometriesRow struct {
@@ -25,9 +39,41 @@ type GeometriesRow struct {
 	LastModified int64
 }
 
+func NewGeometriesTable() (sqlite.Table, error) {
+
+	opts, err := DefaultGeometriesTableOptions()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return NewGeometriesTableWithOptions(opts)
+}
+
+func NewGeometriesTableWithOptions(opts *GeometriesTableOptions) (sqlite.Table, error) {
+
+	t := GeometriesTable{
+		name:    "geometries",
+		options: opts,
+	}
+
+	return &t, nil
+}
+
 func NewGeometriesTableWithDatabase(db sqlite.Database) (sqlite.Table, error) {
 
-	t, err := NewGeometriesTable()
+	opts, err := DefaultGeometriesTableOptions()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return NewGeometriesTableWithDatabaseAndOptions(db, opts)
+}
+
+func NewGeometriesTableWithDatabaseAndOptions(db sqlite.Database, opts *GeometriesTableOptions) (sqlite.Table, error) {
+
+	t, err := NewGeometriesTableWithOptions(opts)
 
 	if err != nil {
 		return nil, err
@@ -40,15 +86,6 @@ func NewGeometriesTableWithDatabase(db sqlite.Database) (sqlite.Table, error) {
 	}
 
 	return t, nil
-}
-
-func NewGeometriesTable() (sqlite.Table, error) {
-
-	t := GeometriesTable{
-		name: "geometries",
-	}
-
-	return &t, nil
 }
 
 func (t *GeometriesTable) Name() string {
@@ -101,6 +138,11 @@ func (t *GeometriesTable) IndexFeature(db sqlite.Database, f geojson.Feature) er
 	}
 
 	str_id := f.Id()
+	is_alt := whosonfirst.IsAlt(f)
+
+	if is_alt && !t.options.IndexAltFiles {
+		return nil
+	}
 
 	lastmod := whosonfirst.LastModified(f)
 
@@ -148,11 +190,6 @@ func (t *GeometriesTable) IndexFeature(db sqlite.Database, f geojson.Feature) er
 
 	defer stmt.Close()
 
-	// see this - eventually we will have to test the feature and assign these
-	// values accordingly - currently we do not since the all go-whosonfirst-index
-	// related code is wired to skip alt files (20180122/thisisaaronland)
-
-	is_alt := 0
 	geom_type := "common"
 
 	_, err = stmt.Exec(str_id, is_alt, geom_type, lastmod)

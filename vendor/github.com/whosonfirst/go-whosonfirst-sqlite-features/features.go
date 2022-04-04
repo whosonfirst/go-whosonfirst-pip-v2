@@ -1,8 +1,8 @@
 package features
 
 import (
+	"github.com/aaronland/go-sqlite"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
-	"github.com/whosonfirst/go-whosonfirst-sqlite"
 )
 
 type FeatureTable interface {

@@ -3,7 +3,7 @@
 Go [geohash](https://en.wikipedia.org/wiki/Geohash) library offering encoding
 and decoding for string and integer geohashes.
 
-[![GoDoc Reference](http://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square)](http://godoc.org/github.com/mmcloughlin/geohash)
+[![go.dev Reference](https://img.shields.io/badge/doc-reference-007d9b?logo=go&style=flat-square)](https://pkg.go.dev/github.com/mmcloughlin/geohash)
 [![Build status](https://img.shields.io/travis/mmcloughlin/geohash.svg?style=flat-square)](https://travis-ci.org/mmcloughlin/geohash)
 [![Coverage](https://img.shields.io/coveralls/mmcloughlin/geohash.svg?style=flat-square)](https://coveralls.io/r/mmcloughlin/geohash)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mmcloughlin/geohash?style=flat-square)](https://goreportcard.com/report/github.com/mmcloughlin/geohash)
@@ -23,6 +23,23 @@ import "github.com/mmcloughlin/geohash"
 ```
 
 ## Usage
+
+#### func  ConvertIntToString
+
+```go
+func ConvertIntToString(hash uint64, chars uint) string
+```
+ConvertIntToString converts an integer geohash to the equivalent string geohash
+with chars characters. The provided integer geohash is interpreted to have
+5*chars bits of precision.
+
+#### func  ConvertStringToInt
+
+```go
+func ConvertStringToInt(hash string) (uint64, uint)
+```
+ConvertStringToInt converts a string geohash to the equivalent integer geohash.
+Returns the integer hash and its precision.
 
 #### func  Decode
 
@@ -132,6 +149,13 @@ func NeighborsIntWithPrecision(hash uint64, bits uint) []uint64
 ```
 NeighborsIntWithPrecision returns a slice of uint64s that correspond to the
 provided hash's neighbors at the given precision.
+
+#### func  Validate
+
+```go
+func Validate(hash string) error
+```
+Validate the string geohash.
 
 #### type Box
 

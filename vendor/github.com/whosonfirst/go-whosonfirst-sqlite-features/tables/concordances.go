@@ -1,12 +1,12 @@
 package tables
 
 import (
+	"context"
 	"fmt"
+	"github.com/aaronland/go-sqlite"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/whosonfirst"
-	"github.com/whosonfirst/go-whosonfirst-sqlite"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features"
-	"github.com/whosonfirst/go-whosonfirst-sqlite/utils"
 )
 
 type ConcordancesTable struct {
@@ -21,15 +21,15 @@ type ConcordancesRow struct {
 	LastModified int64
 }
 
-func NewConcordancesTableWithDatabase(db sqlite.Database) (sqlite.Table, error) {
+func NewConcordancesTableWithDatabase(ctx context.Context, db sqlite.Database) (sqlite.Table, error) {
 
-	t, err := NewConcordancesTable()
+	t, err := NewConcordancesTable(ctx)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = t.InitializeTable(db)
+	err = t.InitializeTable(ctx, db)
 
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func NewConcordancesTableWithDatabase(db sqlite.Database) (sqlite.Table, error) 
 	return t, nil
 }
 
-func NewConcordancesTable() (sqlite.Table, error) {
+func NewConcordancesTable(ctx context.Context) (sqlite.Table, error) {
 
 	t := ConcordancesTable{
 		name: "concordances",
@@ -68,16 +68,16 @@ func (t *ConcordancesTable) Schema() string {
 	return fmt.Sprintf(sql, t.Name(), t.Name(), t.Name(), t.Name(), t.Name())
 }
 
-func (t *ConcordancesTable) InitializeTable(db sqlite.Database) error {
+func (t *ConcordancesTable) InitializeTable(ctx context.Context, db sqlite.Database) error {
 
-	return utils.CreateTableIfNecessary(db, t)
+	return sqlite.CreateTableIfNecessary(ctx, db, t)
 }
 
-func (t *ConcordancesTable) IndexRecord(db sqlite.Database, i interface{}) error {
-	return t.IndexFeature(db, i.(geojson.Feature))
+func (t *ConcordancesTable) IndexRecord(ctx context.Context, db sqlite.Database, i interface{}) error {
+	return t.IndexFeature(ctx, db, i.(geojson.Feature))
 }
 
-func (t *ConcordancesTable) IndexFeature(db sqlite.Database, f geojson.Feature) error {
+func (t *ConcordancesTable) IndexFeature(ctx context.Context, db sqlite.Database, f geojson.Feature) error {
 
 	is_alt := whosonfirst.IsAlt(f)
 
@@ -92,6 +92,10 @@ func (t *ConcordancesTable) IndexFeature(db sqlite.Database, f geojson.Feature) 
 	}
 
 	tx, err := conn.Begin()
+
+	if err != nil {
+		return err
+	}
 
 	id := f.Id()
 

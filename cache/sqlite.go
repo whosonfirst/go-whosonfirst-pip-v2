@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -26,7 +27,9 @@ func NewSQLiteCache(db *database.SQLiteDatabase) (Cache, error) {
 
 	logger := log.SimpleWOFLogger("sqlite")
 
-	_, err := tables.NewGeoJSONTableWithDatabase(db)
+	ctx := context.Background()
+
+	_, err := tables.NewGeoJSONTableWithDatabase(ctx, db)
 
 	if err != nil {
 		return nil, err

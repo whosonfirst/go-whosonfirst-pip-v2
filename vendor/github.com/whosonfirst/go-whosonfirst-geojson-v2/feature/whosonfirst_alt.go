@@ -2,16 +2,20 @@ package feature
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/sfomuseum/go-edtf"
 	"github.com/skelterjohn/geom"
 	"github.com/whosonfirst/go-whosonfirst-flags"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/geometry"
 	props_wof "github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/whosonfirst"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/utils"
-	"github.com/whosonfirst/go-whosonfirst-spr"
+	"github.com/whosonfirst/go-whosonfirst-spr/v2"
+	"github.com/whosonfirst/go-whosonfirst-uri"
 	"github.com/whosonfirst/warning"
 	"strconv"
+	"strings"
 )
 
 type WOFAltFeature struct {
@@ -21,15 +25,17 @@ type WOFAltFeature struct {
 
 type WOFAltStandardPlacesResult struct {
 	spr.StandardPlacesResult `json:",omitempty"`
-	SPRId                    string  `json:"spr:id"`
-	SPRName                  string  `json:"spr:name"`
-	SPRPlacetype             string  `json:"spr:placetype"`
-	SPRLatitude              float64 `json:"spr:latitude"`
-	SPRLongitude             float64 `json:"spr:longitude"`
-	SPRMinLatitude           float64 `json:"spr:min_latitude"`
-	SPRMinLongitude          float64 `json:"spr:min_longitude"`
-	SPRMaxLatitude           float64 `json:"spr:max_latitude"`
-	SPRMaxLongitude          float64 `json:"spr:max_longitude"`
+	WOFId                    string  `json:"wof:id"`
+	WOFName                  string  `json:"wof:name"`
+	WOFPlacetype             string  `json:"wof:placetype"`
+	MZLatitude               float64 `json:"mz:latitude"`
+	MZLongitude              float64 `json:"mz:longitude"`
+	MZMinLatitude            float64 `json:"mz:min_latitude"`
+	MZMinLongitude           float64 `json:"mz:min_longitude"`
+	MZMaxLatitude            float64 `json:"mz:max_latitude"`
+	MZMaxLongitude           float64 `json:"mz:max_longitude"`
+	WOFPath                  string  `json:"wof:path"`
+	WOFRepo                  string  `json:"wof:repo"`
 }
 
 func EnsureWOFAltFeature(body []byte) error {
@@ -102,17 +108,12 @@ func (f *WOFAltFeature) Name() string {
 
 	id := f.Id()
 
-	possible := []string{
-		"properties.src:geom",
-	}
-
-	src_geom := utils.StringProperty(f.Bytes(), possible, "unknown")
+	src_geom := props_wof.Source(f)
 
 	return fmt.Sprintf("%s alt geometry (%s)", id, src_geom)
 }
 
 func (f *WOFAltFeature) Placetype() string {
-
 	return "alt"
 }
 
@@ -126,6 +127,39 @@ func (f *WOFAltFeature) Polygons() ([]geojson.Polygon, error) {
 
 func (f *WOFAltFeature) SPR() (spr.StandardPlacesResult, error) {
 
+	id := props_wof.Id(f)
+	alt_label := props_wof.AltLabel(f)
+	label_parts := strings.Split(alt_label, "-")
+
+	if len(label_parts) == 0 {
+		return nil, errors.New("Invalid src:alt_label property")
+	}
+
+	alt_geom := &uri.AltGeom{
+		Source: label_parts[0],
+	}
+
+	if len(label_parts) >= 2 {
+		alt_geom.Function = label_parts[1]
+	}
+
+	if len(label_parts) >= 3 {
+		alt_geom.Extras = label_parts[2:]
+	}
+
+	uri_args := &uri.URIArgs{
+		IsAlternate: true,
+		AltGeom:     alt_geom,
+	}
+
+	rel_path, err := uri.Id2RelPath(id, uri_args)
+
+	if err != nil {
+		return nil, err
+	}
+
+	repo := props_wof.Repo(f)
+
 	bboxes, err := f.BoundingBoxes()
 
 	if err != nil {
@@ -138,34 +172,36 @@ func (f *WOFAltFeature) SPR() (spr.StandardPlacesResult, error) {
 	lon := mbr.Min.X + ((mbr.Max.X - mbr.Min.X) / 2.0)
 
 	spr := WOFAltStandardPlacesResult{
-		SPRId:           f.Id(),
-		SPRPlacetype:    f.Placetype(),
-		SPRName:         f.Name(),
-		SPRLatitude:     lat,
-		SPRLongitude:    lon,
-		SPRMinLatitude:  mbr.Min.Y,
-		SPRMinLongitude: mbr.Min.X,
-		SPRMaxLatitude:  mbr.Max.Y,
-		SPRMaxLongitude: mbr.Max.X,
+		WOFId:          f.Id(),
+		WOFPlacetype:   f.Placetype(),
+		WOFName:        f.Name(),
+		MZLatitude:     lat,
+		MZLongitude:    lon,
+		MZMinLatitude:  mbr.Min.Y,
+		MZMinLongitude: mbr.Min.X,
+		MZMaxLatitude:  mbr.Max.Y,
+		MZMaxLongitude: mbr.Max.X,
+		WOFPath:        rel_path,
+		WOFRepo:        repo,
 	}
 
 	return &spr, nil
 }
 
 func (spr *WOFAltStandardPlacesResult) Id() string {
-	return spr.SPRId
+	return spr.WOFId
 }
 
 func (spr *WOFAltStandardPlacesResult) ParentId() string {
-	return ""
+	return "-1"
 }
 
 func (spr *WOFAltStandardPlacesResult) Name() string {
-	return spr.SPRName
+	return spr.WOFName
 }
 
 func (spr *WOFAltStandardPlacesResult) Placetype() string {
-	return spr.SPRPlacetype
+	return spr.WOFPlacetype
 }
 
 func (spr *WOFAltStandardPlacesResult) Country() string {
@@ -173,11 +209,11 @@ func (spr *WOFAltStandardPlacesResult) Country() string {
 }
 
 func (spr *WOFAltStandardPlacesResult) Repo() string {
-	return ""
+	return spr.WOFRepo
 }
 
 func (spr *WOFAltStandardPlacesResult) Path() string {
-	return ""
+	return spr.WOFPath
 }
 
 func (spr *WOFAltStandardPlacesResult) URI() string {
@@ -185,27 +221,35 @@ func (spr *WOFAltStandardPlacesResult) URI() string {
 }
 
 func (spr *WOFAltStandardPlacesResult) Latitude() float64 {
-	return spr.SPRLatitude
+	return spr.MZLatitude
 }
 
 func (spr *WOFAltStandardPlacesResult) Longitude() float64 {
-	return spr.SPRLongitude
+	return spr.MZLongitude
 }
 
 func (spr *WOFAltStandardPlacesResult) MinLatitude() float64 {
-	return spr.SPRMinLatitude
+	return spr.MZMinLatitude
 }
 
 func (spr *WOFAltStandardPlacesResult) MinLongitude() float64 {
-	return spr.SPRMinLongitude
+	return spr.MZMinLongitude
 }
 
 func (spr *WOFAltStandardPlacesResult) MaxLatitude() float64 {
-	return spr.SPRLatitude
+	return spr.MZLatitude
 }
 
 func (spr *WOFAltStandardPlacesResult) MaxLongitude() float64 {
-	return spr.SPRMaxLongitude
+	return spr.MZMaxLongitude
+}
+
+func (spr *WOFAltStandardPlacesResult) Inception() *edtf.EDTFDate {
+	return nil
+}
+
+func (spr *WOFAltStandardPlacesResult) Cessation() *edtf.EDTFDate {
+	return nil
 }
 
 func (spr *WOFAltStandardPlacesResult) IsCurrent() flags.ExistentialFlag {
@@ -233,6 +277,10 @@ func (spr *WOFAltStandardPlacesResult) SupersededBy() []int64 {
 }
 
 func (spr *WOFAltStandardPlacesResult) Supersedes() []int64 {
+	return []int64{}
+}
+
+func (spr *WOFAltStandardPlacesResult) BelongsTo() []int64 {
 	return []int64{}
 }
 

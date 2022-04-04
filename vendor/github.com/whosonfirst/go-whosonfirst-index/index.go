@@ -34,21 +34,6 @@ type Indexer struct {
 	count   int64
 }
 
-// used by the IndexGit stuff
-// https://godoc.org/gopkg.in/src-d/go-git.v4/plumbing/protocol/packp/sideband#Progress
-
-/*
-type WOFLoggerProgress struct {
-	sideband.Progress
-	logger *log.WOFLogger
-}
-
-func (p *WOFLoggerProgress) Write(msg []byte) (int, error) {
-	p.logger.Status(string(msg))
-	return -1, nil
-}
-*/
-
 func Register(name string, driver Driver) {
 
 	driversMu.Lock()
@@ -181,6 +166,11 @@ func (i *Indexer) Index(ctx context.Context, paths ...string) error {
 	i.increment()
 	defer i.decrement()
 
+	counter_func := func(ctx context.Context, fh io.Reader, args ...interface{}) error {
+		defer atomic.AddInt64(&i.Indexed, 1)
+		return i.Func(ctx, fh, args...)
+	}
+
 	for _, path := range paths {
 
 		select {
@@ -190,7 +180,7 @@ func (i *Indexer) Index(ctx context.Context, paths ...string) error {
 			// pass
 		}
 
-		err := i.Driver.IndexURI(ctx, i.Func, path)
+		err := i.Driver.IndexURI(ctx, counter_func, path)
 
 		if err != nil {
 			return err

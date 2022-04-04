@@ -1,8 +1,13 @@
-# Go Spatialite
-[![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/gopkg.in/shaxbee/go-spatialite.v0) 
-[![license](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](https://raw.githubusercontent.com/shaxbee/go-snowflake/master/LICENSE) 
-[![build](https://travis-ci.org/shaxbee/go-spatialite.svg?branch=master)](https://travis-ci.org/shaxbee/go-spatialite) 
-[![coverage](https://coveralls.io/repos/github/shaxbee/go-spatialite/badge.svg?branch=master)](https://coveralls.io/r/shaxbee/go-spatialite)
+# go-spatialite
 
-Spatialite SQL Driver for Golang.
+Go package to enable `libspatialite` support with the [go-sqlite3](https://github.com/mattn/go-sqlite3) `database/sql` driver.
 
+## Important
+
+This is known not to work right now. Specifically, fatal errors [are triggered](https://github.com/whosonfirst/go-whosonfirst-spatialite-geojson/issues/3) on initialization. It's not clear what the problem is or where. Like is it libspatialite module/shared library thing post v4.2 or it is a SQLite extension loading thing or... ?
+
+## See also
+
+* https://sqlite.org/loadext.html
+* https://www.gaia-gis.it/fossil/libspatialite/wiki?name=mod_spatialite
+* https://github.com/mattn/go-sqlite3#extensions

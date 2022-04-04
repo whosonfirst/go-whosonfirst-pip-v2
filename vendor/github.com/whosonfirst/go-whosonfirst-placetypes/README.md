@@ -2,16 +2,6 @@
 
 Go package for working with Who's On First placetypes.
 
-## Install
-
-You will need to have both `Go` (specifically [version 1.12](https://golang.org/dl/) or higher because we're using [Go modules](https://github.com/golang/go/wiki/Modules)) and the `make` programs installed on your computer. Assuming you do just type:
-
-```
-make tools
-```
-
-All of this package's dependencies are bundled with the code in the `vendor` directory.
-
 ## Example
 
 ### Simple
@@ -40,6 +30,14 @@ true
 ```
 
 ## Tools
+
+```
+$> make cli
+go build -mod vendor -o bin/wof-placetype-ancestors cmd/wof-placetype-ancestors/main.go
+go build -mod vendor -o bin/wof-placetype-children cmd/wof-placetype-children/main.go
+go build -mod vendor -o bin/wof-placetype-descendants cmd/wof-placetype-descendants/main.go
+go build -mod vendor -o bin/wof-valid-placetype cmd/wof-valid-placetype/main.go
+```
 
 ### wof-placetype-ancestors
 
@@ -123,6 +121,16 @@ true
 2018/08/24 18:15:49 21 arcade
 2018/08/24 18:15:49 22 installation
 2018/08/24 18:15:49 23 enclosure
+```
+
+### wof-valid-placetype
+
+```
+$> ./bin/wof-valid-placetype bob custom building locality
+2021/02/19 17:35:05 bob	false
+2021/02/19 17:35:05 custom	true
+2021/02/19 17:35:05 building	true
+2021/02/19 17:35:05 locality	true
 ```
 
 ## See also

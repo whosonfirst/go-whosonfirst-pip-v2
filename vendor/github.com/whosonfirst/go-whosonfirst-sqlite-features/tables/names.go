@@ -1,13 +1,13 @@
 package tables
 
 import (
+	"context"
 	"fmt"
+	"github.com/aaronland/go-sqlite"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/whosonfirst"
 	"github.com/whosonfirst/go-whosonfirst-names/tags"
-	"github.com/whosonfirst/go-whosonfirst-sqlite"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features"
-	"github.com/whosonfirst/go-whosonfirst-sqlite/utils"
 )
 
 type NamesTable struct {
@@ -30,15 +30,15 @@ type NamesRow struct {
 	LastModified int64
 }
 
-func NewNamesTableWithDatabase(db sqlite.Database) (sqlite.Table, error) {
+func NewNamesTableWithDatabase(ctx context.Context, db sqlite.Database) (sqlite.Table, error) {
 
-	t, err := NewNamesTable()
+	t, err := NewNamesTable(ctx)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = t.InitializeTable(db)
+	err = t.InitializeTable(ctx, db)
 
 	if err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func NewNamesTableWithDatabase(db sqlite.Database) (sqlite.Table, error) {
 	return t, nil
 }
 
-func NewNamesTable() (sqlite.Table, error) {
+func NewNamesTable(ctx context.Context) (sqlite.Table, error) {
 
 	t := NamesTable{
 		name: "names",
@@ -90,16 +90,16 @@ func (t *NamesTable) Schema() string {
 	return fmt.Sprintf(sql, t.Name(), t.Name(), t.Name(), t.Name(), t.Name(), t.Name(), t.Name(), t.Name())
 }
 
-func (t *NamesTable) InitializeTable(db sqlite.Database) error {
+func (t *NamesTable) InitializeTable(ctx context.Context, db sqlite.Database) error {
 
-	return utils.CreateTableIfNecessary(db, t)
+	return sqlite.CreateTableIfNecessary(ctx, db, t)
 }
 
-func (t *NamesTable) IndexRecord(db sqlite.Database, i interface{}) error {
-	return t.IndexFeature(db, i.(geojson.Feature))
+func (t *NamesTable) IndexRecord(ctx context.Context, db sqlite.Database, i interface{}) error {
+	return t.IndexFeature(ctx, db, i.(geojson.Feature))
 }
 
-func (t *NamesTable) IndexFeature(db sqlite.Database, f geojson.Feature) error {
+func (t *NamesTable) IndexFeature(ctx context.Context, db sqlite.Database, f geojson.Feature) error {
 
 	is_alt := whosonfirst.IsAlt(f)
 
@@ -114,6 +114,10 @@ func (t *NamesTable) IndexFeature(db sqlite.Database, f geojson.Feature) error {
 	}
 
 	tx, err := conn.Begin()
+
+	if err != nil {
+		return err
+	}
 
 	id := f.Id()
 

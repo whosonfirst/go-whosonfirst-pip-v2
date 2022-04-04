@@ -1,12 +1,12 @@
 package tables
 
 import (
+	"context"
 	"fmt"
+	"github.com/aaronland/go-sqlite"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/whosonfirst"
-	"github.com/whosonfirst/go-whosonfirst-sqlite"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features"
-	"github.com/whosonfirst/go-whosonfirst-sqlite/utils"
 	"strings"
 )
 
@@ -22,15 +22,15 @@ type AncestorsRow struct {
 	LastModified      int64
 }
 
-func NewAncestorsTableWithDatabase(db sqlite.Database) (sqlite.Table, error) {
+func NewAncestorsTableWithDatabase(ctx context.Context, db sqlite.Database) (sqlite.Table, error) {
 
-	t, err := NewAncestorsTable()
+	t, err := NewAncestorsTable(ctx)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = t.InitializeTable(db)
+	err = t.InitializeTable(ctx, db)
 
 	if err != nil {
 		return nil, err
@@ -39,7 +39,7 @@ func NewAncestorsTableWithDatabase(db sqlite.Database) (sqlite.Table, error) {
 	return t, nil
 }
 
-func NewAncestorsTable() (sqlite.Table, error) {
+func NewAncestorsTable(ctx context.Context) (sqlite.Table, error) {
 
 	t := AncestorsTable{
 		name: "ancestors",
@@ -68,16 +68,16 @@ func (t *AncestorsTable) Schema() string {
 	return fmt.Sprintf(sql, t.Name(), t.Name(), t.Name(), t.Name())
 }
 
-func (t *AncestorsTable) InitializeTable(db sqlite.Database) error {
+func (t *AncestorsTable) InitializeTable(ctx context.Context, db sqlite.Database) error {
 
-	return utils.CreateTableIfNecessary(db, t)
+	return sqlite.CreateTableIfNecessary(ctx, db, t)
 }
 
-func (t *AncestorsTable) IndexRecord(db sqlite.Database, i interface{}) error {
-	return t.IndexFeature(db, i.(geojson.Feature))
+func (t *AncestorsTable) IndexRecord(ctx context.Context, db sqlite.Database, i interface{}) error {
+	return t.IndexFeature(ctx, db, i.(geojson.Feature))
 }
 
-func (t *AncestorsTable) IndexFeature(db sqlite.Database, f geojson.Feature) error {
+func (t *AncestorsTable) IndexFeature(ctx context.Context, db sqlite.Database, f geojson.Feature) error {
 
 	is_alt := whosonfirst.IsAlt(f)
 
@@ -92,6 +92,10 @@ func (t *AncestorsTable) IndexFeature(db sqlite.Database, f geojson.Feature) err
 	}
 
 	tx, err := conn.Begin()
+
+	if err != nil {
+		return err
+	}
 
 	id := f.Id()
 

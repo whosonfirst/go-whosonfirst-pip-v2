@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -14,6 +15,8 @@ import (
 )
 
 func NewApplicationExtras(fl *flag.FlagSet) (*database.SQLiteDatabase, error) {
+
+	ctx := context.Background()
 
 	enable_extras, _ := flags.BoolVar(fl, "enable-extras")
 	extras_dsn, _ := flags.StringVar(fl, "extras-dsn")
@@ -88,7 +91,7 @@ func NewApplicationExtras(fl *flag.FlagSet) (*database.SQLiteDatabase, error) {
 	// see also:
 	// https://github.com/whosonfirst/go-whosonfirst-pip-v2/issues/19
 
-	_, err = tables.NewGeoJSONTableWithDatabase(db)
+	_, err = tables.NewGeoJSONTableWithDatabase(ctx, db)
 
 	if err != nil {
 		return nil, err

@@ -32,7 +32,7 @@ func main() {
 	
      	flag.Parse()
 	
-	cb := func(fh io.Reader, ctx context.Context, args ...interface{}) error {
+	cb := func(ctx context.Context, fh io.Reader, args ...interface{}) error {
 
 		path, _ := index.PathForContext(ctx)
 

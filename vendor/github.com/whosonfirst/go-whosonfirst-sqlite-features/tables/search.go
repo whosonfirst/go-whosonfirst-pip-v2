@@ -1,13 +1,13 @@
 package tables
 
 import (
+	"context"
 	"fmt"
+	"github.com/aaronland/go-sqlite"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/whosonfirst"
 	"github.com/whosonfirst/go-whosonfirst-names/tags"
-	"github.com/whosonfirst/go-whosonfirst-sqlite"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features"
-	"github.com/whosonfirst/go-whosonfirst-sqlite/utils"
 	_ "log"
 	"strings"
 )
@@ -17,15 +17,15 @@ type SearchTable struct {
 	name string
 }
 
-func NewSearchTableWithDatabase(db sqlite.Database) (sqlite.Table, error) {
+func NewSearchTableWithDatabase(ctx context.Context, db sqlite.Database) (sqlite.Table, error) {
 
-	t, err := NewSearchTable()
+	t, err := NewSearchTable(ctx)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = t.InitializeTable(db)
+	err = t.InitializeTable(ctx, db)
 
 	if err != nil {
 		return nil, err
@@ -34,7 +34,7 @@ func NewSearchTableWithDatabase(db sqlite.Database) (sqlite.Table, error) {
 	return t, nil
 }
 
-func NewSearchTable() (sqlite.Table, error) {
+func NewSearchTable(ctx context.Context) (sqlite.Table, error) {
 
 	t := SearchTable{
 		name: "search",
@@ -43,9 +43,9 @@ func NewSearchTable() (sqlite.Table, error) {
 	return &t, nil
 }
 
-func (t *SearchTable) InitializeTable(db sqlite.Database) error {
+func (t *SearchTable) InitializeTable(ctx context.Context, db sqlite.Database) error {
 
-	return utils.CreateTableIfNecessary(db, t)
+	return sqlite.CreateTableIfNecessary(ctx, db, t)
 }
 
 func (t *SearchTable) Name() string {
@@ -64,11 +64,11 @@ func (t *SearchTable) Schema() string {
 	return fmt.Sprintf(schema, t.Name())
 }
 
-func (t *SearchTable) IndexRecord(db sqlite.Database, i interface{}) error {
-	return t.IndexFeature(db, i.(geojson.Feature))
+func (t *SearchTable) IndexRecord(ctx context.Context, db sqlite.Database, i interface{}) error {
+	return t.IndexFeature(ctx, db, i.(geojson.Feature))
 }
 
-func (t *SearchTable) IndexFeature(db sqlite.Database, f geojson.Feature) error {
+func (t *SearchTable) IndexFeature(ctx context.Context, db sqlite.Database, f geojson.Feature) error {
 
 	is_alt := whosonfirst.IsAlt(f)
 
@@ -104,6 +104,11 @@ func (t *SearchTable) IndexFeature(db sqlite.Database, f geojson.Feature) error 
 	names_preferred := make([]string, 0)
 	names_variant := make([]string, 0)
 	names_colloquial := make([]string, 0)
+
+	name := f.Name()
+
+	names_all = append(names_all, name)
+	names_preferred = append(names_preferred, name)
 
 	for tag, names := range whosonfirst.Names(f) {
 

@@ -12,13 +12,21 @@ make tools
 
 All of this package's dependencies are bundled with the code in the `vendor` directory.
 
-## Important
+## Notice
 
-This is work in progress. It may change (and break your code) still. This package aims to replace the existing [go-whosonfirst-geojson](https://github.com/whosonfirst/go-whosonfirst-geojson) package. If you want to follow along, please consult:
+This package is stuck in that awkward in-between place where it is basically deprecated but still being included as a dependency to a lot of other packages.
 
-https://github.com/whosonfirst/go-whosonfirst-geojson-v2/issues/1
+Which is to say: While this package is not officially deprecated yet it is on its way to being deprecated. Bug fixes will be applied when necessary but otherwise all work is being applied to the [whosonfirst/go-whosonfirst-feature](https://github.com/whosonfirst/go-whosonfirst-feature) package.
 
-## geojson-v2?
+Basically this package tries to do too many things, specifically around defining GeoJSON-related structs and interfaces. It's not really worth the effort and better to use [paulmach/orb/geojson](https://github.com/paulmach/orb) for geometry and GeoJSON-related operations and [tidwall/gjson](https://github.com/tidwall/gjson] for query-related operations using plain-vanilla `[]byte` elements. This is the approach taken by the `go-whosonfirst-feature` package.
+
+If you are using _this package_ in your code it would be best to migrate it to use equivalent functionality defined in the `go-whosonfirst-feature` package.
+
+## History
+
+The goal of this package was to replace the existing [go-whosonfirst-geojson](https://github.com/whosonfirst/go-whosonfirst-geojson) package.
+
+### geojson-v2?
 
 Yeah, I don't really like it either but this package is basically 100% backwards incompatible with `github.com/whosonfirst/go-whosonfirst-geojson` and while I don't _really_ think anyone else is using it I don't like the idea of suddenly breaking everyone's code.
 

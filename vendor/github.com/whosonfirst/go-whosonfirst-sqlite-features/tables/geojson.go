@@ -1,12 +1,12 @@
 package tables
 
 import (
+	"context"
 	"fmt"
+	"github.com/aaronland/go-sqlite"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/whosonfirst"
-	"github.com/whosonfirst/go-whosonfirst-sqlite"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features"
-	"github.com/whosonfirst/go-whosonfirst-sqlite/utils"
 )
 
 type GeoJSONTableOptions struct {
@@ -34,7 +34,7 @@ type GeoJSONRow struct {
 	LastModified int64
 }
 
-func NewGeoJSONTableWithDatabase(db sqlite.Database) (sqlite.Table, error) {
+func NewGeoJSONTableWithDatabase(ctx context.Context, db sqlite.Database) (sqlite.Table, error) {
 
 	opts, err := DefaultGeoJSONTableOptions()
 
@@ -42,18 +42,18 @@ func NewGeoJSONTableWithDatabase(db sqlite.Database) (sqlite.Table, error) {
 		return nil, err
 	}
 
-	return NewGeoJSONTableWithDatabaseAndOptions(db, opts)
+	return NewGeoJSONTableWithDatabaseAndOptions(ctx, db, opts)
 }
 
-func NewGeoJSONTableWithDatabaseAndOptions(db sqlite.Database, opts *GeoJSONTableOptions) (sqlite.Table, error) {
+func NewGeoJSONTableWithDatabaseAndOptions(ctx context.Context, db sqlite.Database, opts *GeoJSONTableOptions) (sqlite.Table, error) {
 
-	t, err := NewGeoJSONTableWithOptions(opts)
+	t, err := NewGeoJSONTableWithOptions(ctx, opts)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = t.InitializeTable(db)
+	err = t.InitializeTable(ctx, db)
 
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func NewGeoJSONTableWithDatabaseAndOptions(db sqlite.Database, opts *GeoJSONTabl
 	return t, nil
 }
 
-func NewGeoJSONTable() (sqlite.Table, error) {
+func NewGeoJSONTable(ctx context.Context) (sqlite.Table, error) {
 
 	opts, err := DefaultGeoJSONTableOptions()
 
@@ -70,10 +70,10 @@ func NewGeoJSONTable() (sqlite.Table, error) {
 		return nil, err
 	}
 
-	return NewGeoJSONTableWithOptions(opts)
+	return NewGeoJSONTableWithOptions(ctx, opts)
 }
 
-func NewGeoJSONTableWithOptions(opts *GeoJSONTableOptions) (sqlite.Table, error) {
+func NewGeoJSONTableWithOptions(ctx context.Context, opts *GeoJSONTableOptions) (sqlite.Table, error) {
 
 	t := GeoJSONTable{
 		name:    "geojson",
@@ -94,27 +94,28 @@ func (t *GeoJSONTable) Schema() string {
 		body TEXT,
 		source TEXT,
 		is_alt BOOLEAN,
+		alt_label TEXT,
 		lastmodified INTEGER
 	);
 
-	CREATE UNIQUE INDEX geojson_by_id ON %s (id, source);
-	CREATE INDEX geojson_by_alt ON %s (id, is_alt);
+	CREATE UNIQUE INDEX geojson_by_id ON %s (id, source, alt_label);
+	CREATE INDEX geojson_by_alt ON %s (id, is_alt, alt_label);
 	CREATE INDEX geojson_by_lastmod ON %s (lastmodified);
 	`
 
 	return fmt.Sprintf(sql, t.Name(), t.Name(), t.Name(), t.Name())
 }
 
-func (t *GeoJSONTable) InitializeTable(db sqlite.Database) error {
+func (t *GeoJSONTable) InitializeTable(ctx context.Context, db sqlite.Database) error {
 
-	return utils.CreateTableIfNecessary(db, t)
+	return sqlite.CreateTableIfNecessary(ctx, db, t)
 }
 
-func (t *GeoJSONTable) IndexRecord(db sqlite.Database, i interface{}) error {
-	return t.IndexFeature(db, i.(geojson.Feature))
+func (t *GeoJSONTable) IndexRecord(ctx context.Context, db sqlite.Database, i interface{}) error {
+	return t.IndexFeature(ctx, db, i.(geojson.Feature))
 }
 
-func (t *GeoJSONTable) IndexFeature(db sqlite.Database, f geojson.Feature) error {
+func (t *GeoJSONTable) IndexFeature(ctx context.Context, db sqlite.Database, f geojson.Feature) error {
 
 	conn, err := db.Conn()
 
@@ -127,6 +128,7 @@ func (t *GeoJSONTable) IndexFeature(db sqlite.Database, f geojson.Feature) error
 
 	source := whosonfirst.Source(f)
 	is_alt := whosonfirst.IsAlt(f)
+	alt_label := whosonfirst.AltLabel(f)
 
 	if is_alt && !t.options.IndexAltFiles {
 		return nil
@@ -141,9 +143,9 @@ func (t *GeoJSONTable) IndexFeature(db sqlite.Database, f geojson.Feature) error
 	}
 
 	sql := fmt.Sprintf(`INSERT OR REPLACE INTO %s (
-		id, body, source, is_alt, lastmodified
+		id, body, source, is_alt, alt_label, lastmodified
 	) VALUES (
-		?, ?, ?, ?, ?
+		?, ?, ?, ?, ?, ?
 	)`, t.Name())
 
 	stmt, err := tx.Prepare(sql)
@@ -156,7 +158,7 @@ func (t *GeoJSONTable) IndexFeature(db sqlite.Database, f geojson.Feature) error
 
 	str_body := string(body)
 
-	_, err = stmt.Exec(str_id, str_body, source, is_alt, lastmod)
+	_, err = stmt.Exec(str_id, str_body, source, is_alt, alt_label, lastmod)
 
 	if err != nil {
 		return err

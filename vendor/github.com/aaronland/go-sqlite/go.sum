@@ -1,0 +1,15 @@
+github.com/mattn/go-sqlite3 v1.13.0 h1:LnJI81JidiW9r7pS/hXe6cFeO5EXNq7KbfvoJLRI69c=
+github.com/mattn/go-sqlite3 v1.14.7 h1:fxWBnXkxfM6sRiuH3bqJ4CfzZojMOLVc0UTsTglEghA=
+github.com/mattn/go-sqlite3 v1.14.7/go.mod h1:NyWgC/yNuGj7Q9rpYnZvas74GogHl5/Z4A/KQRfk6bU=
+github.com/mattn/go-sqlite3 v1.14.8 h1:gDp86IdQsN/xWjIEmr9MF6o9mpksUgh0fu+9ByFxzIU=
+github.com/mattn/go-sqlite3 v1.14.8/go.mod h1:NyWgC/yNuGj7Q9rpYnZvas74GogHl5/Z4A/KQRfk6bU=
+github.com/mattn/go-sqlite3 v2.0.3+incompatible h1:gXHsfypPkaMZrKbD5209QV9jbUTJKjyR5WD3HYQSd+U=
+github.com/mattn/go-sqlite3 v2.0.3+incompatible/go.mod h1:FPy6KqzDD04eiIsT53CuJW3U88zkxoIYsOqkbpncsNc=
+github.com/psanford/sqlite3vfs v0.0.0-20210810192024-980beb1874e4 h1:Oun5zFH1CMQCKAS4hWzHX/SaysoOAhOiDqBkKj3n1/w=
+github.com/psanford/sqlite3vfs v0.0.0-20210810192024-980beb1874e4/go.mod h1:4CnLWpNEluUrLmUVLGEvkn0ZSEm9zdZmTtUlKRZp5Ag=
+github.com/psanford/sqlite3vfs v0.0.0-20210823054414-6197b9fad12f h1:QiyAANPBaECR1F2ejYGIn7zxvLrLPk7bDp2Q9Ha6f34=
+github.com/psanford/sqlite3vfs v0.0.0-20210823054414-6197b9fad12f/go.mod h1:iW4cSew5PAb1sMZiTEkVJAIBNrepaB6jTYjeP47WtI0=
+github.com/psanford/sqlite3vfshttp v0.0.0-20210810192816-7ed3ddba507d h1:KihA6nWlH32n8xWltDBwUWvjWk1vbclEm2TdVUr8g4U=
+github.com/psanford/sqlite3vfshttp v0.0.0-20210810192816-7ed3ddba507d/go.mod h1:hQKK0GFcSapdHKElLpXRFo7SUvriHB22EuK+OQIpkuU=
+github.com/psanford/sqlite3vfshttp v0.0.0-20210815150654-07be1ade312e h1:KH9aXyBtKhgoc3XM7nBS82sN1MLUiw+XJsLBvirBVpU=
+github.com/psanford/sqlite3vfshttp v0.0.0-20210815150654-07be1ade312e/go.mod h1:fgwmd0q/GmamdQOyXby4SM/m6mBk6aTde7uJ5sxkeUA=

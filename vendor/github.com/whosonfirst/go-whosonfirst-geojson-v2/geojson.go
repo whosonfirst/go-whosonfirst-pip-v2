@@ -2,7 +2,7 @@ package geojson
 
 import (
 	"github.com/skelterjohn/geom"
-	"github.com/whosonfirst/go-whosonfirst-spr"
+	"github.com/whosonfirst/go-whosonfirst-spr/v2"
 )
 
 type Feature interface {

@@ -8,9 +8,27 @@ import (
 
 type KnownUnknownFlag struct {
 	flags.ExistentialFlag
-	flag       int64
+	flag       int64 // https://github.com/whosonfirst/go-whosonfirst-flags/issues/2
 	status     bool
 	confidence bool
+}
+
+func NewKnownUnknownFlagsArray(values ...int64) ([]flags.ExistentialFlag, error) {
+
+	existential_flags := make([]flags.ExistentialFlag, 0)
+
+	for _, v := range values {
+
+		fl, err := NewKnownUnknownFlag(v)
+
+		if err != nil {
+			return nil, err
+		}
+
+		existential_flags = append(existential_flags, fl)
+	}
+
+	return existential_flags, nil
 }
 
 func NewKnownUnknownFlag(i int64) (flags.ExistentialFlag, error) {

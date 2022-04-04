@@ -2,15 +2,9 @@
 
 Go package for working with URIs for Who's On First documents
 
-## Install
+## Documentation
 
-You will need to have both `Go` and the `make` programs installed on your computer. Assuming you do just type:
-
-```
-make bin
-```
-
-All of this package's dependencies are bundled with the code in the `vendor` directory.
+[![Go Reference](https://pkg.go.dev/badge/github.com/whosonfirst/go-whosonfirst-uri.svg)](https://pkg.go.dev/github.com/whosonfirst/go-whosonfirst-uri)
 
 ## Example
 

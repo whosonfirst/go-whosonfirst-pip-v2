@@ -182,8 +182,27 @@ func NewRect(p Point, lengths []float64) (r *Rect, err error) {
 	return
 }
 
-// size computes the measure of a rectangle (the product of its side lengths).
-func (r *Rect) size() float64 {
+// NewRectFromPoints constructs and returns a pointer to a Rect given a corner points.
+func NewRectFromPoints(minPoint, maxPoint Point) (r *Rect, err error) {
+	if len(minPoint) != len(maxPoint) {
+		err = &DimError{len(minPoint), len(maxPoint)}
+		return
+	}
+
+	//checking that  min and max points is swapping
+	for i, p := range minPoint {
+		if minPoint[i] > maxPoint[i] {
+			minPoint[i] = maxPoint[i]
+			maxPoint[i] = p
+		}
+	}
+
+	r = &Rect{p: minPoint, q: maxPoint}
+	return
+}
+
+// Size computes the measure of a rectangle (the product of its side lengths).
+func (r *Rect) Size() float64 {
 	size := 1.0
 	for i, a := range r.p {
 		b := r.q[i]
@@ -248,7 +267,7 @@ func (r *Rect) containsRect(r2 *Rect) bool {
 
 // intersect computes the intersection of two rectangles.  If no intersection
 // exists, the intersection is nil.
-func intersect(r1, r2 *Rect) *Rect {
+func intersect(r1, r2 *Rect) bool {
 	dim := len(r1.p)
 	if len(r2.p) != dim {
 		panic(DimError{dim, len(r2.p)})
@@ -283,17 +302,13 @@ func intersect(r1, r2 *Rect) *Rect {
 	// Enforced by constructor: a1 <= b1 and a2 <= b2.  So we can just
 	// check the endpoints.
 
-	p := make([]float64, dim)
-	q := make([]float64, dim)
-	for i := range p {
+	for i := range r1.p {
 		a1, b1, a2, b2 := r1.p[i], r1.q[i], r2.p[i], r2.q[i]
 		if b2 <= a1 || b1 <= a2 {
-			return nil
+			return false
 		}
-		p[i] = math.Max(a1, a2)
-		q[i] = math.Min(b1, b2)
 	}
-	return &Rect{p, q}
+	return true
 }
 
 // ToRect constructs a rectangle containing p with side lengths 2*tol.

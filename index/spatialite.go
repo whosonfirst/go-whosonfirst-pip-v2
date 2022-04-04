@@ -4,6 +4,7 @@ package index
 // http://www.gaia-gis.it/gaia-sins/spatialite-sql-4.3.0.html
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/skelterjohn/geom"
@@ -42,7 +43,8 @@ func NewSpatialiteIndex(db *database.SQLiteDatabase, c cache.Cache) (Index, erro
 
 	logger := log.SimpleWOFLogger("index")
 
-	_, err := tables.NewGeometriesTableWithDatabase(db)
+	ctx := context.Background()
+	_, err := tables.NewGeometriesTableWithDatabase(ctx, db)
 
 	if err != nil {
 		return nil, err
@@ -81,6 +83,8 @@ func (i *SpatialiteIndex) Cache() cache.Cache {
 
 func (i *SpatialiteIndex) IndexFeature(f geojson.Feature) error {
 
+	ctx := context.Background()
+
 	// SEE ABOVE
 
 	<-i.throttle
@@ -94,7 +98,7 @@ func (i *SpatialiteIndex) IndexFeature(f geojson.Feature) error {
 
 	db := i.database
 
-	t, err := tables.NewGeometriesTable()
+	t, err := tables.NewGeometriesTable(ctx)
 
 	if err != nil {
 		return err
@@ -114,7 +118,7 @@ func (i *SpatialiteIndex) IndexFeature(f geojson.Feature) error {
 		return err
 	}
 
-	return t.IndexRecord(db, f)
+	return t.IndexRecord(ctx, db, f)
 }
 
 func (i *SpatialiteIndex) GetIntersectsByCoord(coord geom.Coord, f filter.Filter) (spr.StandardPlacesResults, error) {

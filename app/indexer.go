@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/aaronland/go-sqlite"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/feature"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/geometry"
@@ -13,7 +14,6 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-pip-v2/flags"
 	"github.com/whosonfirst/go-whosonfirst-pip-v2/index"
 	"github.com/whosonfirst/go-whosonfirst-pip-v2/utils"
-	"github.com/whosonfirst/go-whosonfirst-sqlite"
 	"github.com/whosonfirst/go-whosonfirst-sqlite-features/tables"
 	"github.com/whosonfirst/go-whosonfirst-sqlite/database"
 	"github.com/whosonfirst/warning"
@@ -24,6 +24,8 @@ import (
 )
 
 func NewApplicationIndexer(fl *flag.FlagSet, appindex index.Index, appextras *database.SQLiteDatabase) (*wof_index.Indexer, error) {
+
+	ctx := context.Background()
 
 	mode, _ := flags.StringVar(fl, "mode")
 	is_wof, _ := flags.BoolVar(fl, "is-wof")
@@ -80,7 +82,7 @@ func NewApplicationIndexer(fl *flag.FlagSet, appindex index.Index, appextras *da
 
 	if index_extras {
 
-		t, err := tables.NewGeoJSONTable()
+		t, err := tables.NewGeoJSONTable(ctx)
 
 		if err != nil {
 			return nil, err
@@ -224,7 +226,7 @@ func NewApplicationIndexer(fl *flag.FlagSet, appindex index.Index, appextras *da
 
 				mu.Lock()
 
-				err = gt.IndexRecord(appextras, f)
+				err = gt.IndexRecord(ctx, appextras, f)
 
 				mu.Unlock()
 

@@ -16,11 +16,10 @@ var LibNames = []entrypoint{
 	{"mod_spatialite", "sqlite3_modspatialite_init"},
 	{"mod_spatialite.dylib", "sqlite3_modspatialite_init"},
 	{"libspatialite.so", "sqlite3_modspatialite_init"},
-	{"libspatialite.so.5", "spatialite_init_ex"},
 	{"libspatialite.so", "spatialite_init_ex"},
 }
 
-var ErrSpatialiteNotFound = errors.New("shaxbee/go-spatialite: spatialite extension not found.")
+var ErrSpatialiteNotFound = errors.New("whosonfirst/go-spatialite: spatialite extension not found.")
 
 func init() {
 	sql.Register("spatialite", &sqlite3.SQLiteDriver{

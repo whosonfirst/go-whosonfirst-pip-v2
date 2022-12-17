@@ -2,7 +2,7 @@
 
 An in-memory point-in-polygon (reverse geocoding) package for GeoJSON data, principally Who's On First data.
 
-_This package supersedes the [go-whosonfirst-pip](https://github.com/whosonfirst/go-whosonfirst-pip) package which is no longer maintained._
+_This package has been deprecated. You should use the [go-whosonfirst-spatial](https://github.com/whosonfirst/go-whosonfirst-spatial) packages instead._ 
 
 ## Install
 
